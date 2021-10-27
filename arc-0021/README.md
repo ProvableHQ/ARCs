@@ -22,12 +22,12 @@ We focus on the network specifics of each node type.
 
 ### Peering properties at a glance
 
-| node type     | upper peering limit                                     | lower peering limit          |
-| ------------- | ------------------------------------------------------- | ---------------------------- |
-| client/miner  | `max-peers`                                             | `min-peers`                  |
-| beacon        | 80% `max-peers`, remaining 20% free for new connections | `0`, doesn't eagerly connect |
-| sync provider | 80% `max-peers`, remaining 20% free for new connections | `0`, doesn't eagerly connect |
-| crawler       | 80% `max-peers`, remaining 20% free for new connections | `min-peers`                  |
+| node type     | upper peering limit                                     | lower peering limit                                                              |
+| ------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| client/miner  | `max-peers`                                             | `min-peers`                                                                      |
+| beacon        | 80% `max-peers`, remaining 20% free for new connections | `0`, doesn't eagerly connect but maintains connections with other beacons        |
+| sync provider | 80% `max-peers`, remaining 20% free for new connections | `0`, doesn't eagerly connect but maintains connections with other sync providers |
+| crawler       | 80% `max-peers`, remaining 20% free for new connections | `min-peers`                                                                      |
 
 ### Client nodes
 
@@ -47,7 +47,7 @@ Miner nodes are client nodes with mining enabled. From a network perspective, th
 
 Beacon nodes are the main entry points into the network. They aim to provide new nodes with peer lists containing active and routable addresses, including sync providers. They don't run with a sync layer enabled and thus don't store or propagate any chain state.
 
-They maintain 20% of their peering capacity free below the `max-peers` limit to accept new connections and don't connect to any peers on their own initiative. In other words, `min-peers` is ignored for these nodes.
+They maintain 20% of their peering capacity free below the `max-peers` limit to accept new connections and don't connect to any peers on their own initiative. In other words, `min-peers` is ignored for these nodes. They also maintain connections with a few other beacons in order to propagate peer lists.
 
 Beacons select peers to include in their peer lists from the peerbook in a specific order, moving to the next set only if the previous was empty.
 
@@ -59,7 +59,7 @@ Beacons select peers to include in their peer lists from the peerbook in a speci
 
 Sync provider nodes are dedicated Aleo-run sync providers. They aim to provide new nodes in the network with a reliable source of the chain state.
 
-Much like beacons, they maintain 20% of their peering capacity free below the `max-peers` limit to accept new connections and don't connect to any peers on their own initiative. In other words, `min-peers` is ignored for these nodes.
+Much like beacons, they maintain 20% of their peering capacity free below the `max-peers` limit to accept new connections and don't connect to any peers on their own initiative. In other words, `min-peers` is ignored for these nodes. They do, however, periodically connect to other randomly-selected sync providers in order to keep chain state in sync.
 
 ### Crawler nodes
 
