@@ -69,17 +69,10 @@ They maintain 20% of their peering capacity free below the `max-peers` limit and
 
 Crawlers only propagate routable addresses.
 
-### TBD: crawlers and beacons working together?
+### Future improvements still to be considered
 
-- Should they maintain long-standing connections with other beacons or crawlers?
-- The centrality measurements gathered by the crawler node could be used to improve the peer lists provided by the beacons?
-- Sync provider load balancing? Cc Fabiano.
-
-## Backwards Compatibility
-
-Beacons and sync providers are backwards compatible with our current bootnodes.
-
-Other aspects will need to be considered if we want crawlers and nodes to work together, i.e. extending the network protocol but this should also be backwards compatible.
+- Should crawlers maintain long-standing connections with beacons? The former could provide the latter with better peer lists.
+- Sync provider load balancing. Cc Fabiano.
 
 ## Reference Implementations
 
