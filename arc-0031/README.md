@@ -3,7 +3,7 @@ arc: 0031
 title: Improving mappings
 authors: evan@demoxlabs.xyz, mike@demoxlabs.xyz
 discussion: [ARC-0031: Improving mappings](https://github.com/AleoHQ/ARCs/discussions/20)
-topic: Language
+topic: Application
 status: Draft
 created: 10-05-2022
 ---
@@ -12,7 +12,7 @@ created: 10-05-2022
 
 Mappings are how Aleo programs store public state. To make them more useful, we should:
 1. Load the value of mappings directly. 
-2. Set the value of mappings directly.
+2. Store the value of mappings directly.
 3. Support structs & strings as mapping data types.
 
 ## Specification
@@ -31,23 +31,23 @@ function get_balance:
     output r1 as u64.public;
 ```
 
-2. A finalize statement should support setting the value of a mapping directly
+2. A finalize statement should support storing the value of a mapping directly
 ```
 mapping balances:
     key owner as address.public;
     value amount as u64.public;
 
-function set_balance:
+function store_balance:
     input r0 as address.public;
     input r1 as u64.public;
 
     finalize r0 r1;
 
-finalize set_balance:
+finalize store_balance:
     input r0 as address.public;
     input r1 as u64.public;
 
-    set balances[r0] r1;
+    store balances[r0] r1;
 ```
 
 3. Mapping should support structs & strings
@@ -78,9 +78,10 @@ finalize mint_nft:
     input r0 as address.public;
     input r1 as nft;
 
-    set nft_owners[r0] to r1;
+    store nft_owners[r0] r1;
 ```
 
+4. The REST API should support endpoints to fetch the mapping.
 
 ## Dependencies
 
