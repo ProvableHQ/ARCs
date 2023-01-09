@@ -11,7 +11,7 @@ created: 1/9/2023
 ## Abstract
 
 Currently, there is no standard way for Dapps to communicate with Wallet apps, which means that Dapps need to
-create multiple adapters to comunicate with different Wallet apps. This problem will get exponentially worse
+create multiple adapters to communicate with different Wallet apps. This problem will get exponentially worse
 as the number of Dapps and Wallets increase.
 
 By formalizing Provider APIs that Wallet apps can expose to Dapps, we expect to increase wallet interoperability
