@@ -102,48 +102,6 @@ Providers **MAY** support whatever RPC methods required to fulfill their purpo
 
 If an RPC method defined in a finalized AIP is not supported, it **SHOULD** be rejected with a `4200` error per the **Provider Errors** section below, or an appropriate error per the RPC method's specification.
 
-**aleo_chainId**
-
-_Description_
-
-Returns the currently configured chain ID
-
-_Parameters_
-
-_(none)_
-
-_Returns_
-
-{`string`} - number of the current chain ID.
-
-**aleo_accounts**
-
-_Description_
-
-Returns a list of addresses owned by this client
-
-_Parameters_
-
-_(none)_
-
-_Returns_
-
-{`string[]`} - array of addresses
-
-**aleo_blockNumber**
-
-_Description_
-
-Returns the number of the most recent block seen by this client
-
-_Parameters_
-
-_(none)_
-
-_Returns_
-
-{ `string` } - number of the latest block
-
 ### RPC Errors
 
 ```tsx
@@ -226,7 +184,7 @@ interface ProviderConnectInfo {
 }
 ```
 
-`chainId` **MUST** specify the integer ID of the connected chain as a hexadecimal string, per the `aleo_chainId` Aleo RPC method.
+`chainId` **MUST** specify the integer ID of the connected chain as a hexadecimal string.
 
 ### disconnect
 
@@ -236,13 +194,11 @@ If the Provider becomes disconnected from all chains, the Provider **MUST** em
 
 ### chainChanged
 
-If the chain the Provider is connected to changes, the Provider **MUST** emit the event named `chainChanged` with value `chainId: string`, specifying the integer ID of the new chain as a hexadecimal string, per the `aleo_chainId` Aleo RPC method.
+If the chain the Provider is connected to changes, the Provider **MUST** emit the event named `chainChanged` with value `chainId: string`, specifying the integer ID of the new chain as a hexadecimal string.
 
 ### accountsChanged
 
-If the accounts available to the Provider change, the Provider **MUST** emit the event named `accountsChanged` with value `accounts: string[]`, containing the account addresses per the `aleo_accounts` Aleo RPC method.
-
-The "accounts available to the Provider" change when the return value of `aleo_accounts` changes.
+If the accounts available to the Provider change, the Provider **MUST** emit the event named `accountsChanged` with value `accounts: string[]`.
 
 ### Test Cases
 
@@ -303,13 +259,13 @@ This event emits a `ProviderRpcError`. The error `code` follows the table of�
 
 **accountsChanged**
 
-The Provider emits `accountsChanged` if the accounts returned from the Provider (`aleo_accounts`) change.
+The Provider emits `accountsChanged` if the accounts returned from the Provider change.
 
 ```tsx
 Provider.on('accountsChanged', listener: (accounts: string[]) => void): Provider;
 ```
 
-The event emits with `accounts`, an array of account addresses, per the `aleo_accounts` Aleo RPC method.
+The event emits with `accounts`, an array of account addresses.
 
 **message**
 
