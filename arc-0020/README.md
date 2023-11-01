@@ -2,7 +2,7 @@
 arc: 20
 title: Design for ARC20
 authors: The Aleo Team <hello@aleo.org>
-discussion: [link](https://github.com/AleoHQ/ARCs/discussions/42)
+discussion: https://github.com/AleoHQ/ARCs/discussions/42
 topic: Application
 status: Living
 created: 2023-10-31
