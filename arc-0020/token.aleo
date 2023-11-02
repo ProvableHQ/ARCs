@@ -31,7 +31,7 @@ finalize approve_public:
     input r0 as field.public;
     input r1 as u64.public; // increase in amount spender is allowed to withdraw from approver
 
-    // if approvals for approver field times spender field exists, the approved amount is increased.
+    // if approvals for approval field exists, the approved amount is increased.
     // otherwise, the approved allowance is created.
     get.or_use approvals[r0] 0u64 into r2;
     add r1 r2 into r3;
