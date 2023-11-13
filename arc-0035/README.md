@@ -1,5 +1,5 @@
 ---
-arc: 0034
+arc: 0035
 title: Enable to set beneficiary for validator
 authors: Ghostant1017
 discussion: 
