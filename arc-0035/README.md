@@ -25,8 +25,8 @@ In this ARC, we propose to add a beneficiary for validator, which means that, th
 
 ```aleo
 struct committee_state:
-		// The beneficiary of the validator where the PoS rewards will be distributed to.
-		beneficiary as address;
+    // The beneficiary of the validator where the PoS rewards will be distributed to.
+    beneficiary as address;
     // The amount of microcredits bonded to the validator, by the validator and its delegators.
     microcredits as u64;
     // The boolean flag indicating if the validator is open to stakers.
