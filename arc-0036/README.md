@@ -99,55 +99,50 @@ Pseudo implementation of the aleo code and rest api
 ### Aleo Program
 
 ```
-// Define a struct for validator information
-struct ValidatorInfo {
-    name: String,
-    website: String,
-    logo: String, // Assuming the logo is a URL or a hash of an uploaded image
-    description: String,
-}
+// The 'avr' program.
+program avr.aleo {
 
-// Assume a stateful record for committee list and validator registry
-let committeeList: State<HashMap<Address, bool>>;
-let validatorRegistry: State<HashMap<Address, ValidatorInfo>>;
+    // store a validator registry mapping here
+    // this is a mapping of public key to validator address
+    mapping validator_registry: address => validator;
 
-// Function to add a validator to the committee list
-function addToCommitteeList(validator_address: Address) -> bool {
-    // Check if already in the committee list to prevent duplicates
-    if committeeList.contains_key(&validator_address) {
-        return false; // Already in the list
+    struct validator {
+        validator_address: address,
+        name: field,
+        website_url: field,
+        logo_url: field,
     }
-    committeeList.insert(validator_address, true);
-    return true;
-}
 
-// Function to register or update a validator's information
-function registerValidator(validator_address: Address, info: ValidatorInfo) -> Result<(), String> {
-    // Check if the validator is part of the committee
-    match committeeList.get(&validator_address) {
-        Some(_) => {
-            // Register or update the validator's info
-            validatorRegistry.insert(validator_address, info);
-            Ok(())
-        },
-        None => Err("Validator must be an active committee member to register.")
+    transition register_validator(public new_validator: validator) -> validator {
+        //assert_eq(self.caller, new_validator.validator_address);
+        return new_validator then finalize(new_validator);
     }
+    // function to insert new validator address with name
+    // only the current validator can insert a new validator
+    finalize register_validator(public new_validator: validator) {
+        // check if validator address already exists
+        let existing_validator: validator = Mapping::get(validator_registry, new_validator.validator_address);
+        if existing_validator.validator_address == new_validator.validator_address{
+            return;
+        }
+        Mapping::set(validator_registry, new_validator.validator_address, new_validator);
+    }
+
+    // function to update validator address
+    transition update_validator(public existing_validator: validator) -> validator {
+        //assert_eq(self.caller, new_validator.validator_address);
+        return existing_validator then finalize(existing_validator);
+    }
+
+    // function to finalize update validator address
+    finalize update_validator(public existing_validator: validator) {
+        // check if validator address already exists
+        let existing_validator: validator = Mapping::get(validator_registry, existing_validator.validator_address);
+        Mapping::set(validator_registry, existing_validator.validator_address, existing_validator);
+    }
+
 }
 
-// Function to check if a validator is active
-function isValidatorActive(validator_address: Address) -> bool {
-    committeeList.get(&validator_address).is_some()
-}
-
-// Function to get the signed message of the validator's information
-// Note: Signing would typically be done off-chain
-function getSignedValidatorMessage(info: ValidatorInfo) -> String {
-    // Placeholder for signing logic
-    // Actual signing would be done off-chain using the validator's private key
-    let message = format!("{}{}{}{}", info.name, info.website, info.logo, info.description);
-    let signature = "off_chain_signature_placeholder";
-    signature
-}
 ```
 
 ### Rest API
@@ -167,7 +162,7 @@ Response: - Validator details or error if the validator is not found
 ### Aleo Node Validator CLI
 
 ```bash
-TBD
+aleo --validator --register --nam
 ```
 
 ### Test Cases
