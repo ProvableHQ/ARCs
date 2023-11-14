@@ -1,5 +1,5 @@
 ---
-arc: 31
+arc: 36
 title: Validator Registry
 authors: apybara.io tech team
 discussion: 
