@@ -187,25 +187,6 @@ To build this stack, we need to build and deliver the following components:
 
 ### Test Cases
 
-```
-program bar.aleo;
-
-function get_bar:
-    output self.parent as address.public;
-```
-
-```
-program foo.aleo;
-
-
-function get_foo:
-    call bar.aleo/get_address into r0;
-
-    output r0 as address.public;
-```
-
-`aleo run get_foo` -> `address(foo.aleo)`
-`aleo run get_bar` -> `address(self.caller)`
 
 ## Dependencies
 
@@ -220,5 +201,3 @@ As this is a new feature, no programs should be impacted by adding a new opcode.
 There should be no regulatory concerns. 
 
 ## References
-
-Explanation of [tx.origin vs msg.sender in etherem](https://ethereum.stackexchange.com/questions/1891/whats-the-difference-between-msg-sender-and-tx-origin)
