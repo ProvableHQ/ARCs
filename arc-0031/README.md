@@ -170,21 +170,6 @@ Response: - Validator details or error if the validator is not found
 TBD
 ```
 
-### Deliverables
-
-To build this stack, we need to build and deliver the following components:
-
-- [ ]  Aleo source code (program)
-- [ ]  SnarkOS new route endpoint to get the list of validators
-    - Extension of /committees
-- [ ]  SnarkOS validator CLI command actions
-    - Add Validator
-    - Update Validator
-- [ ]  Documentation
-    - How to register a validator a node
-    - How to call the list of validators
-- [ ]  Create an ARC
-
 ### Test Cases
 
 
