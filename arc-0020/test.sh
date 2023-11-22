@@ -55,4 +55,6 @@ snarkos developer execute token.aleo approve_public ${spender_tester_address} 1u
 
 snarkos developer execute token.aleo transfer_from_public ${approver_address} ${spender_tester_address} 1u64 --private-key ${spender_tester_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
 
-# TODO: approve big_spender.aleo and make sure they transfer_from_public
+snarkos developer execute token.aleo approve_public big_spender.aleo 1u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
+
+snarkos developer execute token.aleo transfer_from_public big_spender.aleo ${spender_tester_address} 1u64 --private-key ${spender_tester_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
