@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 
-import { Button, Card, Col, Divider, Form, Input, Layout, Menu, Row, Table, Tag } from 'antd';
+import { Card, Layout, Table, Tag } from 'antd';
 const { Header, Content, Footer } = Layout;
 
 const Readme = ({ readme }) => {
