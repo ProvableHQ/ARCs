@@ -77,7 +77,7 @@ created: 01/01/2024
 <a name="1_abstract"></a>
 ## 1. Abstract
 
-There are several ARC-20 implementation standard proposals for the Aleo blockchain. This ARC provides a complete token standard for both public and private account/contract operations, and implement the followings:
+There are several ARC-20 implementation standard proposals for the Aleo blockchain. This ARC provides a complete token standard for both public and private account/contract operations. Compared to other ARC-20 proposals this ARC has the following major differences:
 1. Replaced onchain `approve()` functionality with [offchain signature](#tp) - `approve()` transition should not be implemented, instead user can agree to send token to a contract offchain using an offchain signature process to approve a transaction, and an onchain function eg [`transfer_from_public()`](#tp) that can apply that signature. This way smart contract interaction does not have to be a two step, but rather a one step process. This solution will save system resources as the approve part is offchain rather than onchain.
 2. Enable [private token records to be sent to smart contracts](#deposit_private) - This problem must be addressed because one of the key selling points of Aleo is its programmable privacy. The author of this ARC also believes that to utilize the UTXO nature of Token records also leads to a much larger scalability than that can be achieved applying mappings and public tokens.
 3. A signature scheme that [connects the contract with the main website](#company_signature) of the project. Thus make it easier for users to trust the token contract, and decrease the possibility of phishing attacks.
