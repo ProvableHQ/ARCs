@@ -85,7 +85,7 @@ There are several ARC-20 implementation standard proposals for the Aleo blockcha
 By applying the proposals pointed out in this ARC the token standard will be more usable because of:
 1. one step approval process applying off chain signature, instead of two steps of `approve()` and `transfer_from()`, and 
 2. the ability to send private tokens to smart contracts will enable a thriving DeFi life on top of the Aleo network.
-3. make token contracts more secure by connecting them to the company website with a digital signature.
+3. make token contracts more secure by connecting them to the company website applying a digital signature.
 
 
 <!-- If someone only reads this far, what do you want them to know? -->
@@ -100,7 +100,7 @@ By applying the proposals pointed out in this ARC the token standard will be mor
 <a name="2_1_1_offline_signature"></a>
 #### 2.1.1. Offline signature
 
-In recent days Aleo has introduced signature verification in the snarkVM. This means that a user can sign a message offline, and then the signature can be verified onchain. This is a very important feature as it enables the user to sign a message offline, and then send the signature to the blockchain.  The signature verification is done by the snarkVM, and the signature is verified by the `signature::verify(s: signature, from: address, field_hash: field)` function. This way user can pre sign the transaction of allowing a certain amount of tokens to be transferred from his/her account to aan address.
+In recently Aleo has introduced signature verification scheme in the snarkVM. This means that a user can sign a message offline, and then the signature can be verified onchain. This is a very important feature as it enables the user to sign a message offline, and then send the signature to the blockchain.  The signature verification is done by the snarkVM, and the signature is verified by the `signature::verify(s: signature, from: address, field_hash: field)` function. This way user can pre sign the transaction of allowing a certain amount of tokens to be transferred from his/her account to aan address.
 
 <a name="2_1_2_must_be_implemented"></a>
 #### 2.1.2. MUST BE IMPLEMENTED
@@ -144,7 +144,7 @@ If a feature is termed "MUST HAVE" then it means that the feature must contain s
 <a name="2_1_9_must"></a>
 #### 2.1.9. MUST
 
-Whatever follows MUST that must be implemented exactly as it was defined after "MUST" to comply with this ARC.
+Whatever follows "MUST", that must be implemented exactly as it was defined after "MUST" to comply with this ARC.
 
 <a name="2_1_10_new_aleo_feature_should_be_implemented"></a>
 #### 2.1.10. NEW FEATURE SHOULD BE IMPLEMENTED
@@ -238,11 +238,15 @@ Once `string` type is included in Aleo specification, this ARC must be updated.
 <a name="2_2_3_1_rationale_for_company_signature"></a>
 ##### 2.2.3.1 Rationale for company signature
 
-Companies that create smart contracts must be able to have a standardized mechanism to connect their contracts to their website. This is a means to minimize fake contracts stealing users funds. This can be done by createing a standardized URL: CAU - Company Addresses URL, that MUST return the JSON array of signer addresses, their validity, and corresponding CAU signatures of the company. On the smart contract side all contracts MUST HAVE a constant called `COMPANY_SIGNATURE` that MUST BE the signature of the contract name created by the private key of the signer address. This way users can check if the contract is belonging to the Company.
+Companies that create smart contracts must be able to have a standardized mechanism to connect their contracts to their website. This is a means to minimize fake contracts stealing users funds. It can be realized by the followings:
+1. By createing a standardized URL: CAU - Company Addresses URL, that MUST return the JSON array of signer addresses, their validity, and corresponding signatures of the company. 
+2. On the smart contract side all contracts MUST HAVE a constant called `COMPANY_SIGNATURE` that MUST BE the signature of the contract name created by the private key of one of the signer addresses in JSON format returned by (1.). 
+
+This way users can check if the contract is belonging to the Company.
 
 Blockhain explorers can utilize this feature to display the website that the contract belongs to. Explorers can request the [CAU](#cau) URL from developer, when the contract is verified, and then display the website of the company to the users. This way users can be sure that the contract is indeed belonging to the certain company.
 
-Wallets can use the same mechanism to check legitimacy of a specific contract the same way explorers can. 
+Wallets can use the same mechanism to check legitimacy of a specific contract the same way explorers can. Wallets can also use this feature to deny interacting with a compromised contract.
 
 <a name="csc"></a>
 <a name="2_2_3_2_company_signature_constant_must_be_implemented"></a>
