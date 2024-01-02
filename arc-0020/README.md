@@ -351,9 +351,6 @@ Instead of ~~`approve()`~~ transition the [`transfer_from_public()`](#tp) transi
 
 As in the [`transfer_from_public()`](#tp) transition the signature parameter contains the approval. See  [`transfer_from_public()`](#tp) function above.
 
-
-As in the [`transfer_from_public()`](#tp) transition the signature parameter contains the approval. See  [`transfer_from_public()`](#tp) function above.
-
 <a name="2_2_6_decimals_must_be_implemented"></a>
 #### 2.2.6. Decimals - MUST BE IMPLEMENTED
 
