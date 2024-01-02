@@ -27,7 +27,6 @@ created: 01/01/2024
 [2.1.13. MPC (Multi Party Computation)](#2_1_13_mpc_multi_party_computation)      
 [2.1.14. `self.signer`](#2_1_14_self_signer)  
 [2.1.15. `self.caller`](#2_1_15_self_caller)  
-[2.1.16. Hacker](#2_1_16_hacker)  
 ### [2.2. Specification ](#2_2_specification_)  
 [2.2.1. Name of token - MUST BE IMPLEMENTED](#2_2_1_name_of_token_must_be_implemented)  
 [2.2.2. Symbol of token - MUST BE IMPLEMENTED](#2_2_2_symbol_of_token_must_be_implemented)  
@@ -200,12 +199,6 @@ See [Aleo documentation](https://developer.aleo.org/leo/language#selfcaller) for
 The address of an account or a contract that called the transition is called `self.caller`. See figure above for details. 
 
 See [Aleo documentation](https://developer.aleo.org/leo/language#selfcaller) for details.
-
-<a name="2_1_16_hacker"></a>
-#### 2.1.16. Hacker
-
-Hacker is an entity that tries to alter the behavior of the system in a way that is not intended by the system, and thus win an illegitimate profit. 
-
 
 <a name="2_2_specification_"></a>
 ### 2.2. Specification 
