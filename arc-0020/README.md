@@ -766,6 +766,7 @@ function split:
 
 `mint(amount: u64) -> ()`: mints `amount` of tokens to the caller of the transition. 
 
+**Note: This implementation is here for demonstration purposes only. It is not secure as it allows ALL accounts to mint.**
 ```aleo
 function mint:
     input r0 as u64.private;
@@ -789,6 +790,7 @@ MUST update `total_supply`.
 
 `burn(amount: u64) -> ()`: burns `amount` of tokens of the caller of the transition. 
 
+**Note: This implementation is here for demonstration purposes only. It is not secure as it allows ALL accounts to burn.**
 ```aleo
 function burn:
     input r0 as u64.private;
