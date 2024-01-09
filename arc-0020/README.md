@@ -2,7 +2,7 @@
 arc: 0020
 title: Another ARC-0020 token standard proposal with smart contract capabilities
 authors: Robert Horvath rob@nyar.eu
-discussion:  https://github.com/r001/ARC0020-proposal/discussions/1 
+discussion: https://github.com/AleoHQ/ARCs/discussions/59
 topic: Application 
 status: Draft
 created: 01/01/2024
@@ -816,7 +816,7 @@ MUST update `total_supply`.
 
 ![Deposit tokens](./images/deposit_token.png)
 
-User has an address of `aleo1user`, Smart Contract has a contract address of `aleo1contract`, and MPC has an account address of `aleo1mpc`. User has a record with the following fields:
+User has an address of `aleo1user`, Smart Contract has a contract address of `aleo1contract`, and [MPC](#mpc) has an account address of `aleo1mpc`. User has a record with the following fields:
 
 ```
 credit {
@@ -839,7 +839,7 @@ credit {
 }
 ```
 
-This record can not be sent by MPC to any other contract than `aleo1contract`, because that MUST BE denied by ARC20 contract. MPC can only send the record to `aleo1contract` and the predefined transitions of `aleo1contract` will limit what can be done with the credit record.
+This record can not be sent by [MPC](#mpc) to any other contract than `aleo1contract`, because that MUST BE denied by ARC20 contract. [MPC](#mpc) can only send the record to `aleo1contract` and the predefined transitions of `aleo1contract` will limit what can be done with the credit record.
 
 
 <a name="deposit_public"></a>
