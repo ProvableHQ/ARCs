@@ -409,7 +409,7 @@ This will reflect in the design of the `credits` record.
 ##### 2.2.8.2 Design of `credits` record - MUST BE IMPLEMENTED
 
 The `credits` record MUST HAVE three fields instead of just two: 
-1. `owner` - private `address`, the owner of the record. This is the account that has the right to encode and decode the private data. If a record is owned by a contract, than this field MUST BE the account address of the MPC cluster that has the federated private key to encode and decode the private data.
+1. `owner` - private `address`, the owner of the record. This is the account that has the right to encode and decode the private data. If a record is owned by a contract, than this field MUST BE the account address of the [MPC](#mpc) cluster that has the federated private key to encode and decode the private data.
 2. `contract` - private `address`, the contract that the record is sent to. If the record is sent to an account, then this field MUST BE [`ZERO_ADDRESS`](#zero_address). If the record is sent to a contract, then this field MUST BE the address of the contract. 
 3. `microcredits` - private `u64`, the amount of tokens the record contains. This field MUST BE public.
 
@@ -422,7 +422,7 @@ record credits {
 }
 ```
 
-If the `contract` field is not [`ZERO_ADDRESS`](#zero_address) then the this token contract MUST only accept calls whose [`self.signer`](#si) is the the `credit.owner` and the [`self.caller`](#sc) is the `credit.contract`. This way only `contract` can control the private record, but the MPC as the `owner` can encode and decode the private data. 
+If the `contract` field is not [`ZERO_ADDRESS`](#zero_address) then the this token contract MUST only accept calls whose [`self.signer`](#si) is the the `credit.owner` and the [`self.caller`](#sc) is the `credit.contract`. This way only `contract` can control the private record, but the [MPC](#mpc) as the `owner` can encode and decode the private data. 
 
 <a name="2_2_9_token_transfer_transitions_must_be_implemented"></a>
 #### 2.2.9. Token transfer transitions - MUST BE IMPLEMENTED
@@ -707,7 +707,7 @@ transfer_private_contract(
     credit: credits
 ) -> (credits,credits)
 ```
-This transition enables sending private token record to a Smart Contract with MPC, by directly setting the `to` and `contract` fields of the resulting record. This transition MUST only be called by a contract. If called by an account, then the transition MUST fail. 
+This transition enables sending private token record to a Smart Contract with [MPC](#mpc), by directly setting the `to` and `contract` fields of the resulting record. This transition MUST only be called by a contract. If called by an account, then the transition MUST fail. 
 
 ```aleo
 function transfer_private_contract:
