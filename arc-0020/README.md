@@ -444,7 +444,13 @@ Token transfer transitions are the transitions that can be used to transfer toke
 <a name="2_2_9_1_transfer_public_to_private_must_be_implemented"></a>
 ##### 2.2.9.1. Transfer public to private - MUST BE IMPLEMENTED
 
-`transfer_public_to_private(to: address, public amount: u64) -> credits`: transfer to `address` from [`self.signer`](#si) an `amount` of tokens. Returns the record of `credits` that is private.  
+```
+transfer_public_to_private(
+    to: address,
+    public amount: u64
+) -> credits
+```
+transfer to `address` from [`self.signer`](#si) an `amount` of tokens. Returns the record of `credits` that is private.  
 
 ``` aleo
 function transfer_public_to_private:
@@ -472,7 +478,14 @@ In case the `amount` is greater than the public balance of [`self.signer`](#si) 
 <a name="2_2_9_2_transfer_private_to_public_must_be_implemented"></a>
 ##### 2.2.9.2. Transfer private to public - MUST BE IMPLEMENTED
 
-`transfer_private_to_public(credit: credits, public to: address, public amount: u64) -> credits`: transfer from private record of `credits` to `to` address in a way that his public balance will increase with `amount` and the private balance of `credit` will decrease with `amount`. MUST return the remainder record of `credits` that is private.
+```
+transfer_private_to_public(
+    credit: credits,
+    public to: address,
+    public amount: u64
+) -> credits
+```
+transfer from private record of `credits` to `to` address in a way that his public balance will increase with `amount` and the private balance of `credit` will decrease with `amount`. MUST return the remainder record of `credits` that is private.
 
 ```aleo
 function transfer_private_to_public:
@@ -513,7 +526,13 @@ In case the `amount` is greater than the private balance of `credit` then the tr
 <a name="2_2_9_3_transfer_tokens_to_account_publicly_must_be_implemented"></a>
 ##### 2.2.9.3. Transfer tokens to account publicly - MUST BE IMPLEMENTED
 
-`transfer_public(public to: address, public amount: u64)`: send from [`self.signer`](#si) (the transition's signer's)  address to `to` address an amount of `amount` of tokens publicly. To address MUST BE an account address.
+```
+transfer_public(
+    public to: address,
+    public amount: u64
+)
+```
+send from [`self.signer`](#si) (the transition's signer's)  address to `to` address an amount of `amount` of tokens publicly. To address MUST BE an account address.
 
 ```aleo
 function transfer_public:
@@ -539,13 +558,16 @@ If the `amount` is greater than the public balance of [`self.signer`](#si) then 
 <a name="2_2_9_4_transfer_tokens_to_contract_publicly_must_be_implemented"></a>
 ##### 2.2.9.4. Transfer tokens to contract publicly - MUST BE IMPLEMENTED
 
-`transfer_from_public(  
+```
+transfer_from_public(  
     public to: address,  
     public amount: u64,  
     public from: address,  
     public expire: u32  
     authorization: signature,  
-) -> ()`: transfers from `from` address to `to` address an amount of `amount` tokens using the  `authorization` signature previously created by `from` address offline, if the `block.height` is less than `expire`. 
+) -> ()
+```
+transfers from `from` address to `to` address an amount of `amount` tokens using the  `authorization` signature previously created by `from` address offline, if the `block.height` is less than `expire`. 
 
 ```aleo
 function transfer_from_public:
@@ -586,12 +608,15 @@ It MUST be possible to transfer tokens to contracts using this transition.
 <a name="2_2_9_5_transition_creating_the_hash_to_be_signed_should_be_implemented"></a>
 ##### 2.2.9.5. Transition creating the hash to be signed - SHOULD BE IMPLEMENTED
 
-`hash_to_sign(  
+```
+hash_to_sign(  
     to: address,  
     amount: u64,  
     from: address,  
     expire: u32  
-) -> field`: returns the hash of the data that needs to be signed by `from` address to create the `authorization` signature for [`transfer_from_public()`](#tp). 
+) -> field
+```
+returns the hash of the data that needs to be signed by `from` address to create the `authorization` signature for [`transfer_from_public()`](#tp). 
 
 ```aleo
 function hash_to_sign:
@@ -618,7 +643,14 @@ Contracts MUST NOT rely on the availability of this transition, as it is not man
 <a name="2_2_9_6_transfer_tokens_to_accounts_privately_must_be_implemented"></a>
 ##### 2.2.9.6. Transfer tokens to accounts privately - MUST BE IMPLEMENTED
 
-`transfer_private(to: address, amount: u64, credit: credits) -> (credits,credits)`: send from [`self.signer`](#si) (the transition's signer's)  address to `to` address an amount of `amount` of tokens of `credit` privately. 
+```
+transfer_private(
+    to: address,
+    amount: u64,
+    credit: credits
+) -> (credits,credits)
+```
+send from [`self.signer`](#si) (the transition's signer's)  address to `to` address an amount of `amount` of tokens of `credit` privately. 
 
 ```aleo
 function transfer_private:
@@ -666,7 +698,15 @@ It MUST be able to transfer tokens to contracts using this transition.
 <a name="2_2_9_7_transfer_tokens_to_contracts_privately_must_be_implmented"></a>
 ##### 2.2.9.7. Transfer tokens to contracts privately - MUST BE IMPLMENTED
 
-`transfer_private_contract(to: address, amount: u64, contract: address, credit: credits) -> (credits,credits)`: This function enables sending private token record to a Smart Contract with MPC, by directly setting the `to` and `contract` fields of the resulting record. This transition MUST only be called by a contract. If called by an account, then the transition MUST fail. 
+```
+transfer_private_contract(
+    to: address,
+    amount: u64,
+    contract: address,
+    credit: credits
+) -> (credits,credits)
+```
+This transition enables sending private token record to a Smart Contract with MPC, by directly setting the `to` and `contract` fields of the resulting record. This transition MUST only be called by a contract. If called by an account, then the transition MUST fail. 
 
 ```aleo
 function transfer_private_contract:
