@@ -162,6 +162,7 @@ Aleo must implement the feature required by this ARC. If the feature is not impl
 #### 2.1.12. ZERO_ADDRESS
 
 ```leo
+// ZERO_ADDRESS = BHP256::hash_to_address(0group).
 const ZERO_ADDRESS: address = aleo1yr9ls3d7cn2x2sr359kqq7vjkwnzr4x0e24ju6ysj2pte4c99c8qx0rwwl;
 assert_eq(ZERO_ADDRESS, BHP256::hash_to_address(0group));
 ```
