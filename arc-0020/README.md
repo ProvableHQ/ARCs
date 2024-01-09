@@ -849,7 +849,7 @@ This record can not be sent by [MPC](#mpc) to any other contract than `aleo1cont
 ![Transfer To Contract](./images/transfer_to_contract.png)
 
 User can send tokens to a contract publicly the following way:
-1. User authorizes the sending of tokens to contract by signing the details of the `transfer_from_public` transaction offline. His steps are as follows:
+1. User authorizes the sending of tokens to contract by signing the details of the [`transfer_from_public()`](#tp) transition offline. His steps are as follows:
     1. Create `auth_hash = BHP256::hash_to_field(from, to, amount, expire)` offline, where 
         1. `from` is the user's account address,
         2. `to` is the contracts address,
@@ -860,7 +860,7 @@ User can send tokens to a contract publicly the following way:
         2. `pk` is the private key of his account address.
 2. User calls the `deposit_public(authorization, to, amount, expire, ...)` function of contract. The name is not defined in this ARC, CAN BE any name the contract's creator wants. Within this transition contract
     1. Checks if `to` is an address where he accepts tokens.
-    2. Calls the `transfer_from_public(authorization, to, amount, self.caller, expire)` function on the token contract, and this way transfers the tokens to himself.
+    2. Calls the [`transfer_from_public(authorization, to, amount, self.caller, expire)`](#tp) function on the token contract, and this way transfers the tokens to himself.
 
 <a name="2_4_test_cases"></a>
 ### 2.4. Test Cases
