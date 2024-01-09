@@ -3,7 +3,7 @@ arc: 0031 # Add the next sequence number
 title: Allow record with a different owner in transition call # Title
 authors: Robert Horvath rob@nyar.eu # Add all Github usernames, emails, and/or full names
 discussion: # Create a 'Github Discussion' titled 'ARC-XXXX: {TITLE}`
-topic: # Choose: Protocol, Network, or Application
+topic: Application # Choose: Protocol, Network, or Application
 status: Draft
 created: # Date
 ---
