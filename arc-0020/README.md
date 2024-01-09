@@ -348,9 +348,9 @@ Instead of ~~`approve()`~~ transition the [`transfer_from_public()`](#tp) transi
 <a name="2_2_5_allowance_of_tokens_not_needed"></a>
 #### 2.2.5. Allowance of tokens - NOT NEEDED
 
-~~`allowance() -> u64`~~ function is not needed in this design. 
+~~`allowance() -> u64`~~ transition is not needed in this design. 
 
-As in the [`transfer_from_public()`](#tp) transition the signature parameter contains the approval. See  [`transfer_from_public()`](#tp) function above.
+As in the [`transfer_from_public()`](#tp) transition the signature parameter contains the approval. See  [`transfer_from_public()`](#tp) transition above.
 
 <a name="2_2_6_decimals_must_be_implemented"></a>
 #### 2.2.6. Decimals - MUST BE IMPLEMENTED
@@ -370,7 +370,7 @@ This transition is not needed as the [`DECIMALS`](#decimals) constant is already
 <a name="2_2_6_2_1_rationale_for_not_having_decimals_as_a_transition"></a>
 ###### 2.2.6.2.1. Rationale for not having decimals as a transition
 
-As `DECIMALS` is a constant  (see [above](#decimals)), and MUST BE IMPLEMENTED, it is easy to query and provide it as input of any transition necessary. There is no need to implement an extra function for this.
+As `DECIMALS` is a constant  (see [above](#decimals)), and MUST BE IMPLEMENTED, it is easy to query and provide it as input of any transition necessary. There is no need to implement an extra transition for this purpose.
 
 <a name="2_2_7_public_balance_of_account_must_be_implemented"></a>
 #### 2.2.7. Public balance of account - MUST BE IMPLEMENTED
@@ -434,7 +434,7 @@ Token transfer transitions are the transitions that can be used to transfer toke
 2. that transfers to another account or contract publicly,
     1. [`transfer_public(..)`](#tpa) - transfer to another account
     2. [`transfer_from_public(..)`](#tp) - transfer to a contract
-    3. [`hash_to_sign(..)`](#hts) - helper function to `transfer_from_public()` to create the hash to be signed
+    3. [`hash_to_sign(..)`](#hts) - helper transition to `transfer_from_public()` to create the hash to be signed
 3. that transfers to an account or contract privately.
     1. [`transfer_private(..)`](#transfer_private) - transfer to an account
     2. [`transfer_private_contract(..)`](#transfer_private_contract) - transfer to a contract
@@ -679,7 +679,7 @@ function transfer_private:
     output r17 as credits.record;
 ```
 
-This function can only be used to send tokens privately to an account. To transfer tokens privately to a contract, the [`transfer_private_contract()`](#transfer_private_contract) must be used by the receiving contract (for details see [pocedure 2.3.1](#deposit_private)). 
+This transition can only be used to send tokens privately to an account. To transfer tokens privately to a contract, the [`transfer_private_contract()`](#transfer_private_contract) must be used by the receiving contract (for details see [pocedure 2.3.1](#deposit_private)). 
 
 It MUST return a tuple of two records in the order below:
 1. Remainder record - the remainder of `credit` that is left for sender after sending `amount` of it to `to` address. It MUST HAVE the following fields set. All of which MUST BE private: 
@@ -757,7 +757,7 @@ Contracts MUST NOT rely on the availability of this mapping, as it is not mandat
 <a name="2_2_11_1_rationale_of_not_having_total_supply_mapping_in_a_mandatory_way"></a>
 ##### 2.2.11.1 Rationale of not having Total Supply mapping in a mandatory way
 
-Maintaining the `total_supply` in a mapping means that for each `mint()` and `burn()` function this mapping must be updated. And as it is a mapping, it means that all validators must re-run the transaction, which is `O(n)` difficulty, where `n` is the number of instructions in the finalize function. This is much less scalable as if the `total_supply`  is maintained as a record, and each validator only has to check the validity of the proof, which is `O(1)` difficulty. Thus making the contract more scalable.
+Maintaining the `total_supply` in a mapping means that for each `mint()` and `burn()` transition this mapping must be updated. And as it is a mapping, it means that all validators must re-run the transaction, which is `O(n)` difficulty, where `n` is the number of instructions in the finalize function. This is much less scalable as if the `total_supply`  is maintained as a record, and each validator only has to check the validity of the proof, which is `O(1)` difficulty. Thus making the contract more scalable.
 
 <a name="2_2_12_join_two_records_into_one_must_be_implemented"></a>
 #### 2.2.12. Join two records into one - MUST BE IMPLEMENTED
@@ -869,7 +869,7 @@ credit {
 
 Deposit privately works as follows:
 1. User calls the Smart Contract's `deposit_private(credit, ...)` transition. (The name (`deposit_private()`) of the transition can be defined by contract developers.)
-2. During the execution of `deposit_private()`, the Smart Contract calls the `transfer_private(to: aleo1mpc, amount: 10M, credit: credits)` function on ARC20 contract using the record provided by user in previous step.
+2. During the execution of `deposit_private()`, the Smart Contract calls the `transfer_private(to: aleo1mpc, amount: 10M, credit: credits)` transition on ARC20 contract using the record provided by user in previous step.
 3. ARC20 contract consumes the received `credit` record, and creates a new one with the followings:
 
 ```
@@ -899,9 +899,9 @@ User can send tokens to a contract publicly the following way:
     2. Signs the hash offline `authorization = aleo.sign(auth_hash, pk)`, Where:
         1. `auth_hash` is the hash created in previous step.
         2. `pk` is the private key of his account address.
-2. User calls the `deposit_public(authorization, to, amount, expire, ...)` function of contract. The name is not defined in this ARC, CAN BE any name the contract's creator wants. Within this transition contract
+2. User calls the `deposit_public(authorization, to, amount, expire, ...)` transition of contract. The name is not defined in this ARC, CAN BE any name the contract's creator wants. Within this transition contract
     1. Checks if `to` is an address where he accepts tokens.
-    2. Calls the [`transfer_from_public(authorization, to, amount, self.caller, expire)`](#tp) function on the token contract, and this way transfers the tokens to himself.
+    2. Calls the [`transfer_from_public(authorization, to, amount, self.caller, expire)`](#tp) transition on the token contract, and this way transfers the tokens to himself.
 
 <a name="2_4_test_cases"></a>
 ### 2.4. Test Cases
