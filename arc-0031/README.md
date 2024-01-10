@@ -1,31 +1,26 @@
 ---
 arc: 0031 # Add the next sequence number
-title: Allow record with a different owner in transition call # Title
+title: Records that are created by one and read by many # Title
 authors: Robert Horvath rob@nyar.eu # Add all Github usernames, emails, and/or full names
 discussion: # Create a 'Github Discussion' titled 'ARC-XXXX: {TITLE}`
 topic: Application # Choose: Protocol, Network, or Application
 status: Draft
-created: # Date
+created: 01/15/2024 # Date
 ---
 
 ## Abstract
 
-This file serves as the suggested template for new ARC proposals.
-
-We understand that every proposal is different, and the purpose of this template is to help guide you
-to ensure your proposal has considered as many aspects as possible.
-
-This section should describe the rationale for this ARC.
-
-<!-- What problem does this proposal address? -->
-
-<!-- If someone only reads this far, what do you want them to know? -->
-
+Aleo has a huge leverage over other projects by applying ZK proofs on L1 level. Applying ZK proofs enables great scalability as contracts are run by one and verified by many in O(1) time, as opposed to other protocols where many has to execute code again to verify. There is a caveat though, whatever is executed in the `finalize` function uses one executes and many executes again model which means it is as scalable as legacy protocols. The record infrastructure of Aleo makes it scalable, but some minor (?) change is needed in snarkVM: allow the use of any public fields of records with any `owner` within a transition. With other words: we need "create by one and read by many" types of records usable in transitions. 
+It has several applications, including but not limited to:
+1. Authorization: 
+    1. a record issued by an issuer can be used as a proof of authorization for a transition. Owner is the issuer, and the public field of the authorized address can be used by that address to access the transition.
+    2. Components of a complex system can be authorized using the record with owner of admin, and with field `authorized` with the address of the authorized component. 
+2. Enable or disable system transitions. The existance of a record can prove that a transition is enabled or disabled. The record can be issued by the admin.
+3. Provide token prices for the system. A records public field can be the price provided by some oracle for a token. The record can be updated by the oracles and read by anyone.
+4. Provide UTC time for the system: A record of the current UTC time can be consumed and recreated by a node every 1 minutes and read by anyone.
 
 ## Specification
 
-This section should outline the technical requirements and considerations for incorporating this proposal as
-a new ARC standard.
 
 <!-- Define key terminology here. -->
 
