@@ -8,6 +8,21 @@ status: Draft
 created: 01/01/2024
 ---
  
+<a name="1_abstract"></a>
+## 1. Abstract
+
+There are several ARC-20 implementation standard proposals for the Aleo blockchain. This ARC provides a complete token standard for both public and private account/contract operations. Compared to other ARC-20 proposals this ARC has the following major differences:
+1. Replaced onchain `approve()` functionality with [offchain signature](#tp) - `approve()` transition should not be implemented, instead user can agree to send token to a contract offchain using an offchain signature process to approve a transaction, and an onchain function eg [`transfer_from_public()`](#tp) that can apply that signature. This way smart contract interaction does not have to be a two step, but rather a one step process. This solution will save system resources as the approve part is offchain rather than onchain.
+2. Enable [private token records to be sent to smart contracts](#deposit_private) - This problem must be addressed because one of the key selling points of Aleo is its programmable privacy. The author of this ARC also believes that to utilize the UTXO nature of Token records also leads to a much larger scalability than that can be achieved applying mappings and public tokens.
+3. A signature scheme that [connects the contract with the main website](#company_signature) of the project. Thus make it easier for users to trust the token contract, and decrease the possibility of phishing attacks.
+
+By applying the proposals pointed out in this ARC the token standard will be more usable because of:
+1. one step approval process applying off chain signature, instead of two steps of `approve()` and `transfer_from()`, and 
+2. the ability to send private tokens to smart contracts will enable a thriving DeFi life on top of the Aleo network.
+3. make token contracts more secure by connecting them to the company website applying a digital signature.
+
+
+<!-- If someone only reads this far, what do you want them to know? -->
 # Table of Contents
 ## [1. Abstract](#1_abstract)  
 ## [2. Specification](#2_specification)  
@@ -73,21 +88,6 @@ created: 01/01/2024
 ## [4. Security & Compliance](#4_security_compliance)  
 ## [5. References](#5_references)  
 
-<a name="1_abstract"></a>
-## 1. Abstract
-
-There are several ARC-20 implementation standard proposals for the Aleo blockchain. This ARC provides a complete token standard for both public and private account/contract operations. Compared to other ARC-20 proposals this ARC has the following major differences:
-1. Replaced onchain `approve()` functionality with [offchain signature](#tp) - `approve()` transition should not be implemented, instead user can agree to send token to a contract offchain using an offchain signature process to approve a transaction, and an onchain function eg [`transfer_from_public()`](#tp) that can apply that signature. This way smart contract interaction does not have to be a two step, but rather a one step process. This solution will save system resources as the approve part is offchain rather than onchain.
-2. Enable [private token records to be sent to smart contracts](#deposit_private) - This problem must be addressed because one of the key selling points of Aleo is its programmable privacy. The author of this ARC also believes that to utilize the UTXO nature of Token records also leads to a much larger scalability than that can be achieved applying mappings and public tokens.
-3. A signature scheme that [connects the contract with the main website](#company_signature) of the project. Thus make it easier for users to trust the token contract, and decrease the possibility of phishing attacks.
-
-By applying the proposals pointed out in this ARC the token standard will be more usable because of:
-1. one step approval process applying off chain signature, instead of two steps of `approve()` and `transfer_from()`, and 
-2. the ability to send private tokens to smart contracts will enable a thriving DeFi life on top of the Aleo network.
-3. make token contracts more secure by connecting them to the company website applying a digital signature.
-
-
-<!-- If someone only reads this far, what do you want them to know? -->
 
 
 <a name="2_specification"></a>
