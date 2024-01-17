@@ -2,7 +2,7 @@
 arc: 0039 # Add the next sequence number
 title: Records that are owned by one and used by many # Title
 authors: Robert Horvath rob@nyar.eu # Add all Github usernames, emails, and/or full names
-discussion: # Create a `Github Discussion` titled `ARC-XXXX: {TITLE}`
+discussion: https://github.com/AleoHQ/ARCs/discussions/61 # Create a `Github Discussion` titled `ARC-XXXX: {TITLE}`
 topic: Application # Choose: Protocol, Network, or Application
 status: Draft
 created: 01/15/2024 # Date
