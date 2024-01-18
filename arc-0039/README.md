@@ -44,9 +44,12 @@ As **Figure 2** shows, the proposed transition logic is:
 2. If the input of the transition is a mix of records owned by the signer and not owned by the signer, then:
     1. All the public fields of the signer's records are accessible in the transition. As in current logic.
     2. All the private fields of the signer's records are accessible in the transition. As in current logic.
-    3. All the public fields of the record not owned by the signer are accessible in the transition. **DIFFERENT from current logic!**
-    4. Accessing any private fields of the record that are not owned by the signer will result in an error. **DIFFERENT from current logic!**
-    5. No access to fields of a record not owned by the signer should be allowed. **DIFFERENT from current logic!**   
+    3. All the public fields of the record not owned by the signer are accessible in the transition.  
+        **DIFFERENT from current logic!**
+    4. Accessing any private fields of the record that are not owned by the signer will result in an error.  
+        **DIFFERENT from current logic!**
+    5. No access to fields of a record not owned by the signer should be allowed.  
+        **DIFFERENT from current logic!**   
     This is needed for allowing the execution of certain transitions. The very existence of the record is the proof of the transition being enabled. The transition must fail if the record is missing.
 
 ### 2.1 Use Cases
