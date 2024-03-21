@@ -284,37 +284,38 @@ function set_commission_percent:
 
 finalize set_commission_percent:
 	input r0 as u128.public;
-	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] 0u64 into r1;
-	get total_balance[0u8] into r2;
-	get total_shares[0u8] into r3;
-	gt r1 r2 into r4;
-	sub r1 r2 into r5;
-	ternary r4 r5 0u64 into r6;
-	get commission_percent[0u8] into r7;
-	cast r6 into r8 as u128;
-	mul r8 r7 into r9;
-	div r9 1000u128 into r10;
-	cast r10 into r11 as u64;
-	sub r6 r11 into r12;
-	add r2 r12 into r13;
-	cast r13 into r14 as u128;
-	cast r11 into r15 as u128;
-	cast r3 into r16 as u128;
-	mul r16 1000u128 into r17;
-	div r17 r14 into r18;
-	add r14 r15 into r19;
-	mul r19 r18 into r20;
-	div r20 1000u128 into r21;
-	sub r21 r16 into r22;
-	cast r22 into r23 as u64;
-	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r24;
-	add r24 r23 into r25;
-	set r25 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
-	add r3 r23 into r26;
-	set r26 into total_shares[0u8];
-	add r13 r11 into r27;
-	set r27 into total_balance[0u8];
-	set r7 into commission_percent[0u8];
+	cast aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8 0u64 into r1 as credits.aleo/bond_state;
+	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] r1 into r2;
+	get total_balance[0u8] into r3;
+	get total_shares[0u8] into r4;
+	gt r2.microcredits r3 into r5;
+	sub r2.microcredits r3 into r6;
+	ternary r5 r6 0u64 into r7;
+	get commission_percent[0u8] into r8;
+	cast r7 into r9 as u128;
+	mul r9 r8 into r10;
+	div r10 1000u128 into r11;
+	cast r11 into r12 as u64;
+	sub r7 r12 into r13;
+	add r3 r13 into r14;
+	cast r14 into r15 as u128;
+	cast r12 into r16 as u128;
+	cast r4 into r17 as u128;
+	mul r17 1000u128 into r18;
+	div r18 r15 into r19;
+	add r15 r16 into r20;
+	mul r20 r19 into r21;
+	div r21 1000u128 into r22;
+	sub r22 r17 into r23;
+	cast r23 into r24 as u64;
+	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r25;
+	add r25 r24 into r26;
+	set r26 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
+	add r4 r24 into r27;
+	set r27 into total_shares[0u8];
+	add r14 r12 into r28;
+	set r28 into total_balance[0u8];
+	set r0 into commission_percent[0u8];
 ```
 ```leo
   transition set_commission_percent(new_commission_rate: u128) {
@@ -328,26 +329,28 @@ finalize set_commission_percent:
 
 
   finalize set_commission_percent(new_commission_rate: u128) {
-	// Make sure all commission is claimed before changing the rate
-	let bonded: u64 = 0u64; // credits.aleo/bonded.get(CORE_PROTOCOL);
-	let current_balance: u64 = total_balance.get(0u8);
-	let current_shares: u64 = total_shares.get(0u8);
-	let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
-	let commission_rate: u128 = commission_percent.get(0u8);
-	let new_commission: u64 = get_commission(rewards as u128, commission_rate);
-	current_balance += rewards - new_commission;
+    // Make sure all commission is claimed before changing the rate
+    // Simulate call to credits.aleo/bonded.get_or_use(CORE_PROTOCOL).microcredits;
+    let default: withdrawal_state = withdrawal_state {
+      microcredits: 0u64,
+      claim_block: 0u32
+    };
+    let bonded: u64 = withdrawals.get_or_use(CORE_PROTOCOL, default).microcredits;
+    let current_balance: u64 = total_balance.get(0u8);
+    let current_shares: u64 = total_shares.get(0u8);
+    let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
+    let commission_rate: u128 = commission_percent.get(0u8);
+    let new_commission: u64 = get_commission(rewards as u128, commission_rate);
+    current_balance += rewards - new_commission;
 
+    let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
+    let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
+    delegator_shares.set(ADMIN, current_commission + new_commission_shares);
 
-	let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
-	let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
-	delegator_shares.set(ADMIN, current_commission + new_commission_shares);
+    total_shares.set(0u8, current_shares + new_commission_shares);
+    total_balance.set(0u8, current_balance + new_commission);
 
-
-	total_shares.set(0u8, current_shares + new_commission_shares);
-	total_balance.set(0u8, current_balance + new_commission);
-
-
-	commission_percent.set(0u8, commission_rate);
+    commission_percent.set(0u8, new_commission_rate);
   }
 ```
 #### Set Next Validator
@@ -400,39 +403,40 @@ finalize unbond_all:
 	await r0;
 	contains validator[1u8] into r2;
 	assert.eq r2 true;
-	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] 0u64 into r3;
-	get total_balance[0u8] into r4;
-	get total_shares[0u8] into r5;
-	gt r3 r4 into r6;
-	sub r3 r4 into r7;
-	ternary r6 r7 0u64 into r8;
-	get commission_percent[0u8] into r9;
-	cast r8 into r10 as u128;
-	mul r10 r9 into r11;
-	div r11 1000u128 into r12;
-	cast r12 into r13 as u64;
-	sub r8 r13 into r14;
-	add r4 r14 into r15;
-	cast r15 into r16 as u128;
-	cast r13 into r17 as u128;
-	cast r5 into r18 as u128;
-	mul r18 1000u128 into r19;
-	div r19 r16 into r20;
-	add r16 r17 into r21;
-	mul r21 r20 into r22;
-	div r22 1000u128 into r23;
-	sub r23 r18 into r24;
-	cast r24 into r25 as u64;
-	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r26;
-	add r26 r25 into r27;
-	set r27 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
-	add r5 r25 into r28;
-	set r28 into total_shares[0u8];
-	add r15 r13 into r29;
-	set r29 into total_balance[0u8];
-	sub r3 r1 into r30;
-	lt r30 10_000_000_000u64 into r31;
-	assert.eq r31 true;
+	cast aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8 0u64 into r3 as credits.aleo/bond_state;
+	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] r3 into r4;
+	get total_balance[0u8] into r5;
+	get total_shares[0u8] into r6;
+	gt r4.microcredits r5 into r7;
+	sub r4.microcredits r5 into r8;
+	ternary r7 r8 0u64 into r9;
+	get commission_percent[0u8] into r10;
+	cast r9 into r11 as u128;
+	mul r11 r10 into r12;
+	div r12 1000u128 into r13;
+	cast r13 into r14 as u64;
+	sub r9 r14 into r15;
+	add r5 r15 into r16;
+	cast r16 into r17 as u128;
+	cast r14 into r18 as u128;
+	cast r6 into r19 as u128;
+	mul r19 1000u128 into r20;
+	div r20 r17 into r21;
+	add r17 r18 into r22;
+	mul r22 r21 into r23;
+	div r23 1000u128 into r24;
+	sub r24 r19 into r25;
+	cast r25 into r26 as u64;
+	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r27;
+	add r27 r26 into r28;
+	set r28 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
+	add r6 r26 into r29;
+	set r29 into total_shares[0u8];
+	add r16 r14 into r30;
+	set r30 into total_balance[0u8];
+	sub r4.microcredits r1 into r31;
+	lt r31 10_000_000_000u64 into r32;
+	assert.eq r32 true;
 ```
 ```leo
   transition unbond_all(pool_balance: u64) {
@@ -444,32 +448,33 @@ finalize unbond_all:
 
 
   finalize unbond_all(pool_balance: u64) {
-	let next_validator: bool = validator.contains(1u8);
-	assert(next_validator);
+    let next_validator: bool = validator.contains(1u8);
+    assert(next_validator);
 
+    // Make sure all commission is claimed before unbonding
+    // Simulate call to credits.aleo/bonded.get_or_use(CORE_PROTOCOL).microcredits;
+    let default: withdrawal_state = withdrawal_state {
+      microcredits: 0u64,
+      claim_block: 0u32
+    };
+    let bonded: u64 = withdrawals.get_or_use(CORE_PROTOCOL, default).microcredits;
+    let current_balance: u64 = total_balance.get(0u8);
+    let current_shares: u64 = total_shares.get(0u8);
+    let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
+    let commission_rate: u128 = commission_percent.get(0u8);
+    let new_commission: u64 = get_commission(rewards as u128, commission_rate);
+    current_balance += rewards - new_commission;
 
-	// Make sure all commission is claimed before unbonding
-	let bonded: u64 = 0u64; // credits.aleo/bonded.get(CORE_PROTOCOL);
-	let current_balance: u64 = total_balance.get(0u8);
-	let current_shares: u64 = total_shares.get(0u8);
-	let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
-	let commission_rate: u128 = commission_percent.get(0u8);
-	let new_commission: u64 = get_commission(rewards as u128, commission_rate);
-	current_balance += rewards - new_commission;
+    let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
+    let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
+    delegator_shares.set(ADMIN, current_commission + new_commission_shares);
 
+    total_shares.set(0u8, current_shares + new_commission_shares);
+    total_balance.set(0u8, current_balance + new_commission);
 
-	let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
-	let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
-	delegator_shares.set(ADMIN, current_commission + new_commission_shares);
-
-
-	total_shares.set(0u8, current_shares + new_commission_shares);
-	total_balance.set(0u8, current_balance + new_commission);
-
-
-	// Assert that the pool will be fully unbonded
-	let residual_balance: u64 = bonded - pool_balance;
-	assert(residual_balance < MINIMUM_BOND_POOL);
+    // Assert that the pool will be fully unbonded
+    let residual_balance: u64 = bonded - pool_balance;
+    assert(residual_balance < MINIMUM_BOND_POOL);
   }
 ```
 #### Claim Unbond
@@ -523,18 +528,19 @@ finalize bond_all:
 	input r1 as address.public;
 	input r2 as u64.public;
 	await r0;
-	get.or_use credits.aleo/unbonding[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] 0u64 into r3;
-	assert.eq r3 0u64;
-	get.or_use credits.aleo/account[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] 0u64 into r4;
-	get pending_withdrawal[0u8] into r5;
-	sub r4 r5 into r6;
-	assert.eq r2 r6;
-	contains validator[1u8] into r7;
-	get validator[1u8] into r8;
-	get validator[0u8] into r9;
-	ternary r7 r8 r9 into r10;
-	assert.eq r1 r10;
-	set r10 into validator[0u8];
+	cast 0u64 0u32 into r3 as credits.aleo/unbond_state;
+	get.or_use credits.aleo/unbonding[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] r3 into r4;
+	assert.eq r4.microcredits 0u64;
+	get credits.aleo/account[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] into r5;
+	get pending_withdrawal[0u8] into r6;
+	sub r5 r6 into r7;
+	assert.eq r2 r7;
+	contains validator[1u8] into r8;
+	get validator[1u8] into r9;
+	get validator[0u8] into r10;
+	ternary r8 r9 r10 into r11;
+	assert.eq r1 r11;
+	set r11 into validator[0u8];
 	remove validator[1u8];
 ```
 ```leo
@@ -550,24 +556,26 @@ finalize bond_all:
 
 
   finalize bond_all(validator_address: address, amount: u64) {
-	let unbonding_balance: u64 = 0u64; // credits.aleo/unbonding.get(CORE_PROTOCOL);
-	assert_eq(unbonding_balance, 0u64);
+    // Simulate call to credits.aleo/unbonding.get_or_use(CORE_PROTOCOL).microcredits;
+    let default: withdrawal_state = withdrawal_state {
+      microcredits: 0u64,
+      claim_block: 0u32
+    };
+    let unbonding_balance: u64 = withdrawals.get_or_use(CORE_PROTOCOL, default).microcredits;
+    assert_eq(unbonding_balance, 0u64);
 
+    let account_balance: u64 = total_balance.get(1u8); // credits.aleo/account.get(CORE_PROTOCOL);
+    let pending_withdrawals: u64 = pending_withdrawal.get(0u8);
+    let available_balance: u64 = account_balance - pending_withdrawals;
+    assert_eq(amount, available_balance);
 
-	let account_balance: u64 = 0u64; // credits.aleo/account.get(CORE_PROTOCOL);
-	let pending_withdrawals: u64 = pending_withdrawal.get(0u8);
-	let available_balance: u64 = account_balance - pending_withdrawals;
-	assert_eq(amount, available_balance);
+    // Set validator
+    let has_next_validator: bool = validator.contains(1u8);
+    let current_validator: address = has_next_validator ? validator.get(1u8) : validator.get(0u8);
+    assert_eq(validator_address, current_validator);
 
-
-	// Set validator
-	let has_next_validator: bool = validator.contains(1u8);
-	let current_validator: address = has_next_validator ? validator.get(1u8) : validator.get(0u8);
-	assert_eq(validator_address, current_validator);
-
-
-	validator.set(0u8, current_validator);
-	validator.remove(1u8);
+    validator.set(0u8, current_validator);
+    validator.remove(1u8);
   }
 ```
 #### Claim Commission
@@ -583,36 +591,37 @@ function claim_commission:
 
 
 finalize claim_commission:
-	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] 0u64 into r0;
-	get total_balance[0u8] into r1;
-	get total_shares[0u8] into r2;
-	gt r0 r1 into r3;
-	sub r0 r1 into r4;
-	ternary r3 r4 0u64 into r5;
-	get commission_percent[0u8] into r6;
-	cast r5 into r7 as u128;
-	mul r7 r6 into r8;
-	div r8 1000u128 into r9;
-	cast r9 into r10 as u64;
-	sub r5 r10 into r11;
-	add r1 r11 into r12;
-	cast r12 into r13 as u128;
-	cast r10 into r14 as u128;
-	cast r2 into r15 as u128;
-	mul r15 1000u128 into r16;
-	div r16 r13 into r17;
-	add r13 r14 into r18;
-	mul r18 r17 into r19;
-	div r19 1000u128 into r20;
-	sub r20 r15 into r21;
-	cast r21 into r22 as u64;
-	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r23;
-	add r23 r22 into r24;
-	set r24 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
-	add r2 r22 into r25;
-	set r25 into total_shares[0u8];
-	add r12 r10 into r26;
-	set r26 into total_balance[0u8];
+	cast aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8 0u64 into r0 as credits.aleo/bond_state;
+	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] r0 into r1;
+	get total_balance[0u8] into r2;
+	get total_shares[0u8] into r3;
+	gt r1.microcredits r2 into r4;
+	sub r1.microcredits r2 into r5;
+	ternary r4 r5 0u64 into r6;
+	get commission_percent[0u8] into r7;
+	cast r6 into r8 as u128;
+	mul r8 r7 into r9;
+	div r9 1000u128 into r10;
+	cast r10 into r11 as u64;
+	sub r6 r11 into r12;
+	add r2 r12 into r13;
+	cast r13 into r14 as u128;
+	cast r11 into r15 as u128;
+	cast r3 into r16 as u128;
+	mul r16 1000u128 into r17;
+	div r17 r14 into r18;
+	add r14 r15 into r19;
+	mul r19 r18 into r20;
+	div r20 1000u128 into r21;
+	sub r21 r16 into r22;
+	cast r22 into r23 as u64;
+	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r24;
+	add r24 r23 into r25;
+	set r25 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
+	add r3 r23 into r26;
+	set r26 into total_shares[0u8];
+	add r13 r11 into r27;
+	set r27 into total_balance[0u8];
 ```
 ```leo
   transition claim_commission() {
@@ -622,23 +631,26 @@ finalize claim_commission:
 
 
   finalize claim_commission() {
-	// Distribute shares for new commission
-	let bonded: u64 = 0u64; // credits.aleo/bonded.get(CORE_PROTOCOL);
-	let current_balance: u64 = total_balance.get(0u8);
-	let current_shares: u64 = total_shares.get(0u8);
-	let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
-	let commission_rate: u128 = commission_percent.get(0u8);
-	let new_commission: u64 = get_commission(rewards as u128, commission_rate);
-	current_balance += rewards - new_commission;
+    // Distribute shares for new commission
+    // Simulate call to credits.aleo/bonded.get_or_use(CORE_PROTOCOL).microcredits;
+    let default: withdrawal_state = withdrawal_state {
+      microcredits: 0u64,
+      claim_block: 0u32
+    };
+    let bonded: u64 = withdrawals.get_or_use(CORE_PROTOCOL, default).microcredits;
+    let current_balance: u64 = total_balance.get(0u8);
+    let current_shares: u64 = total_shares.get(0u8);
+    let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
+    let commission_rate: u128 = commission_percent.get(0u8);
+    let new_commission: u64 = get_commission(rewards as u128, commission_rate);
+    current_balance += rewards - new_commission;
 
+    let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
+    let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
+    delegator_shares.set(ADMIN, current_commission + new_commission_shares);
 
-	let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
-	let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
-	delegator_shares.set(ADMIN, current_commission + new_commission_shares);
-
-
-	total_shares.set(0u8, current_shares + new_commission_shares);
-	total_balance.set(0u8, current_balance + new_commission);
+    total_shares.set(0u8, current_shares + new_commission_shares);
+    total_balance.set(0u8, current_balance + new_commission);
   }
 ```
 #### Deposit Public
@@ -660,57 +672,58 @@ function deposit_public:
 
 
 finalize deposit_public:
-	input r0 as credits.aleo/transfer_public_to_public.future;
+	input r0 as credits.aleo/transfer_private_to_public.future;
 	input r1 as address.public;
 	input r2 as u64.public;
 	await r0;
-	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] 0u64 into r3;
-	get total_balance[0u8] into r4;
-	get total_shares[0u8] into r5;
-	gt r3 r4 into r6;
-	sub r3 r4 into r7;
-	ternary r6 r7 0u64 into r8;
-	get commission_percent[0u8] into r9;
-	cast r8 into r10 as u128;
-	mul r10 r9 into r11;
-	div r11 1000u128 into r12;
-	cast r12 into r13 as u64;
-	sub r8 r13 into r14;
-	add r4 r14 into r15;
-	cast r15 into r16 as u128;
-	cast r13 into r17 as u128;
-	cast r5 into r18 as u128;
-	mul r18 1000u128 into r19;
-	div r19 r16 into r20;
-	add r16 r17 into r21;
-	mul r21 r20 into r22;
-	div r22 1000u128 into r23;
-	sub r23 r18 into r24;
-	cast r24 into r25 as u64;
-	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r26;
-	add r26 r25 into r27;
-	set r27 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
-	add r5 r25 into r28;
-	add r15 r13 into r29;
-	cast r29 into r30 as u128;
-	cast r2 into r31 as u128;
-	cast r28 into r32 as u128;
-	mul r32 1000u128 into r33;
-	div r33 r30 into r34;
-	add r30 r31 into r35;
-	mul r35 r34 into r36;
-	div r36 1000u128 into r37;
-	sub r37 r32 into r38;
-	cast r38 into r39 as u64;
-	gte r39 1u64 into r40;
-	assert.eq r40 true;
-	get.or_use delegator_shares[r1] 0u64 into r41;
-	add r41 r39 into r42;
-	set r42 into delegator_shares[r1];
-	add r28 r39 into r43;
-	set r43 into total_shares[0u8];
-	add r29 r2 into r44;
-	set r44 into total_balance[0u8];
+	cast aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8 0u64 into r3 as credits.aleo/bond_state;
+	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] r3 into r4;
+	get total_balance[0u8] into r5;
+	get total_shares[0u8] into r6;
+	gt r4.microcredits r5 into r7;
+	sub r4.microcredits r5 into r8;
+	ternary r7 r8 0u64 into r9;
+	get commission_percent[0u8] into r10;
+	cast r9 into r11 as u128;
+	mul r11 r10 into r12;
+	div r12 1000u128 into r13;
+	cast r13 into r14 as u64;
+	sub r9 r14 into r15;
+	add r5 r15 into r16;
+	cast r16 into r17 as u128;
+	cast r14 into r18 as u128;
+	cast r6 into r19 as u128;
+	mul r19 1000u128 into r20;
+	div r20 r17 into r21;
+	add r17 r18 into r22;
+	mul r22 r21 into r23;
+	div r23 1000u128 into r24;
+	sub r24 r19 into r25;
+	cast r25 into r26 as u64;
+	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r27;
+	add r27 r26 into r28;
+	set r28 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
+	add r6 r26 into r29;
+	add r16 r14 into r30;
+	cast r30 into r31 as u128;
+	cast r2 into r32 as u128;
+	cast r29 into r33 as u128;
+	mul r33 1000u128 into r34;
+	div r34 r31 into r35;
+	add r31 r32 into r36;
+	mul r36 r35 into r37;
+	div r37 1000u128 into r38;
+	sub r38 r33 into r39;
+	cast r39 into r40 as u64;
+	gte r40 1u64 into r41;
+	assert.eq r41 true;
+	get.or_use delegator_shares[r1] 0u64 into r42;
+	add r42 r40 into r43;
+	set r43 into delegator_shares[r1];
+	add r29 r40 into r44;
+	set r44 into total_shares[0u8];
+	add r30 r2 into r45;
+	set r45 into total_balance[0u8];
 ```
 ```leo
 transition deposit_public(
@@ -726,47 +739,45 @@ transition deposit_public(
 
 
   finalize deposit_public(
-	caller: address,
-	microcredits: u64
+    caller: address,
+    microcredits: u64
   ) {
-	// Distribute shares for new commission
-	let bonded: u64 = 0u64; // credits.aleo/bonded.get(CORE_PROTOCOL);
-	let current_balance: u64 = total_balance.get(0u8);
-	let current_shares: u64 = total_shares.get(0u8);
-	let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
-	let commission_rate: u128 = commission_percent.get(0u8);
-	let new_commission: u64 = get_commission(rewards as u128, commission_rate);
-	current_balance += rewards - new_commission;
+    // Distribute shares for new commission
+    // Simulate call to credits.aleo/bonded.get_or_use(CORE_PROTOCOL).microcredits;
+    let default: withdrawal_state = withdrawal_state {
+      microcredits: 0u64,
+      claim_block: 0u32
+    };
+    let bonded: u64 = withdrawals.get_or_use(CORE_PROTOCOL, default).microcredits; // credits.aleo/bonded.get(CORE_PROTOCOL).microcredits;
+    let current_balance: u64 = total_balance.get(0u8);
+    let current_shares: u64 = total_shares.get(0u8);
+    let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
+    let commission_rate: u128 = commission_percent.get(0u8);
+    let new_commission: u64 = get_commission(rewards as u128, commission_rate);
+    current_balance += rewards - new_commission;
 
+    let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
+    let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
+    delegator_shares.set(ADMIN, current_commission + new_commission_shares);
 
-	let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
-	let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
-	delegator_shares.set(ADMIN, current_commission + new_commission_shares);
+    current_shares += new_commission_shares;
+    current_balance += new_commission;
 
+    // Calculate mint for deposit
+    let new_shares: u64 = calculate_new_shares(current_balance as u128, microcredits as u128, current_shares as u128);
 
-	current_shares += new_commission_shares;
-	current_balance += new_commission;
+    // Ensure mint amount is valid
+    assert(new_shares >= 1u64);
 
+    // Update delegator_shares mapping
+    let shares: u64 = delegator_shares.get_or_use(caller, 0u64);
+    delegator_shares.set(caller, shares + new_shares);
 
-	// Calculate mint for deposit
-	let new_shares: u64 = calculate_new_shares(current_balance as u128, microcredits as u128, current_shares as u128);
+    // Update total shares
+    total_shares.set(0u8, current_shares + new_shares);
 
-
-	// Ensure mint amount is valid
-	assert(new_shares >= 1u64);
-
-
-	// Update delegator_shares mapping
-	let shares: u64 = delegator_shares.get_or_use(caller, 0u64);
-	delegator_shares.set(caller, shares + new_shares);
-
-
-	// Update total shares
-	total_shares.set(0u8, current_shares + new_shares);
-
-
-	// Update total_balance
-	total_balance.set(0u8, current_balance + microcredits);
+    // Update total_balance
+    total_balance.set(0u8, current_balance + microcredits);
   }
 ```
 #### Withdraw Public
@@ -805,60 +816,61 @@ finalize withdraw_public:
 	get delegator_shares[r3] into r10;
 	gte r10 r1 into r11;
 	assert.eq r11 true;
-	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] 0u64 into r12;
-	get total_balance[0u8] into r13;
-	get total_shares[0u8] into r14;
-	gt r12 r13 into r15;
-	sub r12 r13 into r16;
-	ternary r15 r16 0u64 into r17;
-	get commission_percent[0u8] into r18;
-	cast r17 into r19 as u128;
-	mul r19 r18 into r20;
-	div r20 1000u128 into r21;
-	cast r21 into r22 as u64;
-	sub r17 r22 into r23;
-	add r13 r23 into r24;
-	cast r24 into r25 as u128;
-	cast r22 into r26 as u128;
-	cast r14 into r27 as u128;
-	mul r27 1000u128 into r28;
-	div r28 r25 into r29;
-	add r25 r26 into r30;
-	mul r30 r29 into r31;
-	div r31 1000u128 into r32;
-	sub r32 r27 into r33;
-	cast r33 into r34 as u64;
-	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r35;
-	add r35 r34 into r36;
-	set r36 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
-	add r14 r34 into r37;
-	add r24 r22 into r38;
-	cast r1 into r39 as u128;
-	mul r39 1000u128 into r40;
-	cast r37 into r41 as u128;
-	div r40 r41 into r42;
-	cast r38 into r43 as u128;
-	mul r43 r42 into r44;
-	div r44 1000u128 into r45;
-	cast r2 into r46 as u128;
-	gte r45 r46 into r47;
-	assert.eq r47 true;
-	div block.height 1_000u32 into r48;
-	mul r48 1_000u32 into r49;
-	add r49 1_000u32 into r50;
-	ternary r7 r50 r5 into r51;
-	set r51 into current_batch_height[0u8];
-	cast r2 r51 into r52 as withdrawal_state;
-	set r52 into withdrawals[r3];
-	get pending_withdrawal[0u8] into r53;
-	add r53 r2 into r54;
-	set r54 into pending_withdrawal[0u8];
-	sub r38 r2 into r55;
-	set r55 into total_balance[0u8];
-	sub r37 r1 into r56;
-	set r56 into total_shares[0u8];
-	sub r10 r1 into r57;
-	set r57 into delegator_shares[r3];
+	cast aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8 0u64 into r12 as credits.aleo/bond_state;
+	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] r12 into r13;
+	get total_balance[0u8] into r14;
+	get total_shares[0u8] into r15;
+	gt r13.microcredits r14 into r16;
+	sub r13.microcredits r14 into r17;
+	ternary r16 r17 0u64 into r18;
+	get commission_percent[0u8] into r19;
+	cast r18 into r20 as u128;
+	mul r20 r19 into r21;
+	div r21 1000u128 into r22;
+	cast r22 into r23 as u64;
+	sub r18 r23 into r24;
+	add r14 r24 into r25;
+	cast r25 into r26 as u128;
+	cast r23 into r27 as u128;
+	cast r15 into r28 as u128;
+	mul r28 1000u128 into r29;
+	div r29 r26 into r30;
+	add r26 r27 into r31;
+	mul r31 r30 into r32;
+	div r32 1000u128 into r33;
+	sub r33 r28 into r34;
+	cast r34 into r35 as u64;
+	get.or_use delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru] 0u64 into r36;
+	add r36 r35 into r37;
+	set r37 into delegator_shares[aleo1kf3dgrz9lqyklz8kqfy0hpxxyt78qfuzshuhccl02a5x43x6nqpsaapqru];
+	add r15 r35 into r38;
+	add r25 r23 into r39;
+	cast r1 into r40 as u128;
+	mul r40 1000u128 into r41;
+	cast r38 into r42 as u128;
+	div r41 r42 into r43;
+	cast r39 into r44 as u128;
+	mul r44 r43 into r45;
+	div r45 1000u128 into r46;
+	cast r2 into r47 as u128;
+	gte r46 r47 into r48;
+	assert.eq r48 true;
+	div block.height 1_000u32 into r49;
+	mul r49 1_000u32 into r50;
+	add r50 1_000u32 into r51;
+	ternary r7 r51 r5 into r52;
+	set r52 into current_batch_height[0u8];
+	cast r2 r52 into r53 as withdrawal_state;
+	set r53 into withdrawals[r3];
+	get pending_withdrawal[0u8] into r54;
+	add r54 r2 into r55;
+	set r55 into pending_withdrawal[0u8];
+	sub r39 r2 into r56;
+	set r56 into total_balance[0u8];
+	sub r38 r1 into r57;
+	set r57 into total_shares[0u8];
+	sub r10 r1 into r58;
+	set r58 into delegator_shares[r3];
 ```
 ```leo
 transition withdraw_public(withdrawal_shares: u64, total_withdrawal: u64) {
@@ -870,77 +882,70 @@ transition withdraw_public(withdrawal_shares: u64, total_withdrawal: u64) {
 
 
   finalize withdraw_public(withdrawal_shares: u64, total_withdrawal: u64, owner: address) {
-	// Assert that they don't have any pending withdrawals
-	let currently_withdrawing: bool = withdrawals.contains(owner);
-	assert_eq(currently_withdrawing, false);
+    // Assert that they don't have any pending withdrawals
+    let currently_withdrawing: bool = withdrawals.contains(owner);
+    assert_eq(currently_withdrawing, false);
 
+    // Determine if the withdrawal can fit into the current batch
+    let current_batch: u32 = current_batch_height.get_or_use(0u8, 0u32);
+    let min_claim_height: u32 = block.height + UNBONDING_PERIOD;
+    let new_batch: bool = current_batch == 0u32;
+    let unbonding_allowed: bool = new_batch || current_batch >= min_claim_height;
+    assert(unbonding_allowed);
 
-	// Determine if the withdrawal can fit into the current batch
-	let current_batch: u32 = current_batch_height.get_or_use(0u8, 0u32);
-	let min_claim_height: u32 = block.height + UNBONDING_PERIOD;
-	let new_batch: bool = current_batch == 0u32;
-	let unbonding_allowed: bool = new_batch || current_batch >= min_claim_height;
-	assert(unbonding_allowed);
+    // Assert that they have enough to withdraw
+    let delegator_balance: u64 = delegator_shares.get(owner);
+    assert(delegator_balance >= withdrawal_shares);
 
+    // Distribute shares for new commission
+    // Simulate call to credits.aleo/bonded.get_or_use(CORE_PROTOCOL).microcredits;
+    let default: withdrawal_state = withdrawal_state {
+      microcredits: 0u64,
+      claim_block: 0u32
+    };
+    let bonded: u64 = withdrawals.get_or_use(CORE_PROTOCOL, default).microcredits; // credits.aleo/bonded.get(CORE_PROTOCOL).microcredits;
+    let current_balance: u64 = total_balance.get(0u8);
+    let current_shares: u64 = total_shares.get(0u8);
+    let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
+    let commission_rate: u128 = commission_percent.get(0u8);
+    let new_commission: u64 = get_commission(rewards as u128, commission_rate);
+    current_balance += rewards - new_commission;
 
-	// Assert that they have enough to withdraw
-	let delegator_balance: u64 = delegator_shares.get(owner);
-	assert(delegator_balance >= withdrawal_shares);
+    let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
+    let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
+    delegator_shares.set(ADMIN, current_commission + new_commission_shares);
 
+    current_shares += new_commission_shares;
+    current_balance += new_commission;
 
-	// Distribute shares for new commission
-	let bonded: u64 = 0u64; // credits.aleo/bonded.get(CORE_PROTOCOL);
-	let current_balance: u64 = total_balance.get(0u8);
-	let current_shares: u64 = total_shares.get(0u8);
-	let rewards: u64 = bonded > current_balance ? bonded - current_balance : 0u64;
-	let commission_rate: u128 = commission_percent.get(0u8);
-	let new_commission: u64 = get_commission(rewards as u128, commission_rate);
-	current_balance += rewards - new_commission;
+    // Calculate withdrawal amount
+    let withdraw_ratio: u128 = (withdrawal_shares as u128 * PRECISION_UNSIGNED) / current_shares as u128;
+    let withdrawal_calculation: u128 = (current_balance as u128 * withdraw_ratio) / PRECISION_UNSIGNED;
 
+    // If the calculated withdrawal amount is greater than total_withdrawal, the excess will stay in the pool
+    assert(withdrawal_calculation >= total_withdrawal as u128);
 
-	let new_commission_shares: u64 = calculate_new_shares(current_balance as u128, new_commission as u128, current_shares as u128);
-	let current_commission: u64 = delegator_shares.get_or_use(ADMIN, 0u64);
-	delegator_shares.set(ADMIN, current_commission + new_commission_shares);
+    // Update withdrawals mappings
+    let batch_height: u32 = new_batch ? get_new_batch_height(block.height) : current_batch;
+    current_batch_height.set(0u8, batch_height);
+    let withdrawal: withdrawal_state = withdrawal_state {
+      microcredits: total_withdrawal,
+      claim_block: batch_height
+    };
+    withdrawals.set(owner, withdrawal);
 
+    // Update pending withdrawal
+    let currently_pending: u64 = pending_withdrawal.get(0u8);
+    pending_withdrawal.set(0u8, currently_pending + total_withdrawal);
 
-	current_shares += new_commission_shares;
-	current_balance += new_commission;
+    // Update total balance
+    total_balance.set(0u8, current_balance - total_withdrawal);
 
+    // Update total shares
+    total_shares.set(0u8, current_shares - withdrawal_shares);
 
-	// Calculate withdrawal amount
-	let withdraw_ratio: u128 = (withdrawal_shares as u128 * PRECISION_UNSIGNED) / current_shares as u128;
-	let withdrawal_calculation: u128 = (current_balance as u128 * withdraw_ratio) / PRECISION_UNSIGNED;
-
-
-	// If the calculated withdrawal amount is greater than total_withdrawal, the excess will stay in the pool
-	assert(withdrawal_calculation >= total_withdrawal as u128);
-
-
-	// Update withdrawals mappings
-	let batch_height: u32 = new_batch ? get_new_batch_height(block.height) : current_batch;
-	current_batch_height.set(0u8, batch_height);
-	let withdrawal: withdrawal_state = withdrawal_state {
-  	microcredits: total_withdrawal,
-  	claim_block: batch_height
-	};
-	withdrawals.set(owner, withdrawal);
-
-
-	// Update pending withdrawal
-	let currently_pending: u64 = pending_withdrawal.get(0u8);
-	pending_withdrawal.set(0u8, currently_pending + total_withdrawal);
-
-
-	// Update total balance
-	total_balance.set(0u8, current_balance - total_withdrawal);
-
-
-	// Update total shares
-	total_shares.set(0u8, current_shares - withdrawal_shares);
-
-
-	// Update delegator_shares mapping
-	delegator_shares.set(owner, delegator_balance - withdrawal_shares);
+    // Update delegator_shares mapping
+    delegator_shares.set(owner, delegator_balance - withdrawal_shares);
   }
 ```
 #### Get New Batch Height
@@ -973,32 +978,33 @@ finalize create_withdraw_claim:
 	input r1 as address.public;
 	contains withdrawals[r1] into r2;
 	assert.eq r2 false;
-	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] 0u64 into r3;
-	assert.eq r3 0u64;
-	get delegator_shares[r1] into r4;
-	gte r4 r0 into r5;
-	assert.eq r5 true;
-	get total_balance[0u8] into r6;
-	get total_shares[0u8] into r7;
-	cast r0 into r8 as u128;
-	mul r8 1000u128 into r9;
-	cast r7 into r10 as u128;
-	div r9 r10 into r11;
-	cast r6 into r12 as u128;
-	mul r12 r11 into r13;
-	div r13 1000u128 into r14;
-	cast r14 into r15 as u64;
-	cast r15 block.height into r16 as withdrawal_state;
-	set r16 into withdrawals[r1];
-	get pending_withdrawal[0u8] into r17;
-	add r17 r15 into r18;
-	set r18 into pending_withdrawal[0u8];
-	sub r6 r15 into r19;
-	set r19 into total_balance[0u8];
-	sub r7 r0 into r20;
-	set r20 into total_shares[0u8];
-	sub r4 r0 into r21;
-	set r21 into delegator_shares[r1];
+	cast aleo1q6qstg8q8shwqf5m6q5fcenuwsdqsvp4hhsgfnx5chzjm3secyzqt9mxm8 0u64 into r3 as credits.aleo/bond_state;
+	get.or_use credits.aleo/bonded[aleo17hwvp7fl5da40hd29heasjjm537uqce489hhuc3lwhxfm0njucpq0rvfny] r3 into r4;
+	assert.eq r4.microcredits 0u64;
+	get delegator_shares[r1] into r5;
+	gte r5 r0 into r6;
+	assert.eq r6 true;
+	get total_balance[0u8] into r7;
+	get total_shares[0u8] into r8;
+	cast r0 into r9 as u128;
+	mul r9 1000u128 into r10;
+	cast r8 into r11 as u128;
+	div r10 r11 into r12;
+	cast r7 into r13 as u128;
+	mul r13 r12 into r14;
+	div r14 1000u128 into r15;
+	cast r15 into r16 as u64;
+	cast r16 block.height into r17 as withdrawal_state;
+	set r17 into withdrawals[r1];
+	get pending_withdrawal[0u8] into r18;
+	add r18 r16 into r19;
+	set r19 into pending_withdrawal[0u8];
+	sub r7 r16 into r20;
+	set r20 into total_balance[0u8];
+	sub r8 r0 into r21;
+	set r21 into total_shares[0u8];
+	sub r5 r0 into r22;
+	set r22 into delegator_shares[r1];
 ```leo
   transition create_withdraw_claim(withdrawal_shares: u64) {
 	return then finalize(withdrawal_shares, self.caller);
@@ -1006,51 +1012,48 @@ finalize create_withdraw_claim:
 
 
   finalize create_withdraw_claim(withdrawal_shares: u64, owner: address) {
-	// Assert that they don't have any pending withdrawals
-	let currently_withdrawing: bool = withdrawals.contains(owner);
-	assert_eq(currently_withdrawing, false);
+    // Assert that they don't have any pending withdrawals
+    let currently_withdrawing: bool = withdrawals.contains(owner);
+    assert_eq(currently_withdrawing, false);
 
+    // Simulate call to credits.aleo/unbonding.get_or_use(CORE_PROTOCOL).microcredits;
+    let default: withdrawal_state = withdrawal_state {
+      microcredits: 0u64,
+      claim_block: 0u32
+    };
+    let bonded: u64 = withdrawals.get_or_use(CORE_PROTOCOL, default).microcredits;
+    assert_eq(bonded, 0u64);
 
-	let bonded: u64 = 0u64; // credits.aleo/bonded.get(CORE_PROTOCOL);
-	assert_eq(bonded, 0u64);
+    // Assert that they have enough to withdraw
+    let delegator_balance: u64 = delegator_shares.get(owner);
+    assert(delegator_balance >= withdrawal_shares);
 
+    // Calculate withdrawal amount
+    let current_balance: u64 = total_balance.get(0u8);
+    let current_shares: u64 = total_shares.get(0u8);
+    let withdraw_ratio: u128 = (withdrawal_shares as u128 * PRECISION_UNSIGNED) / current_shares as u128;
+    let withdrawal_calculation: u128 = (current_balance as u128 * withdraw_ratio) / PRECISION_UNSIGNED;
+    let total_withdrawal: u64 = withdrawal_calculation as u64;
 
-	// Assert that they have enough to withdraw
-	let delegator_balance: u64 = delegator_shares.get(owner);
-	assert(delegator_balance >= withdrawal_shares);
+    // Update withdrawals mappings
+    let withdrawal: withdrawal_state = withdrawal_state {
+      microcredits: total_withdrawal,
+      claim_block: block.height
+    };
+    withdrawals.set(owner, withdrawal);
 
+    // Update pending withdrawal
+    let currently_pending: u64 = pending_withdrawal.get(0u8);
+    pending_withdrawal.set(0u8, currently_pending + total_withdrawal);
 
-	// Calculate withdrawal amount
-	let current_balance: u64 = total_balance.get(0u8);
-	let current_shares: u64 = total_shares.get(0u8);
-	let withdraw_ratio: u128 = (withdrawal_shares as u128 * PRECISION_UNSIGNED) / current_shares as u128;
-	let withdrawal_calculation: u128 = (current_balance as u128 * withdraw_ratio) / PRECISION_UNSIGNED;
-	let total_withdrawal: u64 = withdrawal_calculation as u64;
+    // Update total balance
+    total_balance.set(0u8, current_balance - total_withdrawal);
 
+    // Update total shares
+    total_shares.set(0u8, current_shares - withdrawal_shares);
 
-	// Update withdrawals mappings
-	let withdrawal: withdrawal_state = withdrawal_state {
-  	microcredits: total_withdrawal,
-  	claim_block: block.height
-	};
-	withdrawals.set(owner, withdrawal);
-
-
-	// Update pending withdrawal
-	let currently_pending: u64 = pending_withdrawal.get(0u8);
-	pending_withdrawal.set(0u8, currently_pending + total_withdrawal);
-
-
-	// Update total balance
-	total_balance.set(0u8, current_balance - total_withdrawal);
-
-
-	// Update total shares
-	total_shares.set(0u8, current_shares - withdrawal_shares);
-
-
-	// Update delegator_shares mapping
-	delegator_shares.set(owner, delegator_balance - withdrawal_shares);
+    // Update delegator_shares mapping
+    delegator_shares.set(owner, delegator_balance - withdrawal_shares);
   }
 ```
 #### Claim Withdrawal Public
@@ -1093,18 +1096,16 @@ finalize claim_withdrawal_public:
 
 
   finalize claim_withdrawal_public(owner: address, amount: u64) {
-	let withdrawal: withdrawal_state = withdrawals.get(owner);
-	assert(block.height >= withdrawal.claim_block);
-	assert_eq(withdrawal.microcredits, amount);
+    let withdrawal: withdrawal_state = withdrawals.get(owner);
+    assert(block.height >= withdrawal.claim_block);
+    assert_eq(withdrawal.microcredits, amount);
 
+    // Remove withdrawal
+    withdrawals.remove(owner);
 
-	// Remove withdrawal
-withdrawals.remove(owner);
-
-
-	// Update pending withdrawal
-	let currently_pending: u64 = pending_withdrawal.get(0u8);
-	pending_withdrawal.set(0u8, currently_pending - amount);
+    // Update pending withdrawal
+    let currently_pending: u64 = pending_withdrawal.get(0u8);
+    pending_withdrawal.set(0u8, currently_pending - amount);
   }
 ```
 
