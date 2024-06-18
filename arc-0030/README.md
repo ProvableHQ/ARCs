@@ -10,7 +10,7 @@ created: 9/2/2022
 
 ## Abstract
 
-Let's get NFTs & Tokens/DeFI working on Aleo. Currently, you can create an ERC-20/ERC-721-like program on Aleo but it is severly limited.
+Let's get NFTs & Tokens/DeFI working on Aleo. Currently, you can create an ERC-20/ERC-721-like program on Aleo but it is severely limited.
 The biggest limitation is that a program cannot own an NFT. This prevents these Aleo tokens from being used in: escrow, auctions, pools, etc.
 
 In order to enable this functionality, we need an opcode in the Aleo instruction set like: `self.parent`. This opcode would be similar to `self.caller` except it would result in the address of the program who called another program.
