@@ -10,7 +10,7 @@ created: 2020-02-07
 
 ## Abstract
 
-Aleo Request for Comments (ARCs) are protocol-level, network-level, and application-level standards for the Aleo ecosystem.
+Aleo Request for Comments (ARCs) is protocol-level, network-level, and application-level standards for the Aleo ecosystem.
 
 ## Specification
 
