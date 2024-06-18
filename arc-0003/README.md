@@ -10,7 +10,7 @@ created: 9-29-2022
 
 ## Abstract
 
-The purpose of this ARC is to unify syntax between Leo and Aleo instructions to make it clear what tools developers have at their disposal. We propose several breaking changes to both Leo and Aleo instructions to achieve this goal.
+The purpose of this ARC is to unify syntax between Leo and Aleo's instructions to make it clear what tools developers have at their disposal. We propose several breaking changes to both Leo and Aleo's instructions to achieve this goal.
 
 | Leo V1           —> | Leo V2 & Aleo Instructions V2 | <—  Aleo Instructions V1 |
 |:-------------------:|:-----------------------------:|:------------------------:|
@@ -64,7 +64,7 @@ The following must be defined outside the program scope in a Leo file.
 * interface definitions.
 
 ### Interface Abstract Type
-Interfaces are being added to both Leo and Aleo instructions to relate types that have similar implementations.
+Interfaces are being added to both Leo and Aleo's instructions to relate types that have similar implementations.
 Interfaces are similar to classes in object-oriented programming languages.
 
 Interfaces can define
