@@ -281,7 +281,7 @@ Checks whether `first` and `second` are not equal, halting if they are equal.
 
 #### Description
 
-Returns the height of the block within the finalize scope.
+Returns the height of the block within the finalized scope.
 Currently, block height is the only supported property.
 
 #### Example Usage
