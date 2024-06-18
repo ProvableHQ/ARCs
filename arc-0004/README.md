@@ -32,7 +32,7 @@ boolean.
 
 The flagged operations are different from wrapped (e.g. `abs.w`) or
 lossy (e.g. `cast.lossy`) operations.  It is important that the flagged
-operation have the same semantics as the current halting instruction
+operation has the same semantics as the current halting instruction
 except for the halting behavior and extra return value, for ease of
 use by compilers.
 
