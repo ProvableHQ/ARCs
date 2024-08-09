@@ -10,20 +10,26 @@ created: 01/15/2024 # Date
 
 ## 1. Abstract
 
-Aleo is a L1 blockchain using ZK proofs. This feature enables significant scalability as contracts are run by one, and verified by many in O(1) time. This is opposed to legacy protocols where validators run code again to verify. There is a caveat though, whatever is executed in the `finalize()` function uses a one-time execution and a many-time execution model. This means it is only as scalable as legacy protocols. Aleo's record infrastructure is scalable. SnarkVM needs one new minor (?) feature to avoid `finalize()` function: in transitions, make it possible to access the public fields of records whose owner differs from the signer. In other words, we need “owned by one and used by many" types of records for transitions.
+Aleo.org is a Layer 1 zero-knowledge blockchain with two types of logic: Record and Mapping. Record logic, based on the UTXO model, offers privacy and scalability, while Mapping resembles legacy protocols—public and less scalable. For DeFi to thrive on Aleo, we need a full featured record logic. Therefore, record logic needs a key feature: asynchronous data transfers between users: signal records.
+
+Signal records have two features over current records:
+- their serial number is public, thus everyone can know if they were spent or not. This is useful for representing time, price data, system settings, and authorization records.
+- if signal records can be used in transitions by any signer, if signer is different from signal record owner, then only its public fields can be read. Signal record can also only be consumed by their owner.
+
+By enabling transitions to read unspent signal records' public fields (regardless of ownership) within transitions, we can fully eliminate reliance on Mapping in DeFi apps, allowing us to build fully scalable and private DeFi applications, thus make Aleo a success. This enhancement is crucial for Aleo’s DeFi ecosystem to reach its full potential.
 
 This new feature has several applications, including but not limited to:
 1. **Authorization** 
     1. User can be authorized to use some transitions by Administrator. This can be done by the Administrator creating an Authorization record with the user's address in the public field. User can use this record (eventhough it is not owned by him) to access any desired transition.
-    2. Records can also be used to authorize programs (by their addresses) to use any desired transitions by issuing Authorization records. Thus making the system more modular, secure, and upgradeable.
+    2. Signal records can also be used to authorize programs (by their addresses) to use any desired transitions by issuing Authorization records. Thus making the system more modular, secure, and upgradeable.
 2. **Provide system updateable system settings**  
     An authority can create and recreate a record of system settings. These can be used in any transition by anyone. Once the settings are updated only the updated settings will be applicable to the next transition.
 3. **Enable or disable system transitions**  
-    The existence of a record can prove a transition is enabled or disabled. The Administrator can issue the record.
+    The existence of a signal record can prove a transition is enabled or disabled. The Administrator can issue the signal record.
 4. **Provide token prices for the system**  
-    A records public field can be the price provided by some Oracle for a token. The record can be updated by Oracle and read by anyone.
+    A signal records public field can be the price provided by some Oracle for a token. The signal record can be updated by Oracle and read by anyone.
 5. **Provide UTC time for the system**  
-    A record of the current UTC time can be consumed and recreated by a node every `x` minutes and read by anyone as a trusted time record.
+    A signal record of the current UTC time can be consumed and recreated by a node every `x` minutes and read by anyone as a trusted time signal record.
 
 ## 2. Specification
 
