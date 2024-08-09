@@ -1,6 +1,6 @@
 ---
 arc: 0039 # Add the next sequence number
-title: Records that are owned by one and used by many # Title
+title: Signal records, and their necessit # Title
 authors: Robert Horvath rob@nyar.eu # Add all Github usernames, emails, and/or full names
 discussion: https://github.com/AleoHQ/ARCs/discussions/61 # Create a `Github Discussion` titled `ARC-XXXX: {TITLE}`
 topic: Application # Choose: Protocol, Network, or Application
