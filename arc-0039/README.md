@@ -10,13 +10,11 @@ created: 01/15/2024 # Date
 
 ## 1. Abstract
 
-Aleo.org is a Layer 1 zero-knowledge blockchain with two types of logic: Record and Mapping. Record logic, based on the UTXO model, offers privacy and scalability, while Mapping resembles legacy protocols—public and less scalable. For DeFi to thrive on Aleo, we need a full featured record logic. Therefore, record logic needs a key feature: asynchronous data transfers between users: signal records.
+If we could use records everywhere instead of mappings, we could make Aleo fully scalable, thus banks and insurance could put their entire operatins on Aleo, which would make Aleo's value an order of magnitude higher. Mappings map keys to values, that is readable by all. We can use records for the same purpose if we allow their public fields to be read by transitions even if the record owner, and the transition signer is different. For this purpose we would create a new type of records: signal records. 
 
-Signal records have two features over current records:
-- their serial number is public, thus everyone can know if they were spent or not. This is useful for representing time, price data, system settings, and authorization records.
-- if signal records can be used in transitions by any signer, if signer is different from signal record owner, then only its public fields can be read. Signal record can also only be consumed by their owner.
-
-By enabling transitions to read unspent signal records' public fields (regardless of ownership) within transitions, we can fully eliminate reliance on Mapping in DeFi apps, allowing us to build fully scalable and private DeFi applications, thus make Aleo a success. This enhancement is crucial for Aleo’s DeFi ecosystem to reach its full potential.
+Signal records have two features different from current legacy records:
+- Signal records' public fields can be read by any signer in a transition regardless who owns those records. 
+- Signal records' serial number is public, thus everyone knows if they were spent or not. 
 
 This new feature has several applications, including but not limited to:
 1. **Authorization** 
@@ -50,13 +48,14 @@ As **Figure 2** shows, the proposed transition logic is:
 2. If the input of the transition is a mix of records owned by the signer and not owned by the signer, then:
     1. All the public fields of the signer's records are accessible in the transition. As in current logic.
     2. All the private fields of the signer's records are accessible in the transition. As in current logic.
-    3. All the public fields of the record not owned by the signer are accessible in the transition.  
+    3. All the public fields of the signal record not owned by the signer are accessible in the transition.  
         **DIFFERENT from current logic!**
-    4. Accessing any private fields of the record that are not owned by the signer will result in an error.  
+    4. Accessing any private fields of the signal record that are not owned by the signer will result in an error.  
         **DIFFERENT from current logic!**
-    5. No access to fields of a record not owned by the signer should be allowed.  
+    5. No access to fields of a signal record not owned by the signer should be allowed.  
         **DIFFERENT from current logic!**   
-    This is needed for allowing the execution of certain transitions. The very existence of the record is the proof of the transition being enabled. The transition must fail if the record is missing.
+    This is needed for allowing the execution of certain transitions. The very existence of the signal record is the proof of the transition being enabled. The transition must fail if the record is missing.
+
 
 ### 2.1 Use Cases
 
@@ -97,6 +96,16 @@ There are two ways to implement it:
 #### 2.1.4 Oracles provide Price Record of real world assets
 
 The public field of price records works exactly the same way as time records, since only price is substituted for time.
+
+### 2.2 Signal Records operations
+
+1. All records are by defaut of type legacy - itis the current records.  
+2. Records can be defined as signal records by setting the reserved field of `record_type: 1`. This way allowing for future record types.  
+3. Users are free to explicitely define a record as legacy by issuing `record_type: 0`.  
+4. All the public fields of the signal record not owned by the signer must still be accessible from within the transition.  
+5. No access to any fields of a signal record not owned by the signer should be allowed. Thus only the existence of the signal record is checked - if user can not provide one, the transaction must be rejected.  
+6. All other operations of signal records are the same as of legacy record types.  
+
 
 ## 3. Attempted Workarounds
 
