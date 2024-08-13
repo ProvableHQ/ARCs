@@ -10,24 +10,24 @@ created: 01/15/2024 # Date
 
 ## 1. Abstract
 
-If we could use records everywhere instead of mappings, we could make Aleo fully scalable, thus banks and insurance could put their entire operatins on Aleo, which would make Aleo's value an order of magnitude higher. Mappings map keys to values, that is readable by all. We can use records for the same purpose if we allow their public fields to be read by transitions even if the record owner, and the transition signer is different. For this purpose we would create a new type of records: signal records. 
+If we could use records everywhere instead of mappings, Aleo would achieve full scalability, enabling banks and insurance to run their entire operaitons on Aleo's platform, increasing its value by the order of magnitude. Mappings map keys to values, that is readable by all, but we can achieve the same functionality with records if we allow their public fields to be read by transitions, even when the record owner and the transition signer are different. To facilitate this, we propose a new type of record: signal records. While this would not completely replace mappings, developers would only need to add code to prevent two identical keys from pointing to different values. This approach would be sufficient for 99% of DeFi applications, effectively eliminating their need for mappings.  
 
-Signal records have two features different from current legacy records:
-- Signal records' public fields can be read by any signer in a transition regardless who owns those records. 
-- Signal records' serial number is public, thus everyone knows if they were spent or not. 
+Signal records have two features setting them apart from current legacy records:
+- **Accessible public fields**: Signal records' public fields can be read by any signer in a transition regardless who owns those signal records. 
+- **Public serial numbers**: Signal records' serial number is publicly visible, allowing anyone to determine whether the record has been consumed. 
 
 This new feature has several applications, including but not limited to:
-1. **Authorization** 
-    1. User can be authorized to use some transitions by Administrator. This can be done by the Administrator creating an Authorization record with the user's address in the public field. User can use this record (eventhough it is not owned by him) to access any desired transition.
+1. **Scalable smart contract state (both private and public)**  
+    Smart contract can create and recreate one or several signal record(s) of smart contract state. These can be used in any transition by anyone. Once the settings are updated, only the updated settings will be applicable to the next transition.
+2. **Provide UTC time**  
+    A signal record of the current UTC time can be consumed and recreated by a node every `x` minutes and read by anyone as a trusted time signal record. For DeFi apps a reliable UTC time source is a must.
+3. **Authorization** 
+    1. User can be authorized to use some transitions by the Administrator. This can be done by the Administrator creating an Authorization record with the user's address in the public field. User can use this record (eventhough it is not owned by him) to access any desired transition.
     2. Signal records can also be used to authorize programs (by their addresses) to use any desired transitions by issuing Authorization records. Thus making the system more modular, secure, and upgradeable.
-2. **Provide system updateable system settings**  
-    An authority can create and recreate a record of system settings. These can be used in any transition by anyone. Once the settings are updated only the updated settings will be applicable to the next transition.
-3. **Enable or disable system transitions**  
+4. **Enable or disable transitions**  
     The existence of a signal record can prove a transition is enabled or disabled. The Administrator can issue the signal record.
-4. **Provide token prices for the system**  
+5. **Provide token prices**  
     A signal records public field can be the price provided by some Oracle for a token. The signal record can be updated by Oracle and read by anyone.
-5. **Provide UTC time for the system**  
-    A signal record of the current UTC time can be consumed and recreated by a node every `x` minutes and read by anyone as a trusted time signal record.
 
 ## 2. Specification
 
