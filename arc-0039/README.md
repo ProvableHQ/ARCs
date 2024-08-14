@@ -10,11 +10,16 @@ created: 01/15/2024 # Date
 
 ## 1. Abstract
 
-If we could use records everywhere instead of mappings in DeFi applications, Aleo would achieve full scalability, enabling banks and insurance to run their entire operaitons on Aleo's platform, increasing its value by an order of magnitude. Mappings map keys to values, that is readable by all, but we can achieve the same functionality with records if we allow their public fields to be read by transitions, even when the record owner and the transition signer are different. To facilitate this, we propose a new type of record: signal records. While this would not completely replace mappings, developers would only need to add code to prevent two identical keys from pointing to different values. This approach would be sufficient for 99% of DeFi applications, effectively eliminating their need for mappings.  
+Aleo blockchain is both programmable and encrypted, positioning itself as a unique platform in the increasingly crowded DeFi market. With the current market saturation, gaining traction in this space is becoming more challenging. To stand out and attract significant players from traditional financial institutions, Aleo must introduce scalability as well to its DeFi applications. This proposal aims to unlock this potential by introducing a new type of record: signal records.
 
-Signal records have two features setting them apart from current legacy records:
-- **Accessible public fields**: Signal records' public fields can be read by any signer in a transition regardless who owns those signal records. 
-- **Public serial numbers**: Signal records' serial number is publicly visible, allowing anyone to determine whether the record has been consumed. 
+Signal records are designed to provide publicly readable information while ensuring that creation and consumption are restricted to a single entity. This feature is crucial for enabling scalable, secure, and efficient operations on Aleo's platform, making it more attractive to large financial institutions.
+
+Key Benefits of Signal Records:
+
+- **Scalability**: Signal records enable high-performance management of smart contract states, ensuring that Aleo's platform can handle large-scale operations efficiently.
+- **Flexibility**: Developers can utilize signal records for a variety of applications, including the announcement of UTC time - a necessity for DeFi, authorization, and dynamic system settings.
+- **Security**: The design of signal records enhances privacy and ensures that sensitive data remains protected.
+- **Resource Efficiency**: By allowing for more efficient use of Aleo's resources, signal records reduce operational costs for both users and validator operators.
 
 This new feature has several applications, including but not limited to:
 1. **Scalable smart contract state (both private and public)**  
@@ -31,11 +36,17 @@ This new feature has several applications, including but not limited to:
 
 ## 2. Specification
 
+Signal records have two features setting them apart from current legacy records:
+- **Accessible public fields**: Signal records' public fields can be read by any signer in a transition regardless who owns those signal records. 
+- **Public serial numbers**: Signal records' serial number is publicly visible, allowing anyone to determine whether the record has been consumed or not. 
+
+To display the difference between the current and proposed transition logic, we will use the following example of current and proposed transition logic.
+
 ![Current Tx Logic](./images/arc39-current.png)
 **Figure 1: Current Transition Logic**  
 In **Figure 1** User1 is the transition signer.
 
-As **Figure 1** shows, the current transition logic is:
+As **Figure 1** shows the current transition logic:
 1. If the transition contains only records owned by the signer, the transition is executed.
 2. If any of the input records are not owned by the signer, then the transition is rejected. Even if the record has public fields that otherwise are accessible.
 
@@ -51,10 +62,9 @@ As **Figure 2** shows, the proposed transition logic is:
     3. All the public fields of the signal record not owned by the signer are accessible in the transition.  
         **DIFFERENT from current logic!**
     4. Accessing any private fields of the signal record that are not owned by the signer will result in an error.  
-        **DIFFERENT from current logic!**
-    5. No access to fields of a signal record not owned by the signer should be allowed.  
+    5. No access to fields of a signal record not owned by the signer must be allowed.  
         **DIFFERENT from current logic!**   
-    This is needed for allowing the execution of certain transitions. The very existence of the signal record is the proof of the transition being enabled. The transition must fail if the record is missing.
+    This is needed for allowing the execution of certain transitions. The very existence of the signal record is the proof of the transition being enabled. The transition must fail if the expected record is missing.
 
 
 ### 2.1 Use Cases
@@ -103,7 +113,7 @@ The public field of price records works exactly the same way as time records, si
 2. Records can be defined as signal records by setting the reserved field of `record_type: 1`. This way allowing for future record types.  
 3. Users are free to explicitely define a record as legacy by issuing `record_type: 0`.  
 4. All the public fields of the signal record not owned by the signer must still be accessible from within the transition.  
-5. No access to any fields of a signal record not owned by the signer should be allowed. Thus only the existence of the signal record is checked - if user can not provide one, the transaction must be rejected.  
+5. No access to any fields of a signal record not owned by the signer must be allowed. Thus only the existence of the signal record is checked - if user can not provide one, the transaction must be rejected.  
 6. All other operations of signal records are the same as of legacy record types.  
 
 
@@ -123,7 +133,7 @@ In any workaround attempt the above three points must hold.
 ![Attempted Workarounds](./images/arc39-time-record-workaround-fail.png)
 **Figure 6: Attempting Workarounds**
 
-**Figure 6** displays the two basic workaround classes. It displays the simplest cases: there is a `Time Record` that should be read by all, and a `Record 2` that is the input to a transition. User 1 executes the transition. There are two strategies to unify the owners of two different records:
+**Figure 6** displays the two basic workaround classes. It displays the simplest cases: there is a `Time Record` that must be readable by all, and a `Record 2` that is the input to a transition. User 1 executes the transition. There are two strategies to unify the owners of two different records:
 1. Change the owner of the `Record2` of User to policy address.
 2. Change the owner of the `Time Record` to user's address.
 
