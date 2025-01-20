@@ -41,7 +41,7 @@ async transition issue(
   private sig: signature
 ) -> (Certificate, Future)
 ```
-`sig` is the issuer signature on the `hash + issuer + subject` of the Certificate model illustrated below.
+`sig` is the issuer signature on the `hash` of the Certificate model illustrated below.
 
 ```
 transition verify_ownership(
@@ -94,8 +94,6 @@ Certificate Hash Calculation
   ```
   key1_identifier = hash(type, issuer, “key1”)
   key2_key21_identifier = hash(type, issuer, “key2,key21”)
-  …
-  key[]_0_identifier = hash(type, issuer, “key[],0”)
   … so on
   ```
 
@@ -355,7 +353,7 @@ leaves = [3493762364786270799u64, 2885257838413858146u64, 1977705045598954156u64
 
 sorted_leaves = level 0 = [1977705045598954156u64, 2885257838413858146u64, 3493762364786270799u64, 3824841577554724530u64]
 
-level 1 = [hashMerge(1977705045598954156u64, 2885257838413858146u64), (3493762364786270799u64, 3824841577554724530u64) = [16628724507032849692u64, 9662023429270085602u64]
+level 1 = [hashMerge(1977705045598954156u64, 2885257838413858146u64), hashMerge(3493762364786270799u64, 3824841577554724530u64)] = [16628724507032849692u64, 9662023429270085602u64]
 
 root = hashMerge(16628724507032849692u64, 9662023429270085602u64) = 7849773981907115583u64
 ```
@@ -373,9 +371,9 @@ transition verify_dob(
         const DOB_IDENTIFIER:u64 = 7553963441159233578u64;
         let computed_hash:u64 = hashMerge(DOB_IDENTIFIER, hashMerge(hashField(encoded_salt), hashField(value)));
         let zero_found:bool = false;
-        for i:u64 in 0u64..2u64 {
+        for i:u64 in 0u64..32u64 {
             if(proof[i] != 0u64 && !zero_found) {
-                computed_hash = merge(computed_hash, proof[i]);
+                computed_hash = hashMerge(computed_hash, proof[i]);
             }else {
                 zero_found = true;
             }
