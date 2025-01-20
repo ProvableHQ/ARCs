@@ -85,27 +85,6 @@ Certificate Hash Calculation
   … so on
   ```
 
-  The key having an array value is structured into a nested form with the item index as key and the respective item as the value and then normalized.
-  ```
-  key : [item1, item2,....]
-  ```
-  Nested Form :
-  ```
-  key[] : 
-    0 : item1,
-    1 : item2,
-    … so on 
-  ```
-  
-  Normalized key-value pairs :
-  ```
-  (key[],0) = salt item1
-  (key[],1) = salt item2,
-  … so on
-  ```
-  
-  If the item itself is a nested structure, it follows the same hierarchical normalization pattern as shown above.
-  
 2. Assign Unique Key Identifiers
  
   Hash each normalized key to create unique identifiers for corresponding values. These identifiers are public data for a specific certificate model from an issuer.
@@ -277,7 +256,150 @@ Notes
 
 ### Test Cases
 
+[encodeToF](https://developer.aleo.org/concepts/beginner/accounts/#encodetof) Implementation
+```
+function encodeToF(input) {
+    // Define Fp as the modulo base
+    const Fp = BigInt("8444461749428370424248824938781546531375899335154063827935233455917409239041");
 
+    // Convert string to UTF-8 byte sequence
+    const utf8Encoder = new TextEncoder();
+    const utf8Bytes = utf8Encoder.encode(input);
+
+    // Convert UTF-8 bytes to little-endian unsigned integer
+    let result = BigInt(0);
+    for (let i = 0; i < utf8Bytes.length; i++) {
+        result += BigInt(utf8Bytes[i]) << BigInt(8 * i); // Little-endian shift
+    }
+
+    // Take modulo Fp
+    result %= Fp;
+
+    return result;
+}
+```
+
+Certificate Sample
+```
+type:KYC
+issuer:aleo123456
+name:Alice Wonderland
+dob:1737213145
+```
+
+Normalized Certificate
+```
+type:2fc55f97-a9a3-4ed7-8815-634441580111 KYC
+issuer:d64266d2-b9cd-46c2-8ed1-284f96916353 aleo123456
+name:1b13c461-8ed4-420a-b1f4-9d6b1f84decc Alice Wonderland
+dob:03dff77c-f450-43ac-a8a6-54fdfe8fd58c 1737213145
+```
+
+Calculate Key Identifier
+```
+encodeToF("type") = encodeToF("KYC"+"aleo123456"+"type") = 34518023219516878712502898596091663702347field
+encodeToF("issuer") = encodeToF("KYC"+"aleo123456"+"issuer") = 2551123260008996174638407298389558793613826379field
+encodeToF("name") = encodeToF("KYC"+"aleo123456"+"name") = 34513910798710461507111079899315413670219field
+encodeToF("dob") = encodeToF("KYC"+"aleo123456"+"dob") = 130842721073966073778397858519836744011field
+
+
+type_identifier = hashField(34518023219516878712502898596091663702347field) = 10446307579264726606u64
+issuer_identifier = hashField(2551123260008996174638407298389558793613826379field) = 2814991933338693718u64
+name_identifier = hashField(34513910798710461507111079899315413670219field) = 9542943440922567689u64
+dob_identifier = hashField(130842721073966073778397858519836744011field) = 7553963441159233578u64
+```
+
+Calculate Leaves
+```
+Encode the salt and value
+
+encodeToF(type_salt) = encodeToF("2fc55f97-a9a3-4ed7-8815-634441580111") = 4627873708036106866105690824943210139526495281608421305002800650924139945535field
+encodeToF(type_value) = encodeToF("KYC") = 4413771field
+
+encodeToF(issuer_salt) = encodeToF("d64266d2-b9cd-46c2-8ed1-284f96916353") = 5007416004099739579900811505314075173701371646709136087321901192545139447002field
+encodeToF(type_value) = encodeToF("aleo123456") = 255989228916169135975521field
+
+encodeToF(name_salt) = encodeToF("1b13c461-8ed4-420a-b1f4-9d6b1f84decc") = 5542136064011455447732190366687764001002631315870503937113503002855558914138field
+encodeToF(name_value) = encodeToF("Alice Wonderland") = 133495928218707390983326110945227926593field
+
+encodeToF(dob_salt) = encodeToF("03dff77c-f450-43ac-a8a6-54fdfe8fd58c") = 7304753691959740694777277560332690949244175568276288257230442595215705351000field
+dob_value = 1737213145field
+```
+```
+Hash the salt and value
+
+type_salt_hash = hashField(4627873708036106866105690824943210139526495281608421305002800650924139945535field) = 11398935134570363188u64
+type_value_hash = hashField(4413771field) = 11957017686122452459u64
+
+issuer_salt_hash = hashField(5007416004099739579900811505314075173701371646709136087321901192545139447002field) = 11725745787159980657u64
+issuer_value_hash = hashField(255989228916169135975521field) = 3389449752597723648u64
+
+name_salt_hash = hashField(5542136064011455447732190366687764001002631315870503937113503002855558914138field) = 7618075299001000677u64
+name_value_hash = hashField(133495928218707390983326110945227926593field) = 15677524595047486542u64
+
+dob_salt_hash = hashField(7304753691959740694777277560332690949244175568276288257230442595215705351000field) = 8111974644445170344u64
+dob_value_hash = hashField(1737213145field) = 905007618703667086u64
+```
+```
+Calculate Leaves
+
+type_leaf = hashMerge(type_identifier, hashMerge(type_salt_hash, type_value_hash) = hashMerge(10446307579264726606u64, hashMerge(11398935134570363188u64, 11957017686122452459u64) = 3493762364786270799u64
+issuer_leaf = 2885257838413858146u64
+name_leaf = 1977705045598954156u64
+dob_leaf = 3824841577554724530u64
+```
+
+Merkle tree and Root Calculation
+```
+leaves = [3493762364786270799u64, 2885257838413858146u64, 1977705045598954156u64, 3824841577554724530u64]
+
+sorted_leaves = level 0 = [1977705045598954156u64, 2885257838413858146u64, 3493762364786270799u64, 3824841577554724530u64]
+
+level 1 = [hashMerge(1977705045598954156u64, 2885257838413858146u64), (3493762364786270799u64, 3824841577554724530u64) = [16628724507032849692u64, 9662023429270085602u64]
+
+root = hashMerge(16628724507032849692u64, 9662023429270085602u64) = 7849773981907115583u64
+```
+
+Verify dob
+```
+dob verifier 
+
+transition verify_dob(
+        encoded_salt: field,
+        value: field,
+        proof: [u64;32],  
+        ) -> bool {
+        const ROOT:u64 = 7849773981907115583u64;
+        const DOB_IDENTIFIER:u64 = 7553963441159233578u64;
+        let computed_hash:u64 = hashMerge(DOB_IDENTIFIER, hashMerge(hashField(encoded_salt), hashField(value)));
+        let zero_found:bool = false;
+        for i:u64 in 0u64..2u64 {
+            if(proof[i] != 0u64 && !zero_found) {
+                computed_hash = merge(computed_hash, proof[i]);
+            }else {
+                zero_found = true;
+            }
+        }
+        return computed_hash == ROOT;
+    } 
+```
+
+```
+Test
+
+leo run verify_dob 7304753691959740694777277560332690949244175568276288257230442595215705351000field 1737213145field [34937623647862
+70799u64,16628724507032849692u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0
+u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64,0u64]
+       Leo ✅ Compiled 'issuer.aleo' into Aleo instructions
+
+⛓  Constraints
+
+ •  'issuer.aleo/verify_dob' - 1,508,343 constraints (called 1 time)
+
+➡️  Output
+
+ • true
+```
 
 
 ## Reference Implementations
