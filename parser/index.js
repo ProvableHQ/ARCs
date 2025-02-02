@@ -10,8 +10,15 @@ const parseMD = require('parse-md').default;
  * topic: Meta
  * status: Living
  * created: 2020-02-07
- */
+*/
+// Add a new check for the discussion field in the ARC metadata
+
+if (!metadata.hasOwnProperty('discussion') || !metadata.discussion.trim()) {
+    console.error('\n', arcReadmeFile, 'is missing or has an empty \'discussion\' field.\n');
+    process.exit(1);
+}
 const requiredMetadata = ['arc', 'title', 'authors', 'discussion', 'topic', 'status', 'created'];
+
 
 const topics = ['Protocol', 'Network', 'Application', 'Meta'];
 
