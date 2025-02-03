@@ -4,13 +4,13 @@ title: Adding self.parent opcode
 authors: evan@demoxlabs.xyz mike@demoxlabs.xyz
 discussion: https://github.com/AleoHQ/ARCs/discussions/11
 topic: Application
-status: Draft
+status: Deprecated
 created: 9/2/2022
 ---
 
 ## Abstract
 
-Let's get NFTs & Tokens/DeFI working on Aleo. Currently, you can create an ERC-20/ERC-721-like program on Aleo but it is severly limited.
+Let's get NFTs & Tokens/DeFI working on Aleo. Currently, you can create an ERC-20/ERC-721-like program on Aleo but it is severely limited.
 The biggest limitation is that a program cannot own an NFT. This prevents these Aleo tokens from being used in: escrow, auctions, pools, etc.
 
 In order to enable this functionality, we need an opcode in the Aleo instruction set like: `self.parent`. This opcode would be similar to `self.caller` except it would result in the address of the program who called another program.
@@ -107,7 +107,7 @@ function withdraw_token_two:
 
     finalize self.caller r1;
 
-finalize withdrawl_token_two:
+finalize withdraw_token_two:
     input r0 as address.public;
     input r1 as u64.public;
 
@@ -166,4 +166,4 @@ There should be no regulatory concerns.
 
 ## References
 
-Explanation of [tx.origin vs msg.sender in etherem](https://ethereum.stackexchange.com/questions/1891/whats-the-difference-between-msg-sender-and-tx-origin)
+Explanation of [tx.origin vs msg.sender in ethereum](https://ethereum.stackexchange.com/questions/1891/whats-the-difference-between-msg-sender-and-tx-origin)

@@ -29,14 +29,13 @@ graph LR
     end
 
     draft([Draft]) -.-> withdrawn([Withdrawn])
-    active([Active]) -.-> withdrawn([Withdrawn])
     
     subgraph standards
         active([Active]) --> decision{Decision}
         decision{Decision} --> accepted([Accepted])
     end
     
-    decision{Decision} -.-> rejected([Rejected])
+    decision{Decision} -.-> rejected([Draft])
 
     subgraph standards
         accepted([Accepted]) --> final([Final])
@@ -49,11 +48,9 @@ graph LR
 
 `Active` refers to a proposal with a reference implementation that is ready for review.
 
-`Withdrawn` refers to a proposal that was previously marked as `Idea`, `Draft`, or `Active`.
+`Withdrawn` refers to a proposal that was previously marked as `Draft`, or `Active`.
 
-`Accepted` refers to a proposal that was `Active` with a reference implementation, and has been approved by reviewer(s).
-
-`Rejected` refers to a proposal that was `Active` with a reference implementation, and has been denied by reviewer(s).
+`Accepted` refers to a proposal that has been approved by the community and is ready for implementation.
 
 `Final` refers to a proposal that was `Accepted`, and the reference implementation has been incorporated into Aleo. 
 

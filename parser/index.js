@@ -15,7 +15,7 @@ const requiredMetadata = ['arc', 'title', 'authors', 'discussion', 'topic', 'sta
 
 const topics = ['Protocol', 'Network', 'Application', 'Meta'];
 
-const statuses = ['Draft', 'Active', 'Withdrawn', 'Accepted', 'Rejected', 'Final', 'Deprecated', 'Living'];
+const statuses = ['Draft', 'Active', 'Withdrawn', 'Accepted', 'Final', 'Deprecated', 'Living'];
 
 // Executes sanity checks for CI.
 const ci = () => {

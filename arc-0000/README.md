@@ -1,9 +1,9 @@
 ---
-arc: 0000 # Add the next sequence number
+arc: 0 # Add an unused ARC number. **DO NOT ADD LEADING ZEROS.**
 title: # Title
 authors: # Add all Github usernames, emails, and/or full names
 discussion: # Create a 'Github Discussion' titled 'ARC-XXXX: {TITLE}`
-topic: # Choose: Protocol, Network, or Application
+topic: # Choose: Protocol, Network, Application, or Meta
 status: Draft
 created: # Date
 ---
