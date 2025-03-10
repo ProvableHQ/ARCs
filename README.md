@@ -2,7 +2,7 @@
 
 <p align="center">
     <a href="https://github.com/AleoHQ/ARCs/actions"><img src="https://github.com/AleoHQ/ARCs/workflows/CI/badge.svg"></a>
-    <a href="https://discord.gg/wURR8A7vEe"><img src="https://img.shields.io/discord/700454073459015690?logo=discord"/></a>
+    <a href="https://discord.com/invite/aleo"><img src="https://img.shields.io/discord/700454073459015690?logo=discord"/></a>
 </p>
 
 Aleo Request for Comments (ARCs) are protocol-level, network-level, and application-level standards for the Aleo ecosystem.
