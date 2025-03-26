@@ -75,20 +75,8 @@ for these cases in the table below.
 | assert.eq | is.eq | We probably don't need a separate assert.(n)eq.flagged;
 | assert.neq | is.neq | instead, just use the existing is.(n)eq.
 | cast | cast.flagged | As of now, docs don't say what causes cast to halt. TBD.
-| commit.bhp256 | commit.bhp256.flagged |
-| commit.bhp512 | commit.bhp512.flagged |
-| commit.bhp768 | commit.bhp768.flagged |
-| commit.bhp768 | commit.bhp1024.flagged |
-| commit.ped64 | commit.ped64.flagged |
-| commit.ped128 | commit.ped128.flagged |
 | div | div.flagged | div can halt on underflow and divide by zero.
 | div.w | div.w.flagged | div.w can halt on divide by zero.
-| hash.bhp256 | hash.bhp256.flagged |
-| hash.bhp512 | hash.bhp512.flagged |
-| hash.bhp768 | hash.bhp768.flagged |
-| hash.bhp1024 | hash.bhp1024.flagged |
-| hash.ped64 | hash.ped64.flagged |
-| hash.ped128 | hash.ped128.flagged |
 | inv | inv.flagged |
 | mod | mod.flagged |
 | mul | mul.flagged | mul.flagged implemented only for integer types.
