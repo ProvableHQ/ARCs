@@ -94,17 +94,21 @@ for these cases in the table below.
 ### Test Cases
 
 The following note applies to all tests of Aleo Instructions.  For all tests, both literal constant arguments
-and variable arguments should be tested.  For example, f there are two arguments, we need to test all four
+and variable arguments should be tested.  For example, if there are two arguments, we need to test all four
 combinations.  This is because the Aleo Instructions compiler generates more optimized code for literal
 constant arguments, and the circuits can differ substantially.
 
 One or more arguments that causes halting for a current halting opcode should be used as an input
-for the equivalent new flagged opcode to make sure it doesn't halt.  
+for the equivalent new flagged opcode to make sure it doesn't halt.
 
 An assortment of arguments that do not cause halting for a current halting opcode should be
 used as input to both halting and flagged operations to make sure they return the same value
 (other than the halting flag, of course).
 
+### Audit and Formal Verification
+
+We intend to have an audit of the implementation of the new opcodes, as well as to formally
+verify the implementation.
 
 ## Reference Implementations
 
