@@ -1,14 +1,13 @@
 set -e
 
-# Read the approver private key from the user
-read -p "Enter the private key with positive public account balance: " approver_private_key
-# Read the approver addresss from the user
-read -p "Enter the associated address with positive public account balance: " approver_address
-
+# devnet.sh dev validator 0 keys
+approver_private_key="APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH"
+approver_address="aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px"
 # throwaway keys
 spender_tester_private_key="APrivateKey1zkpB6TurrGgShJ7dsJ21HniMTF5WQc2eRy7d5o5QyBZFMFf"
 spender_tester_address="aleo1ew25qvyvd33gk9w4m8ehyhjamsm74r7n3ze9npnpux0rntzajgpqcm26pz"
-
+# snarkos binary
+snarkos_binary="snarkos"
 
 mkdir -p build_token
 cp token.aleo build_token/main.aleo
@@ -38,23 +37,27 @@ mkdir -p build_spender_tester/imports
 cp build_token/main.aleo build_spender_tester/imports/token.aleo
 
 # deploy
-snarkos developer deploy token.aleo --private-key ${approver_private_key} --query "http://localhost:3030" --path "build_token" --broadcast "http://localhost:3030/testnet3/transaction/broadcast" --priority-fee 0
+$snarkos_binary developer deploy token.aleo --private-key ${approver_private_key} --query "http://localhost:3030" --path "build_token" --broadcast "http://localhost:3030/mainnet/transaction/broadcast" --priority-fee 0
 
-snarkos developer deploy spender_tester.aleo --private-key ${approver_private_key} --query "http://localhost:3030" --path "build_spender_tester" --broadcast "http://localhost:3030/testnet3/transaction/broadcast" --priority-fee 0
+echo letting deployment settle for a few seconds...
+sleep 5 # seconds to await token.aleo deployment
 
-echo letting deployments settle for a few seconds...
-sleep 10
+$snarkos_binary developer deploy spender_tester.aleo --private-key ${approver_private_key} --query "http://localhost:3030" --path "build_spender_tester" --broadcast "http://localhost:3030/mainnet/transaction/broadcast" --priority-fee 0
+
+echo letting deployment settle for a few seconds...
+sleep 5
 
 # mint tokens
-snarkos developer execute token.aleo mint_public ${approver_address} 10u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
+$snarkos_binary developer execute token.aleo mint_public ${approver_address} 10u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/mainnet/transaction/broadcast"
 
 # Transfer to spender so they have enough to cover the fee
-snarkos developer execute credits.aleo transfer_public ${spender_tester_address} 100000u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
+$snarkos_binary developer execute credits.aleo transfer_public ${spender_tester_address} 10000u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/mainnet/transaction/broadcast"
 
-snarkos developer execute token.aleo approve_public ${spender_tester_address} 1u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
+$snarkos_binary developer execute token.aleo approve_public ${spender_tester_address} 1u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/mainnet/transaction/broadcast"
 
-snarkos developer execute token.aleo transfer_from_public ${approver_address} ${spender_tester_address} 1u64 --private-key ${spender_tester_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
+$snarkos_binary developer execute token.aleo transfer_from_public ${approver_address} ${spender_tester_address} 1u64 --private-key ${spender_tester_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/mainnet/transaction/broadcast"
 
-snarkos developer execute token.aleo approve_public big_spender.aleo 1u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
+# $snarkos_binary developer execute token.aleo approve_public big_spender.aleo 1u64 --private-key ${approver_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/mainnet/transaction/broadcast"
 
-snarkos developer execute token.aleo transfer_from_public big_spender.aleo ${spender_tester_address} 1u64 --private-key ${spender_tester_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/testnet3/transaction/broadcast"
+# TODO: I should also test this to see if it actually passed
+# $snarkos_binary developer execute token.aleo transfer_from_public big_spender.aleo ${spender_tester_address} 1u64 --private-key ${spender_tester_private_key} --query "http://localhost:3030" --broadcast "http://localhost:3030/mainnet/transaction/broadcast"

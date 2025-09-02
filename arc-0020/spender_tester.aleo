@@ -14,3 +14,6 @@ function transfer_from_public:
 finalize transfer_from_public:
     input r0 as token.aleo/transfer_from_public.future;
     await r0;
+
+constructor:
+    assert.eq true true;
