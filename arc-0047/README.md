@@ -60,62 +60,35 @@ Properties of this approach:
 - **Block reward emissions** are expected to produce ~5% annual inflation on the initial 1.5B supply, i.e., roughly 75M ALEO per year.
 - **Puzzle reward emissions** vary with proving activity. The emission rate decreases over time and becomes flat at year 9 from genesis.
 
-|                | Block Height | Block Reward (Avg per Block) | Coinbase Reward (Avg per Block) |
-|----------------|--------------|------------------------------|----------------------------------|
-| Genesis        | 0            | 7.1                          | 20.5                             |
-| Year 1         | 10.5M        | 7.1                          | 19.4                             |
-| Year 2         | 21M          | 7.1                          | 17.1                             |
-| Year 3         | 31.5M        | 7.1                          | 14.8                             |
-| Year 4         | 42M          | 7.1                          | 12.6                             |
-| Year 5         | 52.6M        | 7.1                          | 10.3                             |
-| Year 6         | 63.1M        | 7.1                          | 8.0                              |
-| Year 7         | 73.6M        | 7.1                          | 5.7                              |
-| Year 8         | 84.1M        | 7.1                          | 3.42                             |
-| Year 9         | 94.6M        | 7.1                          | 2.3                              |
-| Year 10        | 105.1M       | 7.1                          | 2.3                              |
-| Year 11        | 115.6M       | 7.1                          | 2.3                              |
-| Year 12        | 126.1M       | 7.1                          | 2.3                              |
-| Year 13        | 136.7M       | 7.1                          | 2.3                              |
-| Year 14        | 147.2M       | 7.1                          | 2.3                              |
-| Year 15        | 157.7M       | 7.1                          | 2.3                              |
-| Year 16        | 168.2M       | 7.1                          | 2.3                              |
-| Year 17        | 178.7M       | 7.1                          | 2.3                              |
-| Year 18        | 189.2M       | 7.1                          | 2.3                              |
-| Year 19        | 199.7M       | 7.1                          | 2.3                              |
-| Year 20        | 210.2M       | 7.1                          | 2.3                              |
-| Year 21        | 220.8M       | 7.1                          | 2.3                              |
-| Year 22        | 231.3M       | 7.1                          | 2.3                              |
-| Year 23        | 241.
-
-|                | Actual Total Supply | Total Supply (Upper Bound) |
-|----------------|----------------------|-----------------------------|
-| Genesis        | 1.5B                 | 1.5B                        |
-| Year 1         | 1.816B               | 1.848B                      |
-| Year 2         | -                    | 2.127B                      |
-| Year 3         | -                    | 2.382B                      |
-| Year 4         | -                    | 2.613B                      |
-| Year 5         | -                    | 2.820B                      |
-| Year 6         | -                    | 3.003B                      |
-| Year 7         | -                    | 3.162B                      |
-| Year 8         | -                    | 3.297B                      |
-| Year 9         | -                    | 3.408B                      |
-| Year 10        | -                    | 3.507B                      |
-| Year 11        | -                    | 3.606B                      |
-| Year 12        | -                    | 3.705B                      |
-| Year 13        | -                    | 3.804B                      |
-| Year 14        | -                    | 3.903B                      |
-| Year 15        | -                    | 4.002B                      |
-| Year 16        | -                    | 4.100B                      |
-| Year 17        | -                    | 4.200B                      |
-| Year 18        | -                    | 4.299B                      |
-| Year 19        | -                    | 4.398B                      |
-| Year 20        | -                    | 4.497B                      |
-| Year 21        | -                    | 4.596B                      |
-| Year 22        | -                    | 4.695B                      |
-| Year 23        | -                    | 4.794B                      |
-| Year 24        | -                    | 4.893B                      |
-| Year 25        | -                    | 4.991B                      |
-| Year 25 Q4+    | -                    | 5B                          |
+|              | Block Height | Block Reward (Avg/block) | Coinbase Reward (Avg/block) | Actual Total Supply | Total Supply (Upper Bound) |
+|--------------|--------------|---------------------------|------------------------------|----------------------|-----------------------------|
+| Genesis      | 0            | 7.1                       | 20.5                         | 1.5B                 | 1.5B                        |
+| Year 1       | 10.5M        | 7.1                       | 19.4                         | 1.816B               | 1.848B                      |
+| Year 2       | 21M          | 7.1                       | 17.1                         | -                    | 2.127B                      |
+| Year 3       | 31.5M        | 7.1                       | 14.8                         | -                    | 2.3820B                     |
+| Year 4       | 42M          | 7.1                       | 12.6                         | -                    | 2.613B                      |
+| Year 5       | 52.6M        | 7.1                       | 10.3                         | -                    | 2.820B                      |
+| Year 6       | 63.1M        | 7.1                       | 8.0                          | -                    | 3.003B                      |
+| Year 7       | 73.6M        | 7.1                       | 5.7                          | -                    | 3.162B                      |
+| Year 8       | 84.1M        | 7.1                       | 3.42                         | -                    | 3.297B                      |
+| Year 9       | 94.6M        | 7.1                       | 2.3                          | -                    | 3.408B                      |
+| Year 10      | 105.1M       | 7.1                       | 2.3                          | -                    | 3.507B                      |
+| Year 11      | 115.6M       | 7.1                       | 2.3                          | -                    | 3.606B                      |
+| Year 12      | 126.1M       | 7.1                       | 2.3                          | -                    | 3.705B                      |
+| Year 13      | 136.7M       | 7.1                       | 2.3                          | -                    | 3.804B                      |
+| Year 14      | 147.2M       | 7.1                       | 2.3                          | -                    | 3.903B                      |
+| Year 15      | 157.7M       | 7.1                       | 2.3                          | -                    | 4.002B                      |
+| Year 16      | 168.2M       | 7.1                       | 2.3                          | -                    | 4.100B                      |
+| Year 17      | 178.7M       | 7.1                       | 2.3                          | -                    | 4.200B                      |
+| Year 18      | 189.2M       | 7.1                       | 2.3                          | -                    | 4.299B                      |
+| Year 19      | 199.7M       | 7.1                       | 2.3                          | -                    | 4.398B                      |
+| Year 20      | 210.2M       | 7.1                       | 2.3                          | -                    | 4.497B                      |
+| Year 21      | 220.8M       | 7.1                       | 2.3                          | -                    | 4.596B                      |
+| Year 22      | 231.3M       | 7.1                       | 2.3                          | -                    | 4.695B                      |
+| Year 23      | 241.8M       | 7.1                       | 2.3                          | -                    | 4.794B                      |
+| Year 24      | 252.3M       | 7.1                       | 2.3                          | -                    | 4.893B                      |
+| Year 25      | 262.8M       | 7.1                       | 2.3                          | -                    | 4.991B                      |
+| Year 25 Q4+  | 263.5M       | 0                         | 0                            | -                    | 5B                          |
 
 
 ## Reference Implementations
