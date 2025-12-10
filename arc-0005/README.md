@@ -1,8 +1,10 @@
 ---
 arc: 5
 title: Reduce Execution Fees by 90% and Introduce Priority Fees
-authors: @kpandl, @vicsn
-discussion: ARC-0005: Reduce Execution Fees by 90% and Introduce Priority Fees
+authors: 
+- "@kpandl"
+- "@vicsn"
+discussion: "ARC-0005: Reduce Execution Fees by 90% and Introduce Priority Fees"
 topic: Protocol
 status: Draft
 created: 2025-03-12
