@@ -1,8 +1,8 @@
 ---
-arc: 0002
+arc: 2
 title: Aleo Virtual Machine (AVM)
 authors: howardwu, acoglio, collinc97, d0cd
-discussion: https://github.com/AleoHQ/ARCs/discussions/5
+discussion: https://github.com/ProvableHQ/ARCs/discussions/5
 topic: Protocol
 status: Living
 created: 2020-02-07
