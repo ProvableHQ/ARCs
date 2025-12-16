@@ -35,103 +35,16 @@ We propose a system for program upgrades with the following properties:
 5. **Upgrades can be rejected by dependent applications.**
 6. **Developers must be able to ossify their programs.**
 
-
-
-<table>
-  <tr>
-   <td>
-<strong>Program Component</strong>
-   </td>
-   <td><strong>Delete</strong>
-   </td>
-   <td><strong>Modify</strong>
-   </td>
-   <td><strong>Add</strong>
-   </td>
-  </tr>
-  <tr>
-   <td><code>import</code>
-   </td>
-   <td>❌
-   </td>
-   <td>❌
-   </td>
-   <td>✅
-   </td>
-  </tr>
-  <tr>
-   <td><code>struct</code>
-   </td>
-   <td>❌
-   </td>
-   <td>❌
-   </td>
-   <td>✅
-   </td>
-  </tr>
-  <tr>
-   <td><code>record</code>
-   </td>
-   <td>❌
-   </td>
-   <td>❌
-   </td>
-   <td>✅
-   </td>
-  </tr>
-  <tr>
-   <td><code>mapping</code>
-   </td>
-   <td>❌
-   </td>
-   <td>❌
-   </td>
-   <td>✅
-   </td>
-  </tr>
-  <tr>
-   <td><code>closure</code>
-   </td>
-   <td>❌
-   </td>
-   <td>❌
-   </td>
-   <td>✅
-   </td>
-  </tr>
-  <tr>
-   <td><code>function</code>
-   </td>
-   <td>❌
-   </td>
-   <td>✅ (logic)
-   </td>
-   <td>✅
-   </td>
-  </tr>
-  <tr>
-   <td><code>finalize</code>
-   </td>
-   <td>❌
-   </td>
-   <td>✅ (logic)
-   </td>
-   <td>✅
-   </td>
-  </tr>
-  <tr>
-   <td><code>constructor</code>
-   </td>
-   <td>❌
-   </td>
-   <td>❌
-   </td>
-   <td>❌
-   </td>
-  </tr>
-</table>
-
-
+| Program Component | Delete | Modify     | Add |
+|------------------|--------|------------|-----|
+| `import`         | ❌     | ❌         | ✅  |
+| `struct`         | ❌     | ❌         | ✅  |
+| `record`         | ❌     | ❌         | ✅  |
+| `mapping`        | ❌     | ❌         | ✅  |
+| `closure`        | ❌     | ❌         | ✅  |
+| `function`       | ❌     | ✅ (logic) | ✅  |
+| `finalize`       | ❌     | ✅ (logic) | ✅  |
+| `constructor`    | ❌     | ❌         | ❌  |
 
 
 # Design
