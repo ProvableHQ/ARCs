@@ -5,7 +5,7 @@ authors: apruden2008
 discussion: https://github.com/ProvableHQ/ARCs/discussions/74
 topic: Meta
 status: Living
-created: 2024-16-06
+created: 2024-06-16
 ---
 
 ### Introduction ###

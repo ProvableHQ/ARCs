@@ -1,11 +1,11 @@
 ---
 arc: 30
 title: Adding self.parent opcode
-authors: evan@demoxlabs.xyz mike@demoxlabs.xyz
-discussion: https://github.com/AleoHQ/ARCs/discussions/11
+authors: evan@demoxlabs.xyz, mike@demoxlabs.xyz
+discussion: https://github.com/ProvableHQ/ARCs/discussions/11
 topic: Application
 status: Deprecated
-created: 9/2/2022
+created: 2022-09-02
 ---
 
 ## Abstract

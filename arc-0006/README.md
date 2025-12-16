@@ -2,8 +2,8 @@
 arc: 6
 title: Program Upgradability
 authors: 
-- "@ProvableHQ"
-discussion: "https://github.com/ProvableHQ/ARCs/discussions/94"
+- ProvableHQ
+discussion: https://github.com/ProvableHQ/ARCs/discussions/94
 topic: Protocol
 status: Draft
 created: 2025-04-16
