@@ -1,9 +1,7 @@
 ---
 arc: 46
 title: Staking for Puzzle Solution Submissions
-authors:
-  - howardwu
-  - raychu86
+authors: howardwu, raychu86
 discussion: "#97"
 topic: Protocol
 status: Final
