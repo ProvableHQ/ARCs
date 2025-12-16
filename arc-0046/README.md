@@ -1,8 +1,11 @@
 ---
 arc: 46
-title: Staking for Puzzle Solution Submissions
-authors: howardwu, raychu86
-discussion: ["#97"](https://github.com/ProvableHQ/ARCs/discussions/76)
+title: "Staking for Puzzle Solution Submissions"
+authors:
+  - howardwu
+  - raychu86
+discussion:
+  - "https://github.com/ProvableHQ/ARCs/discussions/97"
 topic: Protocol
 status: Final
 created: 2025-05-25
