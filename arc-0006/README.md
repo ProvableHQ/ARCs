@@ -1,11 +1,10 @@
 ---
 arc: 6
 title: Program Upgradability
-authors: 
-- ProvableHQ
+authors: ProvableHQ
 discussion: https://github.com/ProvableHQ/ARCs/discussions/94
 topic: Protocol
-status: Draft
+status: Final
 created: 2025-04-16
 ---
 
