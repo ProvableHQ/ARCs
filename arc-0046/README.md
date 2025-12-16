@@ -1,13 +1,14 @@
 ---
-arc: "0046"
+arc: 46
 title: "Staking for Puzzle Solution Submissions"
 authors:
-  - "@howardwu"
-  - "@raychu86"
-discussion: "#97"
-topic: "Protocol"
-status: "Final"
-created: "2025-05-25"
+  - howardwu
+  - raychu86
+discussion:
+  - "https://github.com/ProvableHQ/ARCs/discussions/76"
+topic: Protocol
+status: Final
+created: 2025-05-25
 ---
 
 ## Abstract
