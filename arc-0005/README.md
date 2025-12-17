@@ -4,7 +4,7 @@ title: Reduce Execution Fees by 90% and Introduce Priority Fees
 authors: kpandl, vicsn
 discussion: https://github.com/ProvableHQ/ARCs/discussions/92
 topic: Protocol
-status: Draft
+status: Final
 created: 2025-03-12
 ---
 
