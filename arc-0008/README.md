@@ -4,7 +4,7 @@ title: Support Snark Verification in Aleo Programs
 authors: raychu86 
 discussion: https://github.com/ProvableHQ/ARCs/discussions/102 
 topic: Protocol
-status: Active
+status: Final
 created: 2025-11-28
 signature_domain: aleo-gov-8-v1
 pass_threshold: 66

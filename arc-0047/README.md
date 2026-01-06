@@ -4,7 +4,7 @@ title: Limit Aleo's Total Credits Supply to 5 Billion
 authors: raychu86
 discussion:  https://github.com/ProvableHQ/ARCs/discussions/101
 topic: Protocol
-status: Active
+status: Final
 created: 2025-11-26
 signature_domain: aleo-gov-47-v1
 pass_threshold: 66
