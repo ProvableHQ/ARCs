@@ -2,10 +2,10 @@
 arc: 3
 title: Leo and Aleo instructions
 authors: acoglio@aleo.org, collin@aleo.org, ericm@aleo.org, howard@aleo.org, pranav@aleo.org
-discussion: https://github.com/AleoHQ/ARCs/discussions/17
+discussion: https://github.com/ProvableHQ/ARCs/discussions/17
 topic: Application
 status: Living
-created: 9-29-2022
+created: 2022-09-29
 ---
 
 ## Abstract
