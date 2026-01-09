@@ -2,17 +2,17 @@
 arc: 9
 title: Dynamic Dispatch
 authors: "@ProvableHQ"
-discussion: TODO
+discussion: https://github.com/ProvableHQ/ARCs/discussions/110
 topic: Protocol
 status: Draft
-created: 2025-11-17
+created: December 11, 2025
 ---
 
 # Abstract
 
 Static function calls in the Aleo Virtual Machine (AVM) require programs to know at compile time which functions they will invoke. While this provides strong guarantees, it limits the expressiveness of Aleo programs and prevents common smart contract patterns found in other ecosystems.
 
-**This proposal introduces dynamic dispatch to the AVM, enabling programs to invoke functions determined at runtime.** Dynamic dispatch unlocks powerful programming paradigms including interfaces, plugin architectures, upgradeable proxies, and factory patterns—while maintaining the security and privacy guarantees that define Aleo.
+**This proposal introduces dynamic dispatch to the AVM, enabling programs to invoke functions determined at runtime.** Dynamic dispatch unlocks powerful programming paradigms including interfaces, plugin architectures and upgradeable libraries—while maintaining the security and privacy guarantees that define Aleo.
 
 # Goals
 
@@ -37,7 +37,7 @@ Dynamic dispatch introduces two new data types to handle AVM-native constructs t
 A `dynamic.record` is a fixed-size, general representation of a record. Unlike static records, a dynamic record:
 
 - Has a constant size regardless of its data contents
-- Is not checked for existence or uniqueness at the call site
+- Is **NOT** checked for existence or uniqueness at the call site
 - Can be instantiated as a concrete record when passed to the appropriate function
 
 **Structure:**
@@ -45,13 +45,13 @@ A `dynamic.record` is a fixed-size, general representation of a record. Unlike s
 | Field | Type | Description |
 |-------|------|-------------|
 | `owner` | `address` | The owner of the record |
-| `data_root` | `field` | Merkle root of the record's data entries |
-| `nonce` | `group` | The record nonce |
-| `version` | `u8` | Record version (for commitment scheme selection) |
+| `_root` | `field` | Merkle root of the record's data entries, including the entry name and visibility |
+| `_nonce` | `group` | The record nonce |
+| `_version` | `u8` | Record version (for commitment scheme selection) |
 
 **String representation:**
 ```
-{ owner: aleo1..., data_root: 123field, _nonce: 456group, _version: 1u8 }
+{ owner: aleo1..., _root: 123field, _nonce: 456group, _version: 1u8 }
 ```
 
 **Usage contexts:**
@@ -69,6 +69,12 @@ A `dynamic.record` can appear in:
 
 **Record consumption:** A record is only consumed (nullified) when it is input to a function that expects its static definition. Functions that accept `dynamic.record` or external records do NOT consume the record or verify ownership.
 
+**Record creation:** A record is only created (its commitment and
+ciphertext being published onto the ledger) when it is output by a function that
+declares its (static) type as an output. Functions that output dynamic.record or
+external records do NOT create an on-chain record that can be subsequently
+consumed later on.
+
 ### `dynamic.future`
 
 A `dynamic.future` is a fixed-size representation of a future returned from a dynamic call. It is produced exclusively as a result of `call.dynamic` when the callee returns a future.
@@ -77,13 +83,14 @@ A `dynamic.future` is a fixed-size representation of a future returned from a dy
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `program_id` | `[field; 2]` | Program name and network as field elements |
+| `program_name` | `field` | Program name as field element |
+| `program_network` | `field` | Program network as field element |
 | `function_name` | `field` | Function name as a field element |
-| `id` | `field` | The output ID of the future |
+| `root` | `field` | The Merkle root of the arguments |
 
 **String representation:**
 ```
-{ program_id: [0field, 1field], function_name: 2field, id: 123456789field }
+{ program_name: 0field, program_network: 1field, function_name: 2field, root: 123456789field }
 ```
 
 **Awaiting a dynamic.future:**
@@ -96,7 +103,7 @@ finalize my_function:
     await r0;
 ```
 
-When `await` is invoked on a dynamic future, the runtime looks up the corresponding ID in the global context, retrieves the static future, and executes it. The runtime guarantees that all futures (static and dynamic) are awaited exactly once.
+When `await` is invoked on a dynamic future, the runtime looks up the corresponding future in the global context, retrieves the static future, and executes it. The runtime guarantees that all futures (static and dynamic) are awaited exactly once.
 
 **Note:** A `dynamic.future` cannot be directly output by a function; it must be wrapped in a static future via the `async` instruction.
 
@@ -136,11 +143,11 @@ call.dynamic 'credits' 'aleo' 'transfer_public' with r0 r1 (as address.public u6
 
 **Behavior:**
 - The `call.dynamic` instruction can only be used in function bodies, not in finalize blocks
-- The program, network, and function identifiers are witnessed as public inputs
+- The program, network, and function identifiers are witnessed as public inputs. **Consequently, private variables that influence the target of a dynamic call is implicitly leaked. Developers should take care to ensure that sensitive material is not used to determine the target.**
 - The existence of the target program and function is verified at execution time
-- If all operands are hardcoded literals, this behaves as a static call with additional overhead
+- A transition/request associated with a dynamic call is a "dynamic" transition/request. They are differentiated with additional (unsigned) metadata.
 
-**Implication:** Dynamic targets cannot be resolved from mappings at runtime. Callers must provide target identifiers as inputs (queried off-chain), and finalize logic can verify these match stored values.
+**Note:** Dynamic targets cannot be resolved from mappings at runtime. Callers must provide target identifiers as inputs (queried off-chain), and on-chain logic can verify these match stored values.
 
 ### `get.dynamic.record`
 
@@ -166,6 +173,8 @@ get.dynamic.record r0.metadata into r2 as [u8; 32u32];
 
 **Circuit behavior:** The instruction verifies a Merkle proof that the requested entry exists in the record's data tree with the specified identifier and type.
 
+**Note: The owner of a dynamic record can be accessed directly, e.g `r0.owner`. This does not involve Merkle-path verification`.
+
 ### `cast ... as dynamic.record`
 
 Converts a static record to a dynamic record.
@@ -179,7 +188,7 @@ The input register must contain a `record` or `external.record`. The output is a
 - The same `owner`, `nonce`, and `version` as the static record
 - A `data_root` computed as the Merkle root of the record's entries
 
-**Important limitation:** A dynamic record created via `cast` cannot be passed to a function expecting a static record, as this would constitute either a double-spend (if the original was an input) or an attempt to spend an uncommitted record (if the original was created locally).
+**Important limitation:** A dynamic record created via `cast` cannot be passed to a function expecting a static record, as this would constitute either a double-spend (if the original was an input) or an attempt to spend an uncommitted record (if the original was created locally). Furthermore, casting a static record into a dynamic one, does not consume it.
 
 ### Dynamic Mapping Operations
 
@@ -211,8 +220,9 @@ To improve ergonomics, this proposal introduces a syntax for specifying identifi
 'aleo'              // Network name
 'transfer_public'   // Function name
 ```
+The identifier (excluding quotes) must fit within `Field::SIZE_IN_DATA_BITS`.  
 
-The identifier (excluding quotes) must fit within `Field::SIZE_IN_DATA_BITS`. This syntax is available wherever a field operand is expected.
+To support this, we will be introducing a new literal type called `identifier`. An `identifier` can always be cast into a field element. This allows users to pass in human readable targets to `call.dynamic`.
 
 ## Translation Circuits
 
@@ -228,6 +238,27 @@ When records cross dynamic call boundaries, a translation circuit proves consist
 3. The record IDs (commitments or serial numbers) are correctly computed
 
 **Deployment:** Programs must include translation verifying keys for each record type they define. Programs deployed before this feature can be redeployed to add translation keys.
+
+## Differing view of inputs/outputs in the caller and callee
+It follows from the previous sections that:
+- In a call instruction, the input and output types must coincide exactly in the
+caller and callee. A `dynamic.record` can be passed to or received from a call
+instruction if and only if the callee declares it as such ( `input r<i> as dynamic.record` , `output r<j> as dynamic.record` ).
+- In a call.dynamic instruction, the input and output types of the caller and
+callee must coincide except in three concrete situations:
+  - A `dynamic.record` can be passed (via `call.dynamic` ) to a function that expects
+a static record or an external record
+  - A `dynamic.record` can be received (via `call.dynamic` ) from a function that
+outputs a static record or an external record
+  - A `dynamic.future` can be received (via `call.dynamic` ) from a function that
+outputs a static future. 
+
+A root transition can never be dynamic or behave as such. In particular, no
+translation of inputs or outputs will happen and the arguments passed to the
+AVM for execution must match exactly the types in the root transition’s
+function. However, a root transition can receive a dynamic record as an input
+(and produce one as an output) as long as the corresponding function expects
+a `dynamic.record`. 
 
 # Usage
 
@@ -310,7 +341,7 @@ record asset:
     token_id as u128.private;
 ```
 
-This pattern is analogous to structural typing or duck typing: "if it has the fields I need, I can use it." Combined with `call.dynamic`, this enables generic protocols that work with any compliant record type without needing to know the specific program at compile time.
+This pattern is analogous to structural typing or duck typing. Combined with `call.dynamic`, this enables generic protocols that work with any compliant record type without needing to know the specific program at compile time. Note that the presence of a dynamic record does not imply the existence of a corresponding minted, unspent record. A dynamic record needs to be translated and passed into a function that expects a (non-external) static record for the existence check to happen.
 
 ## Strategy Pattern (Library Dispatch)
 
@@ -333,6 +364,7 @@ function swap:
     input r3 as u64.public;            // amount_in
 
     // Dispatch to the pricing library to compute output amount
+    // More complex logic could be introduced to determine the library used. For example, checking an auth token.
     call.dynamic r0 'aleo' 'compute_output' with r1 r2 r3 (as u64.public u64.public u64.public) into r4 (as u64.public);
 
     // Use computed amount_out for the swap
@@ -380,6 +412,7 @@ This pattern enables:
 
 ## Conditional Execution
 
+The Strategy Pattern above is actually a special case of conditional execution.
 Dynamic dispatch enables runtime branching between different execution paths:
 
 ```aleo
@@ -402,11 +435,13 @@ finalize conditional_call:
     await r0;
 ```
 
-**Privacy note:** The resulting transaction will reveal which program was actually called. The condition itself may be inferable from the transaction structure.
+**Privacy note:** The resulting transaction will reveal which program was actually called. The condition itself may be inferred from the transaction structure.
 
 ## Recursive Calls
 
-Dynamic dispatch enables recursive program structures:
+**TODO.** The restrictions on recursive calls are currently being discussed.
+
+With conditional execution, it follows that dynamic dispatch enables recursive program structures:
 
 ```aleo
 program recursive.aleo;
@@ -573,7 +608,6 @@ This proposal affects:
 | snarkOS | Transaction validation, future resolution during finalization |
 | Leo | Language support for dynamic types and instructions |
 | Aleo SDK | Client-side support for constructing dynamic calls |
-| aleo.tools | Explorer updates to display dynamic calls and futures |
 
 # Backwards Compatibility
 
@@ -584,9 +618,7 @@ This proposal affects:
 - Functions with static calls can be invoked by functions with dynamic calls
 - Existing records can be used with dynamic dispatch after one-time deployment of translation keys
 
-**Migration for existing programs:**
-- Programs without constructors: Can be redeployed by ANF with translation verifying keys
-- Programs with constructors: Must be redeployed by their owners to support translation
+**Migration for existing programs:** We plan to support a migration pathway for all existing programs to redeploy with translation verifying keys, without changing the state of the program on-chain.
 
 **Consensus versioning:** Features are guarded by consensus version to ensure backwards compatibility for node operators.
 
