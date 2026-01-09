@@ -6,6 +6,12 @@ discussion: https://github.com/ProvableHQ/ARCs/discussions/110
 topic: Protocol
 status: Draft
 created: December 11, 2025
+signature_domain: aleo-gov-9-v1
+pass_threshold: 66
+quorum_threshold: 66
+voting_start: 15000000
+voting_end: 16000000
+snapshot: 16000000
 ---
 
 # Abstract
