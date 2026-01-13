@@ -155,13 +155,13 @@ call.dynamic 'credits' 'aleo' 'transfer_public' with r0 r1 (as address.public u6
 
 **Note:** Dynamic targets cannot be resolved from mappings at runtime. Callers must provide target identifiers as inputs (queried off-chain), and on-chain logic can verify these match stored values.
 
-### `get.dynamic.record`
+### `get.record.dynamic`
 
 Retrieves a specific entry from a dynamic record by name.
 
 **Syntax:**
 ```
-get.dynamic.record r<i>.<name> into r<j> as <TYPE>;
+get.record.dynamic r<i>.<name> into r<j> as <TYPE>;
 ```
 
 | Operand | Description |
@@ -173,8 +173,8 @@ get.dynamic.record r<i>.<name> into r<j> as <TYPE>;
 
 **Example:**
 ```aleo
-get.dynamic.record r0.microcredits into r1 as u64;
-get.dynamic.record r0.metadata into r2 as [u8; 32u32];
+get.record.dynamic r0.microcredits into r1 as u64;
+get.record.dynamic r0.metadata into r2 as [u8; 32u32];
 ```
 
 **Circuit behavior:** The instruction verifies a Merkle proof that the requested entry exists in the record's data tree with the specified identifier and type.
@@ -299,7 +299,7 @@ This pattern mirrors ERC-20 compatibility in Ethereum, allowing DEXs, lending pr
 
 **Record Interface Pattern:**
 
-The `get.dynamic.record` instruction can enforce that a `dynamic.record` contains specific fields, regardless of which program defined it. When `get.dynamic.record` is executed, it verifies a Merkle proof that the requested entry exists in the record's data tree with the specified identifier and type. If the field doesn't exist or has an incompatible type, the proof fails.
+The `get.record.dynamic` instruction can enforce that a `dynamic.record` contains specific fields, regardless of which program defined it. When `get.record.dynamic` is executed, it verifies a Merkle proof that the requested entry exists in the record's data tree with the specified identifier and type. If the field doesn't exist or has an incompatible type, the proof fails.
 
 This enables programs to define implicit interfaces for records:
 
@@ -313,8 +313,8 @@ function deposit_collateral:
 
     // Extract required fields - this enforces the interface
     // If the record lacks these fields, the Merkle proof fails
-    get.dynamic.record r0.owner into r1 as address;
-    get.dynamic.record r0.value into r2 as u64;
+    get.record.dynamic r0.owner into r1 as address;
+    get.record.dynamic r0.value into r2 as u64;
 
     // Use the extracted values
     assert.eq r1 self.caller;          // caller must own the record
