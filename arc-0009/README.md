@@ -1,7 +1,7 @@
 ---
 arc: 9
 title: Dynamic Dispatch
-authors: @ProvableHQ
+authors: "@ProvableHQ"
 discussion: TODO
 topic: Protocol
 status: Draft
