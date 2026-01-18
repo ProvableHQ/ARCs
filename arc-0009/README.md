@@ -1,11 +1,17 @@
 ---
 arc: 9
 title: Dynamic Dispatch
-authors: "@ProvableHQ"
+authors: ProvableHQ
 discussion: TODO
 topic: Protocol
 status: Draft
-created: December 11, 2025
+created: 2025-12-25
+signature_domain: aleo-gov-9-v1
+pass_threshold: 66
+quorum_threshold: 66
+voting_start: 15200000
+voting_end: 15500000
+snapshot: 15500000
 ---
 
 # Abstract
