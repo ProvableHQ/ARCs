@@ -4,7 +4,7 @@ title: Dynamic Dispatch
 authors: ProvableHQ
 discussion: 
 topic: Protocol
-status: Active
+status: Final
 created: 2025-12-25
 signature_domain: aleo-gov-9-v1
 pass_threshold: 66
