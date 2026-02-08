@@ -1,4 +1,5 @@
 import credits.aleo;
+
 program wrapped_credits.aleo;
 
 record Token:
@@ -20,7 +21,7 @@ finalize deposit_credits_public:
     input r1 as address.public;
     input r2 as u64.public;
     await r0;
-    get.or_use balances[r1] 0u128 into r3;
+    get balances[r1] into r3;
     cast r2 into r4 as u128;
     add r3 r4 into r5;
     set r5 into balances[r1];
@@ -50,7 +51,7 @@ finalize withdraw_credits_public:
     input r0 as address.public;
     input r1 as u64.public;
     input r2 as credits.aleo/transfer_public.future;
-    get.or_use balances[r0] 0u128 into r3;
+    get balances[r0] into r3;
     cast r1 into r4 as u128;
     sub r3 r4 into r5;
     set r5 into balances[r0];
@@ -66,7 +67,7 @@ finalize withdraw_credits_public_signer:
     input r0 as address.public;
     input r1 as u64.public;
     input r2 as credits.aleo/transfer_public.future;
-    get.or_use balances[r0] 0u128 into r3;
+    get balances[r0] into r3;
     cast r1 into r4 as u128;
     sub r3 r4 into r5;
     set r5 into balances[r0];
@@ -98,10 +99,10 @@ finalize transfer_public:
     input r0 as address.public;
     input r1 as u128.public;
     input r2 as address.public;
-    get.or_use balances[r0] 0u128 into r3;
+    get balances[r0] into r3;
     sub r3 r1 into r4;
     set r4 into balances[r0];
-    get.or_use balances[r2] 0u128 into r5;
+    get balances[r2] into r5;
     add r5 r1 into r6;
     set r6 into balances[r2];
 
@@ -116,7 +117,7 @@ function transfer_public_to_private:
 finalize transfer_public_to_private:
     input r0 as address.public;
     input r1 as u128.public;
-    get.or_use balances[r0] 0u128 into r2;
+    get balances[r0] into r2;
     sub r2 r1 into r3;
     set r3 into balances[r0];
 
@@ -147,7 +148,7 @@ function transfer_private_to_public:
 finalize transfer_private_to_public:
     input r0 as address.public;
     input r1 as u128.public;
-    get.or_use balances[r0] 0u128 into r2;
+    get balances[r0] into r2;
     add r2 r1 into r3;
     set r3 into balances[r0];
 
@@ -161,10 +162,10 @@ finalize transfer_public_as_signer:
     input r0 as address.public;
     input r1 as u128.public;
     input r2 as address.public;
-    get.or_use balances[r0] 0u128 into r3;
+    get balances[r0] into r3;
     sub r3 r1 into r4;
     set r4 into balances[r0];
-    get.or_use balances[r2] 0u128 into r5;
+    get balances[r2] into r5;
     add r5 r1 into r6;
     set r6 into balances[r2];
 

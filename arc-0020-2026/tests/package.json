@@ -1,0 +1,16 @@
+{
+  "name": "arc-0020-tests",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "dependencies": {
+    "@provablehq/sdk": "^0.9.11"
+  },
+  "devDependencies": {
+    "jest": "^30.1.3"
+  }
+}
+
