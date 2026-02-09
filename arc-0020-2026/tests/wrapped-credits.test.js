@@ -48,6 +48,8 @@ describe("wrapped_credits.aleo", () => {
     if (b0 < 2000n) {
       await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "5000u64");
     }
+    const b1 = await bal(addr0);
+    expect(b1 - b0).toBe(5000n);
   });
 
   afterAll(async () => {
@@ -58,7 +60,6 @@ describe("wrapped_credits.aleo", () => {
     const before0 = await bal(addr0);
     await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "1000u64");
     const after0 = await bal(addr0);
-    console.log("before0", before0);
     expect(after0 - before0).toBe(1000n);
   });
 
@@ -77,6 +78,7 @@ describe("wrapped_credits.aleo", () => {
       [addr0, "500u64"],
       { privateKey: pk0 },
     );
+    console.log("creditsExec", creditsExec.stdout);
     const creditsRecords = extractRecordPlaintexts(creditsExec.stdout);
     expect(creditsRecords.length).toBeGreaterThanOrEqual(1);
 
@@ -88,6 +90,7 @@ describe("wrapped_credits.aleo", () => {
       { privateKey: pk0 },
     );
     const outRecords = extractRecordPlaintexts(dep.stdout);
+    console.log("outRecords", outRecords);
     // Expect at least change credits record + minted Token.
     expect(outRecords.length).toBeGreaterThanOrEqual(2);
 

@@ -3,3 +3,5 @@
 *.prover
 *.verifier
 outputs/
+*.log
+build
