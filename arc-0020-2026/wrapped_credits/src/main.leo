@@ -45,7 +45,7 @@ program wrapped_credits.aleo {
         let credits_finalization = credits.aleo/transfer_public(self.caller, amount);
         let withdrawer = self.caller;
         return final {
-            let previous_balance = balances.get_or_use(withdrawer, 0u128);
+            let previous_balance = balances.get(withdrawer);
             balances.set(withdrawer, previous_balance - amount as u128); // TODO: do we error automatically on underflow?
             credits_finalization.run();
         };
@@ -57,7 +57,7 @@ program wrapped_credits.aleo {
         let credits_finalization = credits.aleo/transfer_public(self.signer, amount);
         let withdrawer = self.signer;
         return final {
-            let previous_balance = balances.get_or_use(withdrawer, 0u128);
+            let previous_balance = balances.get(withdrawer);
             balances.set(withdrawer, previous_balance - amount as u128); // TODO: do we error automatically on underflow?
             credits_finalization.run();
         };
@@ -79,7 +79,7 @@ program wrapped_credits.aleo {
     fn transfer_public(to: address, amount: u128) -> Final {
         let caller = self.caller;
         return final {
-            let previous_balance_caller = balances.get_or_use(caller, 0u128);
+            let previous_balance_caller = balances.get(caller, 0u128);
             balances.set(caller, previous_balance_caller - amount); // TODO: do we error automatically on underflow?
             let previous_balance_receiver = balances.get_or_use(to, 0u128);
             balances.set(to, previous_balance_receiver + amount); // TODO: do we error automatically on overflow?
@@ -93,7 +93,7 @@ program wrapped_credits.aleo {
         };
         let caller = self.caller;
         return (token, final {
-            let previous_balance_caller = balances.get_or_use(caller, 0u128);
+            let previous_balance_caller = balances.get(caller);
             balances.set(caller, previous_balance_caller - amount); // TODO: do we error automatically on underflow?
         });
     }
@@ -123,7 +123,7 @@ program wrapped_credits.aleo {
         };
 
         return (change_token, final {
-            let previous_balance_receiver = balances.get_or_use(to, 0u128);
+            let previous_balance_receiver = balances.get(to);
             balances.set(to, previous_balance_receiver + amount); // TODO: do we error automatically on overflow?
         });
     }
@@ -131,8 +131,8 @@ program wrapped_credits.aleo {
     fn transfer_public_as_signer(to: address, amount: u128) -> Final {
         let signer = self.signer;
         return final {
-            let previous_balance_caller = balances.get_or_use(signer, 0u128);
-            balances.set(signer, previous_balance_caller - amount); // TODO: do we error automatically on underflow?
+            let previous_balance_signer = balances.get(signer);
+            balances.set(signer, previous_balance_signer - amount); // TODO: do we error automatically on underflow?
             let previous_balance_receiver = balances.get_or_use(to, 0u128);
             balances.set(to, previous_balance_receiver + amount); // TODO: do we error automatically on overflow?
         };

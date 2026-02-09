@@ -47,9 +47,9 @@ describe("wrapped_credits.aleo", () => {
     const b0 = await bal(addr0);
     if (b0 < 2000n) {
       await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "5000u64");
+      const b1 = await bal(addr0);
+      expect(b1 - b0).toBe(5000n);
     }
-    const b1 = await bal(addr0);
-    expect(b1 - b0).toBe(5000n);
   });
 
   afterAll(async () => {
@@ -109,6 +109,8 @@ describe("wrapped_credits.aleo", () => {
     const creditsRecords = extractRecordPlaintexts(creditsExec.stdout);
     expect(creditsRecords.length).toBeGreaterThanOrEqual(1);
 
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     await expectRejected(
       AleoUtils.leoExecute(
         programPath,
@@ -117,6 +119,10 @@ describe("wrapped_credits.aleo", () => {
         { privateKey: pk0 },
       ),
     );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("withdraw_credits_public (positive): decreases caller balance", async () => {
@@ -143,9 +149,15 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("withdraw_credits_public_signer (negative): withdrawing too much rejects", async () => {
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     await expectRejected(
       WrappedCredits.withdrawCreditsPublicSigner(AleoUtils.accounts[0], "999999999999u64"),
     );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("transfer_public (positive): moves balances between users", async () => {
@@ -183,6 +195,8 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("transfer_public_to_private (negative): transferring too much rejects", async () => {
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     await expectRejected(
       AleoUtils.leoExecute(
         programPath,
@@ -191,6 +205,10 @@ describe("wrapped_credits.aleo", () => {
         { privateKey: pk0 },
       ),
     );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("transfer_private (positive): signer-owned Token can be split into change + new token", async () => {
@@ -204,6 +222,8 @@ describe("wrapped_credits.aleo", () => {
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     const split = await AleoUtils.leoExecute(
       programPath,
       "transfer_private",
@@ -213,6 +233,12 @@ describe("wrapped_credits.aleo", () => {
     const out = extractRecordPlaintexts(split.stdout);
     // change token + new token
     expect(out.length).toBeGreaterThanOrEqual(2);
+
+    // Purely private transfer: must not change public balances mapping.
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("transfer_private (negative): rejects if Token owner != signer", async () => {
@@ -226,6 +252,8 @@ describe("wrapped_credits.aleo", () => {
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     await expectRejected(
       AleoUtils.leoExecute(
         programPath,
@@ -234,6 +262,10 @@ describe("wrapped_credits.aleo", () => {
         { privateKey: pk0 },
       ),
     );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("transfer_private_to_public (positive): increases receiver public balance", async () => {
@@ -272,6 +304,8 @@ describe("wrapped_credits.aleo", () => {
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     await expectRejected(
       AleoUtils.leoExecute(
         programPath,
@@ -280,6 +314,10 @@ describe("wrapped_credits.aleo", () => {
         { privateKey: pk0 },
       ),
     );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("withdraw_credits_private (positive): converts Token amount into private credits record", async () => {
@@ -293,6 +331,8 @@ describe("wrapped_credits.aleo", () => {
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     const res = await AleoUtils.leoExecute(
       programPath,
       "withdraw_credits_private",
@@ -302,6 +342,12 @@ describe("wrapped_credits.aleo", () => {
     const out = extractRecordPlaintexts(res.stdout);
     // credits record + change token
     expect(out.length).toBeGreaterThanOrEqual(2);
+
+    // Private withdraw does not touch public balances mapping.
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("withdraw_credits_private (negative): rejects when amount exceeds Token amount", async () => {
@@ -314,6 +360,8 @@ describe("wrapped_credits.aleo", () => {
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     await expectRejected(
       AleoUtils.leoExecute(
         programPath,
@@ -322,6 +370,10 @@ describe("wrapped_credits.aleo", () => {
         { privateKey: pk0 },
       ),
     );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("transfer_public_as_signer (positive): debits signer and credits receiver", async () => {
@@ -341,9 +393,14 @@ describe("wrapped_credits.aleo", () => {
   test("transfer_public_as_signer (negative): insufficient balance rejects", async () => {
     const before1 = await bal(addr1);
     const amount = before1 + 1n;
+    const before0 = await bal(addr0);
     await expectRejected(
       WrappedCredits.transferPublicAsSigner(AleoUtils.accounts[1], addr0, `${amount}u128`),
     );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 });
 
