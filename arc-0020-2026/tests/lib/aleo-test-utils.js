@@ -27,6 +27,72 @@ export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export function extractTransactionId(output) {
+  const s = String(output || "");
+  // Leo/snarkOS transaction IDs are bech32-like and typically start with "at1".
+  // Keep this intentionally permissive to handle minor output formatting changes.
+  const m = s.match(/\b(at1[0-9a-z]{20,})\b/i);
+  return m?.[1] || null;
+}
+
+async function fetchTransactionConfirmedOnce(txId) {
+  const suffix = `/transaction/confirmed/${txId}`;
+  const urls = [`${NETWORK_URL}${suffix}`, `${NETWORK_URL}/testnet${suffix}`];
+
+  let last = null;
+  for (const url of urls) {
+    try {
+      const r = await fetch(url);
+      const text = await r.text().catch(() => "");
+      last = { ok: r.ok, status: r.status, text, url };
+      // Endpoint contract: HTTP 200 means confirmed.
+      if (r.status === 200) return last;
+    } catch (e) {
+      last = { ok: false, status: 0, text: String(e?.message || e), url };
+    }
+  }
+  return last;
+}
+
+export async function waitForTransactionConfirmed(txId, opts = {}) {
+  if (!txId) throw new Error("waitForTransactionConfirmed requires txId");
+
+  const timeoutMs = opts.timeoutMs ?? 10_000;
+  const pollMs = opts.pollMs ?? 1_000;
+  const startedAt = Date.now();
+
+  let last = null;
+  while (true) {
+    last = await fetchTransactionConfirmedOnce(txId);
+    if (last?.status === 200) return { txId, confirmed: true, last };
+
+    if (Date.now() - startedAt > timeoutMs) {
+      const details = last
+        ? `last=${JSON.stringify(
+            { ok: last.ok, status: last.status, url: last.url, text: String(last.text).slice(0, 500) },
+            null,
+            2,
+          )}`
+        : "last=null";
+      throw new Error(`Timed out waiting for transaction confirmation for ${txId}. ${details}`);
+    }
+
+    await sleep(pollMs);
+  }
+}
+
+export async function waitForTransactionConfirmedFromLeoExecution(execResult, opts = {}) {
+  const stdout = execResult?.stdout || "";
+  const stderr = execResult?.stderr || "";
+  const txId = execResult?.txId || extractTransactionId(`${stdout}\n${stderr}`);
+  if (!txId) {
+    throw new Error(
+      `Could not extract transaction id from leo output.\n\n--- stdout ---\n${stdout}\n\n--- stderr ---\n${stderr}`,
+    );
+  }
+  return await waitForTransactionConfirmed(txId, opts);
+}
+
 function resolveLocalLeoBin() {
   // Per repo conventions: build/deploy/execute/query must use this binary.
   const pinned = path.join(os.homedir(), "programs", "leo", "target", "release", "leo");
@@ -308,7 +374,9 @@ export async function leoExecute(programPath, fnName, inputs, opts = {}) {
   if (res.stdout.includes("Transaction rejected")) {
     throw new Error(`Transaction rejected.\n\n${res.stdout}`);
   }
-  return res;
+
+  const txId = extractTransactionId(`${res.stdout}\n${res.stderr}`);
+  return { ...res, txId };
 }
 
 export async function leoMappingValue(programName, mappingName, key, opts = {}) {

@@ -79,7 +79,7 @@ program wrapped_credits.aleo {
     fn transfer_public(to: address, amount: u128) -> Final {
         let caller = self.caller;
         return final {
-            let previous_balance_caller = balances.get(caller, 0u128);
+            let previous_balance_caller = balances.get(caller);
             balances.set(caller, previous_balance_caller - amount); // TODO: do we error automatically on underflow?
             let previous_balance_receiver = balances.get_or_use(to, 0u128);
             balances.set(to, previous_balance_receiver + amount); // TODO: do we error automatically on overflow?

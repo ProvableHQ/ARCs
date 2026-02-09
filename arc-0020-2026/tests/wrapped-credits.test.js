@@ -13,6 +13,10 @@ describe("wrapped_credits.aleo", () => {
   const addr0 = AleoUtils.addresses[0];
   const addr1 = AleoUtils.addresses[1];
 
+  async function expectConfirmed(execResult) {
+    await AleoUtils.waitForTransactionConfirmedFromLeoExecution(execResult);
+  }
+
   function extractRecordPlaintexts(stdout) {
     const s = String(stdout || "");
     const blocks = [...s.matchAll(/•\s*\{\n[\s\S]*?\n\}/g)].map((m) =>
@@ -58,7 +62,8 @@ describe("wrapped_credits.aleo", () => {
 
   test("deposit_credits_public (positive): increases depositor balance", async () => {
     const before0 = await bal(addr0);
-    await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "1000u64");
+    const exec = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "1000u64");
+    await expectConfirmed(exec);
     const after0 = await bal(addr0);
     expect(after0 - before0).toBe(1000n);
   });
@@ -78,7 +83,7 @@ describe("wrapped_credits.aleo", () => {
       [addr0, "500u64"],
       { privateKey: pk0 },
     );
-    console.log("creditsExec", creditsExec.stdout);
+    await expectConfirmed(creditsExec);
     const creditsRecords = extractRecordPlaintexts(creditsExec.stdout);
     expect(creditsRecords.length).toBeGreaterThanOrEqual(1);
 
@@ -89,8 +94,8 @@ describe("wrapped_credits.aleo", () => {
       [creditsRecords[0], "200u64"],
       { privateKey: pk0 },
     );
+    await expectConfirmed(dep);
     const outRecords = extractRecordPlaintexts(dep.stdout);
-    console.log("outRecords", outRecords);
     // Expect at least change credits record + minted Token.
     expect(outRecords.length).toBeGreaterThanOrEqual(2);
 
@@ -127,7 +132,8 @@ describe("wrapped_credits.aleo", () => {
 
   test("withdraw_credits_public (positive): decreases caller balance", async () => {
     const before0 = await bal(addr0);
-    await WrappedCredits.withdrawCreditsPublic(AleoUtils.accounts[0], "250u64");
+    const exec = await WrappedCredits.withdrawCreditsPublic(AleoUtils.accounts[0], "250u64");
+    await expectConfirmed(exec);
     const after0 = await bal(addr0);
     expect(before0 - after0).toBe(250n);
   });
@@ -143,7 +149,8 @@ describe("wrapped_credits.aleo", () => {
 
   test("withdraw_credits_public_signer (positive): decreases signer balance", async () => {
     const before0 = await bal(addr0);
-    await WrappedCredits.withdrawCreditsPublicSigner(AleoUtils.accounts[0], "123u64");
+    const exec = await WrappedCredits.withdrawCreditsPublicSigner(AleoUtils.accounts[0], "123u64");
+    await expectConfirmed(exec);
     const after0 = await bal(addr0);
     expect(before0 - after0).toBe(123n);
   });
@@ -163,7 +170,8 @@ describe("wrapped_credits.aleo", () => {
   test("transfer_public (positive): moves balances between users", async () => {
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
-    await WrappedCredits.transferPublic(AleoUtils.accounts[0], addr1, "321u128");
+    const exec = await WrappedCredits.transferPublic(AleoUtils.accounts[0], addr1, "321u128");
+    await expectConfirmed(exec);
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
     expect(before0 - after0).toBe(321n);
@@ -188,6 +196,7 @@ describe("wrapped_credits.aleo", () => {
       [addr0, "400u128"],
       { privateKey: pk0 },
     );
+    await expectConfirmed(exec);
     const records = extractRecordPlaintexts(exec.stdout);
     expect(records.length).toBeGreaterThanOrEqual(1);
     const after0 = await bal(addr0);
@@ -219,6 +228,7 @@ describe("wrapped_credits.aleo", () => {
       [addr0, "200u128"],
       { privateKey: pk0 },
     );
+    await expectConfirmed(mint);
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
@@ -230,6 +240,7 @@ describe("wrapped_credits.aleo", () => {
       [tokenRecords[0], addr1, "50u128"],
       { privateKey: pk0 },
     );
+    await expectConfirmed(split);
     const out = extractRecordPlaintexts(split.stdout);
     // change token + new token
     expect(out.length).toBeGreaterThanOrEqual(2);
@@ -276,6 +287,7 @@ describe("wrapped_credits.aleo", () => {
       [addr0, "80u128"],
       { privateKey: pk0 },
     );
+    await expectConfirmed(mint);
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
@@ -286,6 +298,7 @@ describe("wrapped_credits.aleo", () => {
       [tokenRecords[0], addr1, "30u128"],
       { privateKey: pk0 },
     );
+    await expectConfirmed(res);
     const out = extractRecordPlaintexts(res.stdout);
     // change token output
     expect(out.length).toBeGreaterThanOrEqual(1);
@@ -328,6 +341,7 @@ describe("wrapped_credits.aleo", () => {
       [addr0, "70u128"],
       { privateKey: pk0 },
     );
+    await expectConfirmed(mint);
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
@@ -339,6 +353,7 @@ describe("wrapped_credits.aleo", () => {
       [tokenRecords[0], "20u64"],
       { privateKey: pk0 },
     );
+    await expectConfirmed(res);
     const out = extractRecordPlaintexts(res.stdout);
     // credits record + change token
     expect(out.length).toBeGreaterThanOrEqual(2);
@@ -379,11 +394,15 @@ describe("wrapped_credits.aleo", () => {
   test("transfer_public_as_signer (positive): debits signer and credits receiver", async () => {
     // Ensure signer has enough.
     const b0 = await bal(addr0);
-    if (b0 < 100n) await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "500u64");
+    if (b0 < 100n) {
+      const topup = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "500u64");
+      await expectConfirmed(topup);
+    }
 
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
-    await WrappedCredits.transferPublicAsSigner(AleoUtils.accounts[0], addr1, "40u128");
+    const exec = await WrappedCredits.transferPublicAsSigner(AleoUtils.accounts[0], addr1, "40u128");
+    await expectConfirmed(exec);
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
     expect(before0 - after0).toBe(40n);
