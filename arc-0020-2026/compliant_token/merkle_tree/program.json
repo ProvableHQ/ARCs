@@ -1,0 +1,9 @@
+{
+  "program": "merkle_tree.aleo",
+  "version": "0.1.0",
+  "description": "Merkle tree utilities for freeze list proofs",
+  "license": "Apache-2.0",
+  "leo": "3.4.0",
+  "dependencies": null,
+  "dev_dependencies": null
+}

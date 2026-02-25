@@ -1,6 +1,11 @@
 import credits.aleo;
 
-program wrapped_credits.aleo {
+// Interface matching compliant_token_template.aleo transfer_public signature (PR 29151)
+interface TransferPublic {
+    fn transfer_public(public recipient: address, public amount: u128) -> Final;
+}
+
+program wrapped_credits.aleo : TransferPublic {
     @noupgrade
     constructor() {}
 
@@ -76,13 +81,13 @@ program wrapped_credits.aleo {
         return (output, change_token, final { credits_finalization.run(); });
     }
 
-    fn transfer_public(to: address, amount: u128) -> Final {
+    fn transfer_public(public recipient: address, public amount: u128) -> Final {
         let caller = self.caller;
         return final {
             let previous_balance_caller = balances.get(caller);
             balances.set(caller, previous_balance_caller - amount); // TODO: do we error automatically on underflow?
-            let previous_balance_receiver = balances.get_or_use(to, 0u128);
-            balances.set(to, previous_balance_receiver + amount); // TODO: do we error automatically on overflow?
+            let previous_balance_receiver = balances.get_or_use(recipient, 0u128);
+            balances.set(recipient, previous_balance_receiver + amount); // TODO: do we error automatically on overflow?
         };
     }
 

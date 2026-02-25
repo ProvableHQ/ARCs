@@ -1,0 +1,10 @@
+{
+  "name": "compliant-token-arc",
+  "version": "0.1.0",
+  "description": "Compliant token template and devnet tests (from sealance-io/compliant-transfer-aleo)",
+  "private": true,
+  "scripts": {
+    "test:devnet": "bash tests/test.sh",
+    "test:upstream": "echo 'Clone compliant-transfer-aleo and run: npm run test -- test/compliant_token.test.ts'"
+  }
+}
