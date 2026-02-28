@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -93,19 +92,7 @@ export async function waitForTransactionConfirmedFromLeoExecution(execResult, op
   return await waitForTransactionConfirmed(txId, opts);
 }
 
-function resolveLocalLeoBin() {
-  // Per repo conventions: build/deploy/execute/query must use this binary.
-  const pinned = path.join(os.homedir(), "programs", "leo", "target", "release", "leo");
-  if (fs.existsSync(pinned)) return pinned;
-  if (process.env.LEO_BIN) return process.env.LEO_BIN;
-  return pinned; // Let spawn error loudly if missing.
-}
-
-function resolveGlobalLeoBin() {
-  // Per repo conventions: devnode must use globally-installed `leo`.
-  if (process.env.LEO_DEVNODE_BIN) return process.env.LEO_DEVNODE_BIN;
-  return "leo";
-}
+const LEO_BIN = "leo";
 
 async function run(cmd, args, opts = {}) {
   return await new Promise((resolve, reject) => {
@@ -185,7 +172,7 @@ let devnetLogStream = null;
 export async function startDevnode(opts = {}) {
   if (devnetProc) return devnetProc;
 
-  const leoDevnodeBin = opts.leoDevnodeBin || resolveGlobalLeoBin();
+  const leoDevnodeBin = opts.leoDevnodeBin || LEO_BIN;
   const privateKey = opts.privateKey || DEFAULT_PRIVATE_KEYS[0];
 
   const logPath = opts.logPath || path.join(__dirname, "..", "snarkos-devnet.log");
@@ -315,16 +302,14 @@ export async function waitForMinHeight(minHeight, timeoutMs = 120_000) {
 }
 
 export async function leoBuild(programPath, opts = {}) {
-  const leoBin = opts.leoBin || resolveLocalLeoBin();
-  return await run(leoBin, ["build"], { cwd: programPath, label: "leo build" });
+  return await run(LEO_BIN, ["build"], { cwd: programPath, label: "leo build" });
 }
 
 export async function leoDeploy(programPath, opts = {}) {
-  const leoBin = opts.leoBin || resolveLocalLeoBin();
   const privateKey = opts.privateKey || DEFAULT_PRIVATE_KEYS[0];
 
   return await run(
-    leoBin,
+    LEO_BIN,
     [
       "deploy",
       "--network",
@@ -346,11 +331,10 @@ export async function leoDeploy(programPath, opts = {}) {
 }
 
 export async function leoExecute(programPath, fnName, inputs, opts = {}) {
-  const leoBin = opts.leoBin || resolveLocalLeoBin();
   const privateKey = opts.privateKey || DEFAULT_PRIVATE_KEYS[0];
 
   const res = await run(
-    leoBin,
+    LEO_BIN,
     [
       "execute",
       fnName,
@@ -380,9 +364,8 @@ export async function leoExecute(programPath, fnName, inputs, opts = {}) {
 }
 
 export async function leoMappingValue(programName, mappingName, key, opts = {}) {
-  const leoBin = opts.leoBin || resolveLocalLeoBin();
   return await run(
-    leoBin,
+    LEO_BIN,
     [
       "query",
       "program",
@@ -400,10 +383,9 @@ export async function leoMappingValue(programName, mappingName, key, opts = {}) 
 }
 
 export async function leoProgramExists(programName, opts = {}) {
-  const leoBin = opts.leoBin || resolveLocalLeoBin();
   try {
     await run(
-      leoBin,
+      LEO_BIN,
       [
         "query",
         "program",
