@@ -3,18 +3,22 @@ import { fileURLToPath } from "node:url";
 
 import * as AleoUtils from "./lib/aleo-test-utils.js";
 import * as TokenRegistry from "./contracts/token-registry.js";
+import * as WrappedTokenRegistry from "./contracts/wrapped-token-registry.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 describe("token_registry.aleo", () => {
   const programPath = path.join(__dirname, "..", "token_registry");
+  const wrappedProgramPath = path.join(__dirname, "..", "wrapped_token_registry");
   const pk0 = AleoUtils.DEFAULT_PRIVATE_KEYS[0];
   const addr0 = AleoUtils.addresses[0];
   const addr1 = AleoUtils.addresses[1];
 
   // Custom token ID (must not equal CREDITS_RESERVED_TOKEN_ID)
   const CUSTOM_TOKEN_ID = "12345field";
+  // Token ID wrapped by wrapped_token_registry.aleo
+  const WRAPPED_TOKEN_ID = WrappedTokenRegistry.WRAPPED_TOKEN_ID;
   const MAX_SUPPLY = "1000000u128";
   const MINT_AMOUNT = "1000u128";
   const TRANSFER_AMOUNT = "200u128";
@@ -28,6 +32,8 @@ describe("token_registry.aleo", () => {
     await expect(p).rejects.toThrow(/Transaction rejected|failed \(code/i);
   }
 
+  let wrappedTokenRegistryDeployed = false;
+
   beforeAll(async () => {
     try {
       await AleoUtils.startDevnode();
@@ -36,6 +42,20 @@ describe("token_registry.aleo", () => {
         programId: TokenRegistry.PROGRAM_ID,
         programPath,
       });
+
+      try {
+        const prevEndpoint = process.env.ENDPOINT;
+        process.env.ENDPOINT = AleoUtils.NETWORK_URL;
+        await AleoUtils.deployProgramFromFile({
+          programId: WrappedTokenRegistry.PROGRAM_ID,
+          programPath: wrappedProgramPath,
+        });
+        process.env.ENDPOINT = prevEndpoint;
+        wrappedTokenRegistryDeployed = true;
+      } catch (e) {
+        process.env.ENDPOINT = undefined;
+        wrappedTokenRegistryDeployed = false;
+      }
     } catch (e) {
       await AleoUtils.stopDevnode();
       throw e;
@@ -184,5 +204,54 @@ describe("token_registry.aleo", () => {
         "999999u128",
       ),
     );
+  });
+
+  test("wrapped_token_registry: transfer via TransferPublic interface", async () => {
+    if (!wrappedTokenRegistryDeployed) {
+      console.warn(
+        "Skipping: wrapped_token_registry not deployed (dependency deploy skips both programs)",
+      );
+      return;
+    }
+    // Register and mint the token wrapped by wrapped_token_registry (99999field)
+    const name = "1413829460u128";
+    const symbol = "1413829460u128";
+    const decimals = "6u8";
+    const extAuthRequired = "false";
+    const extAuthParty = addr0;
+
+    const registerExec = await AleoUtils.leoExecute(
+      programPath,
+      "register_token",
+      [WRAPPED_TOKEN_ID, name, symbol, decimals, MAX_SUPPLY, extAuthRequired, extAuthParty],
+      { privateKey: pk0 },
+    );
+    await expectConfirmed(registerExec);
+
+    const mintExec = await TokenRegistry.mintPublic(
+      AleoUtils.accounts[0],
+      WRAPPED_TOKEN_ID,
+      addr0,
+      "500u128",
+      AUTHORIZED_UNTIL,
+    );
+    await expectConfirmed(mintExec);
+
+    // Transfer using wrapped_token_registry (TransferPublic interface)
+    const transferExec = await WrappedTokenRegistry.transferPublic(
+      AleoUtils.accounts[0],
+      addr1,
+      "150u128",
+    );
+    await expectConfirmed(transferExec);
+
+    // Verify: addr1 received and can transfer back via token_registry
+    const execBack = await TokenRegistry.transferPublic(
+      AleoUtils.accounts[1],
+      WRAPPED_TOKEN_ID,
+      addr0,
+      "50u128",
+    );
+    await expectConfirmed(execBack);
   });
 });

@@ -175,7 +175,10 @@ export async function startDevnode(opts = {}) {
   const leoDevnodeBin = opts.leoDevnodeBin || LEO_BIN;
   const privateKey = opts.privateKey || DEFAULT_PRIVATE_KEYS[0];
 
-  const logPath = opts.logPath || path.join(__dirname, "..", "snarkos-devnet.log");
+  const logsDir = path.join(__dirname, "..", "logs");
+  fs.mkdirSync(logsDir, { recursive: true });
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const logPath = opts.logPath || path.join(logsDir, `snarkos-devnet-${timestamp}.log`);
   const storageRoot =
     opts.storageRoot || path.join(__dirname, "..", ".snarkos-devnet");
 
@@ -308,26 +311,29 @@ export async function leoBuild(programPath, opts = {}) {
 export async function leoDeploy(programPath, opts = {}) {
   const privateKey = opts.privateKey || DEFAULT_PRIVATE_KEYS[0];
 
-  return await run(
-    LEO_BIN,
-    [
-      "deploy",
-      "--network",
-      "testnet",
-      "--endpoint",
-      NETWORK_URL,
-      "--private-key",
-      privateKey,
-      "--broadcast",
-      "--yes",
-      "--devnet",
-      "--max-wait",
-      String(opts.maxWait ?? 15),
-      "--blocks-to-check",
-      String(opts.blocksToCheck ?? 15),
-    ],
-    { cwd: programPath, label: "leo deploy" },
-  );
+  const args = [
+    "deploy",
+    "--network",
+    "testnet",
+    "--endpoint",
+    NETWORK_URL,
+    "--private-key",
+    privateKey,
+    "--broadcast",
+    "--yes",
+    "--devnet",
+    "--max-wait",
+    String(opts.maxWait ?? 15),
+    "--blocks-to-check",
+    String(opts.blocksToCheck ?? 15),
+  ];
+  if (opts.skip?.length) {
+    for (const s of opts.skip) {
+      args.push("--skip", s);
+    }
+  }
+
+  return await run(LEO_BIN, args, { cwd: programPath, label: "leo deploy" });
 }
 
 export async function leoExecute(programPath, fnName, inputs, opts = {}) {
@@ -384,19 +390,21 @@ export async function leoMappingValue(programName, mappingName, key, opts = {}) 
 
 export async function leoProgramExists(programName, opts = {}) {
   try {
-    await run(
-      LEO_BIN,
-      [
-        "query",
-        "program",
-        programName,
-        "--network",
-        "testnet",
-        "--endpoint",
-        NETWORK_URL,
-      ],
-      { label: "leo query program" },
-    );
+    const args = [
+      "query",
+      "program",
+      programName,
+      "--network",
+      "testnet",
+      "--endpoint",
+      NETWORK_URL,
+    ];
+    const isLocalEndpoint =
+      NETWORK_URL.includes("127.0.0.1") || NETWORK_URL.includes("localhost");
+    if (opts.devnet !== false && isLocalEndpoint) {
+      args.push("--devnet");
+    }
+    await run(LEO_BIN, args, { label: "leo query program" });
     return true;
   } catch {
     return false;
@@ -404,13 +412,16 @@ export async function leoProgramExists(programName, opts = {}) {
 }
 
 export async function deployProgramFromFile(opts) {
-  const { programId, programPath } = opts;
+  const { programId, programPath, skip } = opts;
   if (!programId) throw new Error("deployProgramFromFile requires programId");
   if (!programPath) throw new Error("deployProgramFromFile requires programPath");
 
   await leoBuild(programPath, opts);
   try {
-    await leoDeploy(programPath, { privateKey: DEFAULT_PRIVATE_KEYS[0] });
+    await leoDeploy(programPath, {
+      privateKey: DEFAULT_PRIVATE_KEYS[0],
+      skip,
+    });
   } catch (e) {
     const msg = String(e?.message || e);
     if (!msg.includes("already exists on the network")) throw e;
