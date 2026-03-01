@@ -1,12 +1,10 @@
 # Tests
 
-Try:
-```
-npm test
-```
+Run from `arc-0020-2026/tests`:
 
-To run a specific test:
-```
+```bash
+npm test
 npm test -- -t "deposit_credits_public"
+npm test -- token-registry.test.js
 ```
 

@@ -1,15 +1,9 @@
 # wrapped_token_registry.aleo
 
-Stateless wrapper around `token_registry.aleo` that implements the `TransferPublic` interface (same as `wrapped_credits.aleo`).
+Stateless wrapper around `token_registry.aleo` implementing the `Transferrable` interface (same as `wrapped_credits.aleo`).
 
-## Purpose
+**Interface:** `transfer_public`, `transfer_public_to_private`, `transfer_private`.
 
-Provides a uniform `transfer_public(public recipient: address, public amount: u128) -> Final` interface for the credits-reserved token in the token registry. This allows programs that expect the `TransferPublic` interface to work with either `wrapped_credits.aleo` or `wrapped_token_registry.aleo` interchangeably.
+**Token:** Wraps custom token ID `99999field` (not CREDITS_RESERVED_TOKEN_ID). No state; forwards to `token_registry.aleo`.
 
-## Dependencies
-
-- `token_registry.aleo` (local, `../token_registry`)
-
-## Token
-
-Wraps the `CREDITS_RESERVED_TOKEN_ID` token in the token registry. Balances are stored in `token_registry.aleo`; this program holds no state and merely forwards calls.
+**Dependency:** `token_registry.aleo` (local)
