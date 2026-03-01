@@ -1,11 +1,13 @@
 import credits.aleo;
 
-// Interface matching compliant_token_template.aleo transfer_public signature (PR 29151)
-interface TransferPublic {
+// Interface matching compliant_token_template.aleo transfer signatures (PR 29151)
+interface Transferrable {
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
+    fn transfer_public_to_private(public to: address, public amount: u128) -> (Token, Final);
+    fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
 }
 
-program wrapped_credits.aleo : TransferPublic {
+program wrapped_credits.aleo : Transferrable {
     @noupgrade
     constructor() {}
 
@@ -91,7 +93,7 @@ program wrapped_credits.aleo : TransferPublic {
         };
     }
 
-    fn transfer_public_to_private(to: address, amount: u128) -> (Token, Final) {
+    fn transfer_public_to_private(public to: address, public amount: u128) -> (Token, Final) {
         let token = Token {
             owner: to,
             amount

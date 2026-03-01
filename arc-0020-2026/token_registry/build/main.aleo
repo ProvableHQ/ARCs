@@ -495,6 +495,37 @@ finalize transfer_public_to_private:
     cast r0 r3 r11 r6.authorized_until into r12 as Balance;
     set r12 into authorized_balances[r2];
 
+function transfer_pub_to_priv_as_signer:
+    input r0 as field.public;
+    input r1 as address.private;
+    input r2 as u128.public;
+    input r3 as boolean.public;
+    ternary r3 0u32 4294967295u32 into r4;
+    cast r1 r2 r0 r3 r4 into r5 as Token.record;
+    cast self.signer r0 into r6 as TokenOwner;
+    hash.bhp256 r6 into r7 as field;
+    async transfer_pub_to_priv_as_signer r0 r3 r7 self.signer r2 into r8;
+    output r5 as Token.record;
+    output r8 as token_registry.aleo/transfer_pub_to_priv_as_signer.future;
+
+finalize transfer_pub_to_priv_as_signer:
+    input r0 as field.public;
+    input r1 as boolean.public;
+    input r2 as field.public;
+    input r3 as address.public;
+    input r4 as u128.public;
+    get registered_tokens[r0] into r5;
+    assert.eq r5.external_authorization_required r1;
+    get authorized_balances[r2] into r6;
+    get registered_tokens[r0] into r7;
+    lte block.height r6.authorized_until into r8;
+    not r7.external_authorization_required into r9;
+    or r8 r9 into r10;
+    assert.eq r10 true;
+    sub r6.balance r4 into r11;
+    cast r0 r3 r11 r6.authorized_until into r12 as Balance;
+    set r12 into authorized_balances[r2];
+
 function transfer_from_public_to_private:
     input r0 as field.public;
     input r1 as address.public;
@@ -595,6 +626,18 @@ function join:
     lt r0.authorized_until r1.authorized_until into r4;
     ternary r4 r0.authorized_until r1.authorized_until into r5;
     cast r0.owner r3 r0.token_id r0.external_authorization_required r5 into r6 as Token.record;
+    output r6 as Token.record;
+
+function transfer_private:
+    input r0 as Token.record;
+    input r1 as address.private;
+    input r2 as u128.private;
+    gte r0.amount r2 into r3;
+    assert.eq r3 true;
+    sub r0.amount r2 into r4;
+    cast r0.owner r4 r0.token_id r0.external_authorization_required r0.authorized_until into r5 as Token.record;
+    cast r1 r2 r0.token_id r0.external_authorization_required r0.authorized_until into r6 as Token.record;
+    output r5 as Token.record;
     output r6 as Token.record;
 
 function split:

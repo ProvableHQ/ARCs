@@ -167,7 +167,8 @@ describe("wrapped_credits.aleo", () => {
     expect(after1).toBe(before1);
   });
 
-  test("transfer_public (positive): moves balances between users", async () => {
+  describe("Transferrable interface: transfer_public, transfer_public_to_private, transfer_private", () => {
+    test("transfer_public (positive): moves balances between users", async () => {
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
     const exec = await WrappedCredits.transferPublic(AleoUtils.accounts[0], addr1, "321u128");
@@ -176,9 +177,9 @@ describe("wrapped_credits.aleo", () => {
     const after1 = await bal(addr1);
     expect(before0 - after0).toBe(321n);
     expect(after1 - before1).toBe(321n);
-  });
+    });
 
-  test("transfer_public (negative): insufficient balance rejects and does not credit receiver", async () => {
+    test("transfer_public (negative): insufficient balance rejects and does not credit receiver", async () => {
     const before1 = await bal(addr1);
     const amount = before1 + 1n;
     await expectRejected(
@@ -278,6 +279,8 @@ describe("wrapped_credits.aleo", () => {
     expect(after0).toBe(before0);
     expect(after1).toBe(before1);
   });
+
+  }); // Transferrable interface
 
   test("transfer_private_to_public (positive): increases receiver public balance", async () => {
     // Token owned by signer.

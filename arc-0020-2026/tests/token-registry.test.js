@@ -32,6 +32,14 @@ describe("token_registry.aleo", () => {
     await expect(p).rejects.toThrow(/Transaction rejected|failed \(code/i);
   }
 
+  function extractRecordPlaintexts(stdout) {
+    const s = String(stdout || "");
+    const blocks = [...s.matchAll(/•\s*\{\n[\s\S]*?\n\}/g)].map((m) =>
+      String(m[0]).replace(/^\s*•\s*/m, "").trim(),
+    );
+    return blocks.filter((b) => b.includes("_nonce:") && b.includes("_version:"));
+  }
+
   let wrappedTokenRegistryDeployed = false;
 
   beforeAll(async () => {
@@ -206,7 +214,7 @@ describe("token_registry.aleo", () => {
     );
   });
 
-  test("wrapped_token_registry: transfer via TransferPublic interface", async () => {
+  test("wrapped_token_registry: transfer via Transferrable interface", async () => {
     if (!wrappedTokenRegistryDeployed) {
       console.warn(
         "Skipping: wrapped_token_registry not deployed (dependency deploy skips both programs)",
@@ -237,7 +245,7 @@ describe("token_registry.aleo", () => {
     );
     await expectConfirmed(mintExec);
 
-    // Transfer using wrapped_token_registry (TransferPublic interface)
+    // Transfer using wrapped_token_registry (Transferrable interface)
     const transferExec = await WrappedTokenRegistry.transferPublic(
       AleoUtils.accounts[0],
       addr1,
@@ -253,5 +261,65 @@ describe("token_registry.aleo", () => {
       "50u128",
     );
     await expectConfirmed(execBack);
+  });
+
+  test("wrapped_token_registry: transfer_public_to_private via Transferrable interface", async () => {
+    if (!wrappedTokenRegistryDeployed) return;
+
+    // Reuse setup from previous test: WRAPPED_TOKEN_ID registered, addr0 has balance
+    const before0 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr0);
+    if (before0 < 100n) {
+      const mintExec = await TokenRegistry.mintPublic(
+        AleoUtils.accounts[0],
+        WRAPPED_TOKEN_ID,
+        addr0,
+        "500u128",
+        AUTHORIZED_UNTIL,
+      );
+      await expectConfirmed(mintExec);
+    }
+
+    const exec = await WrappedTokenRegistry.transferPublicToPrivate(
+      AleoUtils.accounts[0],
+      addr0,
+      "100u128",
+    );
+    await expectConfirmed(exec);
+    const records = extractRecordPlaintexts(exec.stdout);
+    expect(records.length).toBeGreaterThanOrEqual(1);
+    const after0 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr0);
+    expect(after0).toBeLessThan(before0);
+  });
+
+  test("wrapped_token_registry: transfer_private via Transferrable interface", async () => {
+    if (!wrappedTokenRegistryDeployed) return;
+
+    // Create a private token via transfer_public_to_private
+    const mintExec = await WrappedTokenRegistry.transferPublicToPrivate(
+      AleoUtils.accounts[0],
+      addr0,
+      "80u128",
+    );
+    await expectConfirmed(mintExec);
+    const tokenRecords = extractRecordPlaintexts(mintExec.stdout);
+    expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
+
+    const before0 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr0);
+    const before1 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr1);
+    const transferExec = await WrappedTokenRegistry.transferPrivate(
+      AleoUtils.accounts[0],
+      tokenRecords[0],
+      addr1,
+      "30u128",
+    );
+    await expectConfirmed(transferExec);
+    const outRecords = extractRecordPlaintexts(transferExec.stdout);
+    expect(outRecords.length).toBeGreaterThanOrEqual(2);
+
+    // Private transfer does not change public balances
+    const after0 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr0);
+    const after1 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 });

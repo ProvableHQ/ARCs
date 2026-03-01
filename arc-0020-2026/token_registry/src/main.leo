@@ -609,6 +609,45 @@ program token_registry.aleo {
         });
     }
 
+    fn transfer_pub_to_priv_as_signer(
+        public token_id: field,
+        recipient: address,
+        public amount: u128,
+        public external_authorization_required: bool
+    ) -> (Token, Final) {
+        let authorized_until: u32 = external_authorization_required ? 0u32 : 4294967295u32;
+        let token_out: Token = Token {
+            owner: recipient,
+            amount: amount,
+            token_id: token_id,
+            external_authorization_required: external_authorization_required,
+            authorized_until: authorized_until
+        };
+
+        let sender_key: TokenOwner = TokenOwner {
+            account: self.signer,
+            token_id: token_id
+        };
+        let sender_key_hash: field = BHP256::hash_to_field(sender_key);
+        let owner = self.signer;
+
+        return (token_out, final {
+            let token: TokenMetadata = registered_tokens.get(token_id);
+            assert_eq(token.external_authorization_required, external_authorization_required);
+
+            let balance: Balance = authorized_balances.get(sender_key_hash);
+            let token_metadata: TokenMetadata = registered_tokens.get(token_id);
+            assert(block.height <= balance.authorized_until || !token_metadata.external_authorization_required);
+            let new_balance: Balance = Balance {
+                token_id: token_id,
+                account: owner,
+                balance: balance.balance - amount,
+                authorized_until: balance.authorized_until
+            };
+            authorized_balances.set(sender_key_hash, new_balance);
+        });
+    }
+
     fn transfer_from_public_to_private(
         public token_id: field,
         public owner: address,
@@ -739,6 +778,32 @@ program token_registry.aleo {
             external_authorization_required: token_1.external_authorization_required,
             authorized_until: authorized_until
         };
+    }
+
+    fn transfer_private(
+        private token: Token,
+        to: address,
+        private amount: u128
+    ) -> (Token, Token) {
+        assert(token.amount >= amount);
+
+        let change_token: Token = Token {
+            owner: token.owner,
+            amount: token.amount - amount,
+            token_id: token.token_id,
+            external_authorization_required: token.external_authorization_required,
+            authorized_until: token.authorized_until
+        };
+
+        let new_token: Token = Token {
+            owner: to,
+            amount: amount,
+            token_id: token.token_id,
+            external_authorization_required: token.external_authorization_required,
+            authorized_until: token.authorized_until
+        };
+
+        return (change_token, new_token);
     }
 
     fn split(
