@@ -1,0 +1,14 @@
+{
+  "name": "arc-0020-tests",
+  "version": "0.1.0",
+  "description": "ARC-0020 integration tests using @provablehq/sdk devnode methods",
+  "type": "module",
+  "scripts": {
+    "test": "node test.js",
+    "devnode": "leo devnode start --home /tmp/arc0020_devnode --manual-block-creation --private-key APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH",
+    "devnode:clean": "rm -rf /tmp/arc0020_devnode"
+  },
+  "dependencies": {
+    "@provablehq/sdk": "^0.9.16"
+  }
+}

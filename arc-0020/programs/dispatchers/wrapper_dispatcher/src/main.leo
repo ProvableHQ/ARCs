@@ -1,44 +1,20 @@
-// wrapper_dispatcher.aleo
+// wrapper_dispatcher.aleo — ARC-0020 dispatcher for DeFi protocols needing a unified
+// token API across multiple tokens (DEXs, multisigs, vaults).
 //
-// ARC-0020 dispatcher routing to token wrapper programs for use by DeFi protocols
-// (DEXs, multisigs, vaults) that need a single stable API across multiple tokens.
-//
-// Design:
-//   - Callers supply token_id + program_id. network_id is hardcoded to NETWORK_ALEO.
-//   - token_routes mapping enforces that program_id is a registered wrapper for token_id.
-//     Validation runs in finalize; an unregistered program_id reverts the transaction.
-//   - Route validation applies to public-state functions (1, 2, 5) where token_id is
-//     a public parameter. Record-only ops (join, split, transfer_private_to_public,
-//     transfer_private) are not validated via mapping — the AVM enforces record type
-//     identity at execution time, preventing cross-wrapper record misuse.
-//
-// Usage for a DEX or multisig:
-//   1. Token issuers call register_route(token_id, wrapper_program_id) once.
-//   2. DeFi protocols call any of the 7 functions with (token_id, ..., program_id).
-//      The dispatcher validates the route and forwards to the correct wrapper.
-//
-// Architecture:
-//   DeFi protocol → wrapper_dispatcher → _dynamic_call →
-//     {credits,registry,stablecoin}_wrapper → vault ops / underlying program
+// Callers supply token_id + program_id; network_id is hardcoded to NETWORK_ALEO.
+// token_routes validates that program_id is a registered wrapper for token_id.
+// Route validation runs in finalize for public-state calls. Record-only ops
+// (join, split, unshield, transfer_private) are not route-validated — the AVM
+// enforces record type identity at execution time, preventing cross-wrapper misuse.
 
 program wrapper_dispatcher.aleo {
 
-  // ---------------------------------------------------------------------------
-  // Network
-  // ---------------------------------------------------------------------------
-
   const NETWORK_ALEO: field = 1868917857field;
 
-  // ---------------------------------------------------------------------------
-  // Route registry
-  // ---------------------------------------------------------------------------
-
-  // token_id → approved wrapper program_id.
-  // Set once by the token issuer; validated on every public-state call.
+  // token_id → approved wrapper program_id. Validated on every public-state call.
   mapping token_routes: field => field;
 
-  // Register (or update) the approved wrapper for a token_id.
-  // In production this would be access-controlled; for the ARC demo it is open.
+  // In production this should be access-controlled.
   fn register_route(
     public token_id: field,
     public program_id: field
@@ -48,36 +24,17 @@ program wrapper_dispatcher.aleo {
     };
   }
 
-  // ---------------------------------------------------------------------------
-  // Field encodings for wrapper function names (ASCII, little-endian byte packing).
-  // ---------------------------------------------------------------------------
+  // Function name field encodings: ASCII bytes, little-endian (byte[0] + byte[1]*256 + ...).
+  const FUNC_TRANSFER_PUBLIC: field = 516175629116388850284097790795674228field;           // "transfer_public"
+  const FUNC_TRANSFER_PUBLIC_AS_SIGNER: field = 718076685225955844079766916816982442103848756111050079826548field; // "transfer_public_as_signer"
+  const FUNC_JOIN: field = 1852403562field;                                                // "join"
+  const FUNC_SPLIT: field = 499984920691field;                                             // "split"
+  const FUNC_SHIELD: field = 110416720652403field;                                         // "shield"
+  const FUNC_UNSHIELD: field = 7236270204675911285field;                                   // "unshield"
+  const FUNC_TRANSFER_PRIVATE: field = 134856310785155548303824185267685782132field;        // "transfer_private"
 
-  // "transfer_public"
-  const FUNC_TRANSFER_PUBLIC: field = 516175629116388850284097790795674228field;
+  // Public-state functions — route-validated in finalize.
 
-  // "transfer_public_as_signer"
-  const FUNC_TRANSFER_PUBLIC_AS_SIGNER: field = 718076685225955844079766916816982442103848756111050079826548field;
-
-  // "join"
-  const FUNC_JOIN: field = 1852403562field;
-
-  // "split"
-  const FUNC_SPLIT: field = 499984920691field;
-
-  // "transfer_public_to_private"
-  const FUNC_TRANSFER_PUBLIC_TO_PRIVATE: field = 163031276046149327277138208237194600527678254627957973064970868field;
-
-  // "transfer_private_to_public"
-  const FUNC_TRANSFER_PRIVATE_TO_PUBLIC: field = 159748619646624572882733203183532374243803035081386454010655348field;
-
-  // "transfer_private"
-  const FUNC_TRANSFER_PRIVATE: field = 134856310785155548303824185267685782132field;
-
-  // ===========================================================================
-  // Public-state functions — include route validation in finalize
-  // ===========================================================================
-
-  // 1. transfer_public — debits self.caller on the wrapper
   fn transfer_public(
     public token_id: field,
     public recipient: address,
@@ -92,7 +49,6 @@ program wrapper_dispatcher.aleo {
     };
   }
 
-  // 2. transfer_public_as_signer — debits self.signer (the transaction signer)
   fn transfer_public_as_signer(
     public token_id: field,
     public recipient: address,
@@ -107,14 +63,13 @@ program wrapper_dispatcher.aleo {
     };
   }
 
-  // 5. transfer_public_to_private — vault-in; returns wrapper token record
-  fn transfer_public_to_private(
+  fn shield(
     public token_id: field,
     recipient: address,
     public amount: u128,
     public program_id: field
   ) -> (dyn record, Final) {
-    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_TRANSFER_PUBLIC_TO_PRIVATE, token_id, recipient, amount);
+    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_SHIELD, token_id, recipient, amount);
     return (r, final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -122,11 +77,8 @@ program wrapper_dispatcher.aleo {
     });
   }
 
-  // ===========================================================================
-  // Record-only functions — no route validation (AVM enforces record type identity)
-  // ===========================================================================
+  // Record-only functions — AVM enforces record type identity; no route validation needed.
 
-  // 3. join — combines two records of the same token into one
   fn join(
     r1: dyn record,
     r2: dyn record,
@@ -136,7 +88,6 @@ program wrapper_dispatcher.aleo {
     return r;
   }
 
-  // 4. split — splits one record into two
   fn split(
     r: dyn record,
     amount: u128,
@@ -146,18 +97,16 @@ program wrapper_dispatcher.aleo {
     return (r1, r2);
   }
 
-  // 6. transfer_private_to_public — vault-out; returns change record
-  fn transfer_private_to_public(
+  fn unshield(
     public recipient: address,
     public amount: u128,
     r: dyn record,
     public program_id: field
   ) -> (dyn record, Final) {
-    let (r_out, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_TRANSFER_PRIVATE_TO_PUBLIC, recipient, amount, r);
+    let (r_out, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_UNSHIELD, recipient, amount, r);
     return (r_out, final { f.run(); });
   }
 
-  // 7. transfer_private — returns (change, transfer_record, Final)
   fn transfer_private(
     recipient: address,
     amount: u128,

@@ -110,3 +110,6 @@ function transfer_private:
 finalize transfer_private:
     input r0 as dynamic.future;
     await r0;
+
+constructor:
+    assert.eq edition 0u16;

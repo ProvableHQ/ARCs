@@ -92,3 +92,6 @@ function transfer_private:
 
 finalize transfer_private:
     assert.eq true true;
+
+constructor:
+    assert.eq edition 0u16;

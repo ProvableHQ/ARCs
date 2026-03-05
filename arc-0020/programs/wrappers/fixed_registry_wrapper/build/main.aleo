@@ -117,3 +117,6 @@ function mint_private:
 finalize mint_private:
     input r0 as token_registry.aleo/mint_public.future;
     await r0;
+
+constructor:
+    assert.eq edition 0u16;

@@ -251,12 +251,12 @@ program direct_dispatcher.aleo {
 
   // ===========================================================================
   // Phase 4: → (dyn record, Final)
-  // Covers: transfer_public_to_private, transfer_private_to_public,
-  //         transfer_private_to_public (credits u64 variant), authorize
+  // Covers: shield, unshield,
+  //         unshield (credits u64 variant), authorize
   // ===========================================================================
 
   // 13. (field, address, u128) → (record, Final)
-  //     e.g. transfer_public_to_private(token_id, recipient, amount)
+  //     e.g. shield(token_id, recipient, amount)
   fn dispatch_f_a_u_to_r_f(
     public program_id: field,
     public network_id: field,
@@ -270,7 +270,7 @@ program direct_dispatcher.aleo {
   }
 
   // 14. (address, u128) → (record, Final)
-  //     e.g. single-token transfer_public_to_private(recipient, amount)
+  //     e.g. single-token shield(recipient, amount)
   fn dispatch_a_u_to_r_f(
     public program_id: field,
     public network_id: field,
@@ -283,7 +283,7 @@ program direct_dispatcher.aleo {
   }
 
   // 15. (address, u128, record) → (record, Final)
-  //     e.g. transfer_private_to_public(recipient, amount, input)
+  //     e.g. unshield(recipient, amount, input)
   fn dispatch_a_u_r_to_r_f(
     public program_id: field,
     public network_id: field,
@@ -297,7 +297,7 @@ program direct_dispatcher.aleo {
   }
 
   // 16. (address, u64, record) → (record, Final)
-  //     e.g. credits transfer_private_to_public(recipient, amount_u64, input)
+  //     e.g. credits unshield(recipient, amount_u64, input)
   fn dispatch_a_u64_r_to_r_f(
     public program_id: field,
     public network_id: field,
@@ -311,7 +311,7 @@ program direct_dispatcher.aleo {
   }
 
   // 17. (address, u64) → (record, Final)
-  //     e.g. credits transfer_public_to_private(recipient, amount_u64)
+  //     e.g. credits shield(recipient, amount_u64)
   fn dispatch_a_u64_to_r_f(
     public program_id: field,
     public network_id: field,
