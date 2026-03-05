@@ -1,0 +1,34 @@
+{
+  "program": "stablecoin_wrapper.aleo",
+  "version": "0.1.0",
+  "description": "ARC-0020 unified interface wrapper for stablecoin_program.aleo with vault-owned records",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": [
+    {
+      "name": "multisig_core.aleo",
+      "location": "local",
+      "path": "../../lib/multisig_core",
+      "edition": null
+    },
+    {
+      "name": "freezelist_program.aleo",
+      "location": "local",
+      "path": "../../lib/freezelist_program",
+      "edition": null
+    },
+    {
+      "name": "stablecoin_program.aleo",
+      "location": "local",
+      "path": "../../tokens/stablecoin_program",
+      "edition": null
+    },
+    {
+      "name": "token_interface.aleo",
+      "location": "local",
+      "path": "../token_interface",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}

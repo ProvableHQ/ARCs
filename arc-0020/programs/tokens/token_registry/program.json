@@ -1,0 +1,16 @@
+{
+  "program": "token_registry.aleo",
+  "version": "0.1.0",
+  "description": "Leo analog of token_registry.aleo - the ARC-0020 token registry program.",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": [
+    {
+      "name": "credits_clone.aleo",
+      "location": "local",
+      "path": "../credits_clone",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}

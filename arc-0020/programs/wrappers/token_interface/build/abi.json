@@ -1,0 +1,15 @@
+{
+  "program": "token_interface.aleo",
+  "structs": [],
+  "records": [],
+  "mappings": [],
+  "storage_variables": [],
+  "transitions": [
+    {
+      "name": "noop",
+      "is_async": false,
+      "inputs": [],
+      "outputs": []
+    }
+  ]
+}

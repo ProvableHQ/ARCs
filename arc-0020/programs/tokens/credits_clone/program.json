@@ -1,0 +1,9 @@
+{
+  "program": "credits_clone.aleo",
+  "version": "0.1.0",
+  "description": "Leo analog of the built-in credits.aleo program. For local testing and specification purposes only.",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": null,
+  "dev_dependencies": null
+}

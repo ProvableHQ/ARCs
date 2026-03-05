@@ -1,0 +1,22 @@
+{
+  "program": "fixed_registry_wrapper.aleo",
+  "version": "0.1.0",
+  "description": "ARC-0020 single-token wrapper implementing Mintable for a hardcoded token_id",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": [
+    {
+      "name": "token_registry.aleo",
+      "location": "local",
+      "path": "../../tokens/token_registry",
+      "edition": null
+    },
+    {
+      "name": "token_interface.aleo",
+      "location": "local",
+      "path": "../token_interface",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}

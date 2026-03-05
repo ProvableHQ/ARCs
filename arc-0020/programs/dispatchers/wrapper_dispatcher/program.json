@@ -1,0 +1,9 @@
+{
+  "program": "wrapper_dispatcher.aleo",
+  "version": "0.1.0",
+  "description": "ARC-0020 higher-level dispatcher routing to credits_wrapper, registry_wrapper, or stablecoin_wrapper via dynamic calls. Each function corresponds to one operation in the unified token interface.",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": null,
+  "dev_dependencies": null
+}

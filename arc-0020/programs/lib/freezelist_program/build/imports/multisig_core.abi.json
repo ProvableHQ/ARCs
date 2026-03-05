@@ -1,0 +1,884 @@
+{
+  "program": "multisig_core.aleo",
+  "structs": [
+    {
+      "path": [
+        "WalletSettings"
+      ],
+      "fields": [
+        {
+          "name": "threshold",
+          "ty": {
+            "Primitive": {
+              "UInt": "U8"
+            }
+          }
+        },
+        {
+          "name": "num_signers",
+          "ty": {
+            "Primitive": {
+              "UInt": "U8"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": [
+        "WalletSigningOp"
+      ],
+      "fields": [
+        {
+          "name": "confirmations",
+          "ty": {
+            "Primitive": {
+              "UInt": "U8"
+            }
+          }
+        },
+        {
+          "name": "initiated_at_block",
+          "ty": {
+            "Primitive": {
+              "UInt": "U32"
+            }
+          }
+        },
+        {
+          "name": "expires_at_block",
+          "ty": {
+            "Primitive": {
+              "UInt": "U32"
+            }
+          }
+        },
+        {
+          "name": "round",
+          "ty": {
+            "Primitive": {
+              "UInt": "U32"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": [
+        "AdminOp"
+      ],
+      "fields": [
+        {
+          "name": "op",
+          "ty": {
+            "Primitive": {
+              "UInt": "U8"
+            }
+          }
+        },
+        {
+          "name": "threshold",
+          "ty": {
+            "Primitive": {
+              "UInt": "U8"
+            }
+          }
+        },
+        {
+          "name": "aleo_signer",
+          "ty": {
+            "Primitive": "Address"
+          }
+        },
+        {
+          "name": "ecdsa_signer",
+          "ty": {
+            "Array": {
+              "element": {
+                "Primitive": {
+                  "UInt": "U8"
+                }
+              },
+              "length": 20
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": [
+        "ProgramSettings"
+      ],
+      "fields": [
+        {
+          "name": "allow_upgrades",
+          "ty": {
+            "Primitive": "Boolean"
+          }
+        },
+        {
+          "name": "upgrader_address",
+          "ty": {
+            "Primitive": "Address"
+          }
+        },
+        {
+          "name": "guard_create_wallet",
+          "ty": {
+            "Primitive": "Boolean"
+          }
+        }
+      ]
+    }
+  ],
+  "records": [],
+  "mappings": [
+    {
+      "name": "program_settings_map",
+      "key": {
+        "Primitive": "Boolean"
+      },
+      "value": {
+        "Struct": {
+          "path": [
+            "ProgramSettings"
+          ],
+          "program": "multisig_core"
+        }
+      }
+    },
+    {
+      "name": "signers_map",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Primitive": "Boolean"
+      }
+    },
+    {
+      "name": "wallets_map",
+      "key": {
+        "Primitive": "Address"
+      },
+      "value": {
+        "Struct": {
+          "path": [
+            "WalletSettings"
+          ],
+          "program": "multisig_core"
+        }
+      }
+    },
+    {
+      "name": "pending_signing_ops",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Struct": {
+          "path": [
+            "WalletSigningOp"
+          ],
+          "program": "multisig_core"
+        }
+      }
+    },
+    {
+      "name": "pending_signing_confirmations",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U32"
+        }
+      }
+    },
+    {
+      "name": "completed_signing_ops",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U32"
+        }
+      }
+    },
+    {
+      "name": "used_nonces",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Primitive": "Boolean"
+      }
+    },
+    {
+      "name": "pending_admin_ops",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Struct": {
+          "path": [
+            "AdminOp"
+          ],
+          "program": "multisig_core"
+        }
+      }
+    }
+  ],
+  "storage_variables": [],
+  "transitions": [
+    {
+      "name": "init",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "upgrader_address",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "name": "guard_create_wallet",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Boolean"
+            }
+          },
+          "mode": "None"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "disallow_upgrades",
+      "is_async": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "set_upgrader_address",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "new_upgrader_address",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "None"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "create_wallet",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "threshold",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U8"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "aleo_signers",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Primitive": "Address"
+                },
+                "length": 4
+              }
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "name": "ecdsa_signers",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Array": {
+                    "element": {
+                      "Primitive": {
+                        "UInt": "U8"
+                      }
+                    },
+                    "length": 20
+                  }
+                },
+                "length": 4
+              }
+            }
+          },
+          "mode": "None"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "initiate_signing_op",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "block_expiration",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U32"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "sign",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "sign_for_round",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "round",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U32"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "sign_ecdsa",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "ecdsa_signer",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Primitive": {
+                    "UInt": "U8"
+                  }
+                },
+                "length": 20
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "sig",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Primitive": {
+                    "UInt": "U8"
+                  }
+                },
+                "length": 65
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "nonce",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U64"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "sign_ecdsa_for_round",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "ecdsa_signer",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Primitive": {
+                    "UInt": "U8"
+                  }
+                },
+                "length": 20
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "sig",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Primitive": {
+                    "UInt": "U8"
+                  }
+                },
+                "length": 65
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "nonce",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U64"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "round",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U32"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "init_admin_op",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "block_expiration",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U32"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "admin_op",
+          "ty": {
+            "Plaintext": {
+              "Struct": {
+                "path": [
+                  "AdminOp"
+                ],
+                "program": "multisig_core"
+              }
+            }
+          },
+          "mode": "None"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "exec_admin_op",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "admin_op",
+          "ty": {
+            "Plaintext": {
+              "Struct": {
+                "path": [
+                  "AdminOp"
+                ],
+                "program": "multisig_core"
+              }
+            }
+          },
+          "mode": "None"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "get_signing_op_id_hash",
+      "is_async": false,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "guarded_create_wallet_op_hash",
+      "is_async": false,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "threshold",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U8"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "aleo_signers",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Primitive": "Address"
+                },
+                "length": 4
+              }
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "name": "ecdsa_signers",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Array": {
+                    "element": {
+                      "Primitive": {
+                        "UInt": "U8"
+                      }
+                    },
+                    "length": 20
+                  }
+                },
+                "length": 4
+              }
+            }
+          },
+          "mode": "None"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "assert_signing_completed",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "wallet_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "signing_op_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "program": "stablecoin_program.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "GPL",
+  "leo": "3.4.0",
+  "dependencies": [
+    {
+      "name": "multisig_core.aleo",
+      "location": "local",
+      "path": "../../lib/multisig_core",
+      "edition": null
+    },
+    {
+      "name": "freezelist_program.aleo",
+      "location": "local",
+      "path": "../../lib/freezelist_program",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}

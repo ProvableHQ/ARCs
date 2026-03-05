@@ -1,0 +1,22 @@
+{
+  "program": "credits_wrapper.aleo",
+  "version": "0.1.0",
+  "description": "ARC-0020 unified interface wrapper for credits_clone.aleo with vault-owned records",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": [
+    {
+      "name": "credits_clone.aleo",
+      "location": "local",
+      "path": "../../tokens/credits_clone",
+      "edition": null
+    },
+    {
+      "name": "token_interface.aleo",
+      "location": "local",
+      "path": "../token_interface",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}

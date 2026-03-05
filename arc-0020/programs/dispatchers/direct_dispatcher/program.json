@@ -1,0 +1,9 @@
+{
+  "program": "direct_dispatcher.aleo",
+  "version": "0.1.0",
+  "description": "ARC-0020 low-level dispatcher routing to any program via runtime func_id. Callers supply program_id, network_id, and func_id at call time. Organized by signature shape (input/output type combinations).",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": null,
+  "dev_dependencies": null
+}

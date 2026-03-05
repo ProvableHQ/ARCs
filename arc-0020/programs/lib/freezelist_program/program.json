@@ -1,0 +1,22 @@
+{
+  "program": "freezelist_program.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "GPL",
+  "leo": "3.4.0",
+  "dependencies": [
+    {
+      "name": "merkle_tree.aleo",
+      "location": "local",
+      "path": "../merkle_tree",
+      "edition": null
+    },
+    {
+      "name": "multisig_core.aleo",
+      "location": "local",
+      "path": "../multisig_core",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}
