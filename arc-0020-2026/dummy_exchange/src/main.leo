@@ -9,7 +9,7 @@ program dummy_exchange.aleo {
     fn transfer_from(
         public owner: address,
         public recipient: address,
-        public amount: u128
+        public amount: u128,
     ) -> Final {
         let f = wrapped_credits.aleo/transfer_from_public(owner, recipient, amount);
         return final {
