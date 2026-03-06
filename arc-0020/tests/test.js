@@ -34,7 +34,7 @@
  *   V9 activates at block 12. The --consensus-heights CLI flag is ignored.
  * SDK WASM uses SDK_CONSENSUS_HEIGHTS (12 heights): first 12 devnode heights.
  * Both agree: at block 12, ConsensusVersion = V9.
- * Leo CLI uses CLI_CONSENSUS_HEIGHTS (14 heights): all 14 devnode heights.
+ * Leo CLI uses CLI_CONSENSUS_HEIGHTS (14 heights): capped at V13 to avoid a Leo 3.4.0 panic.
  *
  * WASM SDK Compatibility Note
  * ===========================
@@ -65,20 +65,32 @@
  *
  * Key scenarios tested
  * ====================
- *  token_registry:          initialize, register_token, mint_public, transfer_public
- *  fixed_registry_wrapper:  mint_public, transfer_public,
- *                           transfer_public_to_private (vault-in),
- *                           join, split, transfer_private,
- *                           transfer_private_to_public (vault-out),
- *                           mint_private
- *  registry_wrapper:        transfer_public, transfer_public_to_private,
- *                           transfer_private_to_public
+ *  freezelist_program:      initialize, update_role, update_block_height_window,
+ *                           verify_non_inclusion_pub, update_freeze_list, pause/freeze tests
+ *  stablecoin_program:      initialize, update_role, mint_public, transfer_public,
+ *                           set_pause_status, update_freeze_list (pause/freeze negative tests)
+ *  token_registry:          initialize, register_token, mint_public, transfer_public,
+ *                           burn_public, burn_private, mint_private, join, split,
+ *                           transfer_public_to_private, transfer_private, transfer_private_to_public,
+ *                           approve_public, unapprove_public
+ *  credits_wrapper:         deposit, withdraw, withdraw_as_signer, transfer_public,
+ *                           transfer_public_as_signer, shield, unshield, join, split,
+ *                           transfer_private
+ *  fixed_registry_wrapper:  mint_public, deposit, withdraw, withdraw_as_signer, transfer_public,
+ *                           transfer_public_as_signer, shield, unshield, join, split,
+ *                           transfer_private, mint_private
+ *  registry_wrapper:        deposit, withdraw, withdraw_as_signer, transfer_public,
+ *                           transfer_public_as_signer, shield, unshield, join, split,
+ *                           transfer_private
+ *  stablecoin_wrapper:      deposit, withdraw, withdraw_as_signer, transfer_public,
+ *                           transfer_public_as_signer, shield, unshield, join, split,
+ *                           transfer_private, pause negative test
  *  wrapper_dispatcher:      register_route, transfer_public (dispatched)
  *  direct_dispatcher:       register_route
  */
 
 import { readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, copyFileSync } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, resolve as resolvePath } from "path";
 import { fileURLToPath } from "url";
 import { spawnSync } from "child_process";
 import {
@@ -129,9 +141,12 @@ const LEO_CLI = "/Users/pranav/work/Aleo/leo/target/release/leo";
 // which the devnode (snarkVM b0dd5c5) accepts at any consensus version.
 const SDK_CONSENSUS_HEIGHTS = "0,5,6,7,8,9,10,11,12,9999999,9999999,9999999";
 
-// Consensus heights for leo CLI (14 heights matching snarkVM b0dd5c5 exactly).
-// load_test_consensus_heights_inner panics if count != NUM_CONSENSUS_VERSIONS (14).
-const CLI_CONSENSUS_HEIGHTS = "0,5,6,7,8,9,10,11,12,13,14,15,16,17";
+// Consensus heights for leo CLI (exactly 14 heights — Leo 3.4.0 panics if count != 14).
+// The 14th entry is 9999999 so the version never reaches V14 (Leo 3.4.0 panics at V14
+// because get_consensus_version_from_height tries a bounds-unsafe lookup at that version).
+// At height 17+ this list gives V13 (13 entries ≤ height). The devnode at V14 accepts
+// V13-format VKs when --skip-deploy-certificate is used (devnet placeholder VK mode).
+const CLI_CONSENSUS_HEIGHTS = "0,5,6,7,8,9,10,11,12,13,14,15,16,9999999";
 
 // ---------------------------------------------------------------------------
 // Simplified program sources
@@ -254,6 +269,19 @@ function split:
     cast r0.owner r4 into r5 as credits.record;
     output r2 as credits.record;
     output r5 as credits.record;
+
+function mint_public:
+    input r0 as address.public;
+    input r1 as u64.public;
+    async mint_public r0 r1 into r2;
+    output r2 as credits_clone.aleo/mint_public.future;
+
+finalize mint_public:
+    input r0 as address.public;
+    input r1 as u64.public;
+    get.or_use account[r0] 0u64 into r2;
+    add r2 r1 into r3;
+    set r3 into account[r0];
 
 constructor:
     assert.eq edition 0u16;
@@ -664,10 +692,11 @@ const src = {
   // Block 16 (V13): stablecoin_program — simplified (MerkleProof fns removed).
   stablecoin_program: STABLECOIN_SIMPLIFIED,
 
-  // ── Leo CLI-deployed (blocks 17+, V14-format VKs) ────────────────────────
-  // Leo CLI (snarkVM b0dd5c5) generates V14-format deployment transactions.
-  // Imports are resolved from the devnode (--endpoint flag).
+  // ── Leo CLI-deployed (blocks 17+) ────────────────────────────────────────
+  // Leo CLI generates V13-format VKs (capped via CLI_CONSENSUS_HEIGHTS).
+  // The devnode at V14 accepts V13-format when --skip-deploy-certificate is used.
   // Programs with `interface` Leo syntax require stripped temp-dir approach.
+  // Deps are resolved by absolute paths (program.json patched in temp dir).
 
   // token_interface: interfaces stripped (Leo 3.4.0 can't parse `interface X {}`)
   token_interface_dir:        join(PROGRAMS_DIR, "wrappers/token_interface"),
@@ -776,6 +805,61 @@ function decryptRecordOutputs(txData, account, transitionIndex = 0) {
     });
 }
 
+/**
+ * Read a mapping value from the devnode via REST API.
+ * Returns the parsed value or null if the key is not found.
+ *
+ * @param {string} programId   - e.g. "token_registry.aleo"
+ * @param {string} mappingName - e.g. "balances"
+ * @param {string} key         - the key as a Leo literal string, e.g. the address or "1u8"
+ */
+async function getMappingValue(programId, mappingName, key) {
+  const url = `${DEVNODE_API}/program/${programId}/mapping/${mappingName}/${encodeURIComponent(key)}`;
+  const res = await fetch(url);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`getMappingValue ${programId}/${mappingName}/${key}: ${res.status}`);
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return text.trim(); }
+}
+
+/**
+ * Assert that a mapping key has the expected value, throwing if not.
+ *
+ * @param {string} programId   - e.g. "token_registry.aleo"
+ * @param {string} mappingName - e.g. "balances"
+ * @param {string} key         - the key as a Leo literal string
+ * @param {string|number} expected - expected value (quotes stripped for comparison)
+ * @param {string} context     - label for error messages
+ */
+async function assertMapping(programId, mappingName, key, expected, context) {
+  const actual = await getMappingValue(programId, mappingName, key);
+  const actualStr = actual === null ? "null" : String(actual).replace(/"/g, "");
+  const expectedStr = String(expected).replace(/"/g, "");
+  if (actualStr !== expectedStr) {
+    throw new Error(`${context}: expected ${expectedStr}, got ${actualStr}`);
+  }
+  console.log(`  ✓ ${mappingName}[...] = ${expectedStr}`);
+}
+
+/**
+ * Execute a function and verify the transaction aborted (state unchanged).
+ * Uses a provided state-check async function to read state before and after.
+ *
+ * @param {string}   programName  - program to call
+ * @param {string}   functionName - function to call
+ * @param {string[]} inputs       - function inputs
+ * @param {Function} checkFn      - async function returning current state (read once before, once after)
+ */
+async function expectAbort(programName, functionName, inputs, checkFn) {
+  const before = await checkFn();
+  await execute(programName, functionName, inputs);
+  const after = await checkFn();
+  if (JSON.stringify(before) !== JSON.stringify(after)) {
+    throw new Error(`Expected abort but state changed: ${JSON.stringify(before)} → ${JSON.stringify(after)}`);
+  }
+  console.log(`  ✓ tx aborted (state unchanged: ${JSON.stringify(before)})`);
+}
+
 // ---------------------------------------------------------------------------
 // Deploy / execute helpers
 // ---------------------------------------------------------------------------
@@ -872,13 +956,16 @@ async function deployViaCLINoAdvance(programDir, programId) {
     throw new Error(`leo deploy failed for ${programId}: ${msg.slice(0, 400)}`);
   }
 
-  // Find the saved transaction JSON file.
-  const files = readdirSync(tmpDir);
-  const txFile = files.find(f => f.endsWith(".json"));
-  if (!txFile) {
-    throw new Error(`leo deploy --save produced no JSON in ${tmpDir}. stdout: ${result.stdout.slice(0, 400)}`);
+  // Find the saved transaction JSON — Leo names it "{programId}.deployment.json".
+  // (Leo may also save dep TXs; we want only the main program's TX.)
+  const txFileName = `${programId}.deployment.json`;
+  const txPath = join(tmpDir, txFileName);
+  let txJson;
+  try {
+    txJson = readFileSync(txPath, "utf8");
+  } catch {
+    throw new Error(`leo deploy --save produced no ${txFileName} in ${tmpDir}. stdout: ${result.stdout.slice(0, 400)}`);
   }
-  const txJson = readFileSync(join(tmpDir, txFile), "utf8");
 
   // Broadcast to the devnode.
   const resp = await fetch(`${DEVNODE_API}/transaction/broadcast`, {
@@ -891,7 +978,7 @@ async function deployViaCLINoAdvance(programDir, programId) {
     if (body.includes("already exists on the network") || body.includes("already exists in the ledger") || body.includes("is already deployed")) {
       return null;
     }
-    throw new Error(`broadcast failed for ${programId}: ${resp.status} ${body}`);
+    throw new Error(`broadcast failed for ${programId}: ${resp.status} ${body.slice(0, 500)}`);
   }
   return await resp.json();
 }
@@ -967,8 +1054,25 @@ async function deployWithStrippedInterfaces(programDir, programId) {
   // Strip `: InterfaceName` (+ possible `+ InterfaceName` chains) from program declaration.
   leoSrc = leoSrc.replace(/^(program \S+\.aleo)\s*:[^{]+\{/m, "$1 {");
 
+  // Inject `@noupgrade constructor() {}` if not already present.
+  // The devnode requires a constructor after ConsensusVersion::V9. The Leo 3.4.0
+  // interface system generated this automatically; stripping interfaces removes it.
+  if (!leoSrc.includes("constructor")) {
+    leoSrc = leoSrc.trimEnd().replace(/\}$/, "\n    @noupgrade\n    constructor() {}\n}");
+  }
+
   writeFileSync(join(tmpDir, "src", "main.leo"), leoSrc);
-  copyFileSync(join(programDir, "program.json"), join(tmpDir, "program.json"));
+
+  // Read program.json and resolve local dep paths to absolute paths.
+  // Leo is run from tmpDir, so relative paths in program.json would be wrong.
+  // Absolute paths let Leo find local source correctly from any working directory.
+  const pj = JSON.parse(readFileSync(join(programDir, "program.json"), "utf8"));
+  for (const dep of (pj.dependencies ?? [])) {
+    if (dep.location === "local" && dep.path) {
+      dep.path = resolvePath(programDir, dep.path);
+    }
+  }
+  writeFileSync(join(tmpDir, "program.json"), JSON.stringify(pj, null, 2));
 
   // Run leo deploy from the temp dir. Leo resolves imports from the devnode.
   const result = spawnSync(
@@ -996,12 +1100,15 @@ async function deployWithStrippedInterfaces(programDir, programId) {
     throw new Error(`leo deploy (stripped) failed for ${programId}: ${msg.slice(0, 500)}`);
   }
 
-  const files = readdirSync(tmpDir);
-  const txFile = files.find(f => f.endsWith(".json") && f !== "program.json");
-  if (!txFile) {
-    throw new Error(`leo deploy --save produced no TX JSON in ${tmpDir}. stdout: ${result.stdout.slice(0, 400)}`);
+  // Leo saves "{programId}.deployment.json" for each deployed program.
+  // It may also save dep TXs; we want only the main program's TX.
+  const txFileName2 = `${programId}.deployment.json`;
+  let txJson;
+  try {
+    txJson = readFileSync(join(tmpDir, txFileName2), "utf8");
+  } catch {
+    throw new Error(`leo deploy --save produced no ${txFileName2} in ${tmpDir}. stdout: ${result.stdout.slice(0, 400)}`);
   }
-  const txJson = readFileSync(join(tmpDir, txFile), "utf8");
 
   const resp = await fetch(`${DEVNODE_API}/transaction/broadcast`, {
     method: "POST",
@@ -1014,7 +1121,7 @@ async function deployWithStrippedInterfaces(programDir, programId) {
       console.log("    (already deployed — skipping)");
       return null;
     }
-    throw new Error(`broadcast failed for ${programId}: ${resp.status} ${body}`);
+    throw new Error(`broadcast failed for ${programId}: ${resp.status} ${body.slice(0, 500)}`);
   }
   const txId = await resp.json();
   await advanceBlock();
@@ -1049,6 +1156,37 @@ async function execute(programName, functionName, inputs) {
   return { txId, txData };
 }
 
+/**
+ * Execute a function, decrypt record outputs, optionally capture and log them.
+ *
+ * @param {string}   programName  - e.g. "token_registry.aleo"
+ * @param {string}   functionName - e.g. "mint_private"
+ * @param {string[]} inputs       - Leo literal strings
+ * @param {object}   opts
+ * @param {string}   opts.slot    - key in `captured` to assign records[0]
+ * @param {string}   opts.slot2   - key in `captured` to assign records[1]
+ * @param {number}   opts.min     - minimum expected records (throws if fewer)
+ * @param {string}   opts.label   - log prefix for captured records
+ * @returns {{ txId, txData, records }}
+ */
+async function executeAndCapture(programName, functionName, inputs, opts = {}) {
+  const { slot, slot2, min = 0, label } = opts;
+  const { txId, txData } = await execute(programName, functionName, inputs);
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  if (records.length < min) {
+    throw new Error(`${programName}/${functionName}: expected >= ${min} records, got ${records.length}`);
+  }
+  if (slot && records[0]) {
+    captured[slot] = records[0];
+    if (label) console.log(`  ${label}: ${records[0].slice(0, 80)}...`);
+  }
+  if (slot2 && records[1]) {
+    captured[slot2] = records[1];
+    if (label) console.log(`  ${label} [1]: ${records[1].slice(0, 80)}...`);
+  }
+  return { txId, txData, records };
+}
+
 // ---------------------------------------------------------------------------
 // Test runner
 // ---------------------------------------------------------------------------
@@ -1076,9 +1214,22 @@ async function runTests() {
 
 // Shared state: records captured from transaction outputs.
 const captured = {
-  fixedWrapperToken1: null,   // from vault-in #1 (200_000)
-  fixedWrapperToken2: null,   // from vault-in #2 (100_000)
-  registryWrapperToken: null, // from registry_wrapper vault-in
+  // fixed_registry_wrapper
+  fixedWrapperToken1: null,
+  fixedWrapperToken2: null,
+  // registry_wrapper
+  registryWrapperToken: null,
+  // token_registry advanced
+  registryToken1: null,
+  registryToken2: null,
+  // credits_wrapper
+  creditsWrapperToken: null,
+  creditsWrapperToken2: null,
+  // stablecoin_wrapper
+  stablecoinWrapperToken1: null,
+  stablecoinWrapperToken2: null,
+  // freeze list root (read dynamically before update_freeze_list calls)
+  freezeListRoot: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -1198,7 +1349,120 @@ test("deploy wrapper_dispatcher.aleo (via leo CLI)", async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests: 3 — token_registry bootstrap
+// Tests: 3 — freezelist_program bootstrap
+// ---------------------------------------------------------------------------
+
+test("freezelist_program/initialize", async () => {
+  // initialize(manager_address, block_height_window)
+  // Sets self.caller as DEPLOYER (asserted), manager_address gets MANAGER role (8).
+  await execute("freezelist_program.aleo", "initialize", [ADDRESS, "1000u32"]);
+});
+
+test("freezelist_program/update_role (FREEZELIST_MANAGER=24)", async () => {
+  // Grant deployer MANAGER(8) + FREEZELIST_MANAGER(16) = 24.
+  // Required for update_block_height_window and update_freeze_list calls.
+  await execute("freezelist_program.aleo", "update_role", [ADDRESS, "24u16"]);
+});
+
+test("freezelist_program/update_block_height_window", async () => {
+  await execute("freezelist_program.aleo", "update_block_height_window", ["500u32"]);
+});
+
+test("freezelist_program/verify_non_inclusion_pub (deployer not frozen)", async () => {
+  await execute("freezelist_program.aleo", "verify_non_inclusion_pub", [ADDRESS]);
+});
+
+// ---------------------------------------------------------------------------
+// Tests: 4 — stablecoin_program bootstrap
+// ---------------------------------------------------------------------------
+
+test("stablecoin_program/initialize", async () => {
+  // initialize(name, symbol, decimals, max_supply, admin)
+  await execute("stablecoin_program.aleo", "initialize", [
+    TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, TOKEN_MAX, ADDRESS,
+  ]);
+});
+
+test("stablecoin_program/update_role (MINTER+PAUSE+MANAGER=13)", async () => {
+  // MINTER(1) + PAUSE(4) + MANAGER(8) = 13
+  await execute("stablecoin_program.aleo", "update_role", [ADDRESS, "13u16"]);
+});
+
+test("stablecoin_program/mint_public (500_000 to deployer)", async () => {
+  await execute("stablecoin_program.aleo", "mint_public", [ADDRESS, "500000u128"]);
+  await assertMapping("stablecoin_program.aleo", "balances", ADDRESS, "500000u128", "stablecoin_program/mint_public");
+});
+
+test("stablecoin_program/transfer_public (100_000 deployer → recipient)", async () => {
+  await execute("stablecoin_program.aleo", "transfer_public", [
+    RECIPIENT_ADDRESS, "100000u128",
+  ]);
+  await assertMapping("stablecoin_program.aleo", "balances", ADDRESS, "400000u128", "stablecoin_program/transfer_public");
+});
+
+test("stablecoin_program/transfer_public_as_signer (50_000 deployer → recipient)", async () => {
+  // balances after: deployer=350K, recipient=150K
+  await execute("stablecoin_program.aleo", "transfer_public_as_signer", [
+    RECIPIENT_ADDRESS, "50000u128",
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// Tests: 5 — stablecoin_program pause & freeze
+// ---------------------------------------------------------------------------
+
+test("stablecoin_program/set_pause_status (pause=true)", async () => {
+  await execute("stablecoin_program.aleo", "set_pause_status", ["true"]);
+});
+
+test("stablecoin_program/transfer_public ABORTS when paused", async () => {
+  await expectAbort(
+    "stablecoin_program.aleo", "transfer_public",
+    [RECIPIENT_ADDRESS, "1000u128"],
+    () => getMappingValue("stablecoin_program.aleo", "balances", ADDRESS),
+  );
+});
+
+test("stablecoin_program/set_pause_status (pause=false)", async () => {
+  await execute("stablecoin_program.aleo", "set_pause_status", ["false"]);
+});
+
+test("stablecoin_program/transfer_public succeeds after unpause (1_000 deployer → recipient)", async () => {
+  // deployer=349K, recipient=151K after this
+  await execute("stablecoin_program.aleo", "transfer_public", [
+    RECIPIENT_ADDRESS, "1000u128",
+  ]);
+});
+
+test("stablecoin_program/update_freeze_list (freeze recipient)", async () => {
+  // Read current root to pass as previous_root.
+  const currentRoot = await getMappingValue("freezelist_program.aleo", "freeze_list_root", "1u8");
+  if (!currentRoot) throw new Error("freeze_list_root[1u8] not found");
+  captured.freezeListRoot = currentRoot;
+  // update_freeze_list(address, freeze_flag, index, previous_root, new_root)
+  // Index 1 = first non-zero slot (slot 0 holds ZERO_ADDRESS from initialize).
+  await execute("freezelist_program.aleo", "update_freeze_list", [
+    RECIPIENT_ADDRESS, "true", "1u32", currentRoot, "1field",
+  ]);
+});
+
+test("stablecoin_program/transfer_public ABORTS to frozen recipient", async () => {
+  await expectAbort(
+    "stablecoin_program.aleo", "transfer_public",
+    [RECIPIENT_ADDRESS, "1000u128"],
+    () => getMappingValue("stablecoin_program.aleo", "balances", ADDRESS),
+  );
+});
+
+test("stablecoin_program/update_freeze_list (unfreeze recipient)", async () => {
+  // Previous root is now 1field (set by the freeze call).
+  await execute("freezelist_program.aleo", "update_freeze_list", [
+    RECIPIENT_ADDRESS, "false", "1u32", "1field", "2field",
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// Tests: 6 — token_registry bootstrap
 // ---------------------------------------------------------------------------
 
 test("token_registry/initialize", async () => {
@@ -1206,263 +1470,639 @@ test("token_registry/initialize", async () => {
 });
 
 test("token_registry/register_token (token_id=1field)", async () => {
-  // register_token(token_id, name, symbol, decimals, max_supply,
-  //                external_authorization_required, external_authorization_party)
   await execute("token_registry.aleo", "register_token", [
     TOKEN_ID, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, TOKEN_MAX,
-    "false",  // no external authorization
-    ADDRESS,  // external_authorization_party (unused when false)
+    "false",
+    ADDRESS,
   ]);
 });
 
 test("token_registry/mint_public (1_000_000 to deployer)", async () => {
-  // mint_public(token_id, recipient, amount, authorized_until)
   await execute("token_registry.aleo", "mint_public", [
     TOKEN_ID, ADDRESS, "1000000u128", "0u32",
   ]);
 });
 
 test("token_registry/transfer_public (500_000 deployer → recipient)", async () => {
-  // transfer_public(token_id, recipient, amount)
+  // After: deployer=500K, recipient=500K on token_registry for token_id=1field.
   await execute("token_registry.aleo", "transfer_public", [
     TOKEN_ID, RECIPIENT_ADDRESS, "500000u128",
   ]);
 });
 
 // ---------------------------------------------------------------------------
-// Tests: 4 — fixed_registry_wrapper: public operations
-//   Delegates directly to token_registry; no vault involvement.
+// Tests: 7 — token_registry advanced
+// ---------------------------------------------------------------------------
+
+test("token_registry/set_role (BURNER_ROLE=2 for deployer)", async () => {
+  await execute("token_registry.aleo", "set_role", [TOKEN_ID, ADDRESS, "2u8"]);
+});
+
+test("token_registry/burn_public (10_000 from deployer)", async () => {
+  // burn_public(token_id, address, amount) — caller must be admin or hold BURNER_ROLE
+  await execute("token_registry.aleo", "burn_public", [
+    TOKEN_ID, ADDRESS, "10000u128",
+  ]);
+});
+
+test("token_registry/remove_role (BURNER_ROLE from deployer)", async () => {
+  await execute("token_registry.aleo", "remove_role", [TOKEN_ID, ADDRESS]);
+});
+
+test("token_registry/transfer_public_to_private (20_000, external_auth=false)", async () => {
+  // Converts 20K from public authorized_balances to a private Token record.
+  await executeAndCapture("token_registry.aleo", "transfer_public_to_private", [
+    TOKEN_ID, ADDRESS, "20000u128", "false",
+  ], { slot: "registryToken1", min: 1, label: "captured registryToken1 (20K)" });
+});
+
+test("token_registry/mint_private (30_000 to deployer)", async () => {
+  // mint_private(token_id, recipient, amount, external_auth_required, authorized_until)
+  await executeAndCapture("token_registry.aleo", "mint_private", [
+    TOKEN_ID, ADDRESS, "30000u128", "false", "0u32",
+  ], { slot: "registryToken2", min: 1, label: "captured registryToken2 (30K)" });
+});
+
+test("token_registry/join (20_000 + 30_000 = 50_000)", async () => {
+  if (!captured.registryToken1) throw new Error("requires registryToken1");
+  if (!captured.registryToken2) throw new Error("requires registryToken2");
+  await executeAndCapture("token_registry.aleo", "join", [
+    captured.registryToken1, captured.registryToken2,
+  ], { slot: "registryToken1", min: 1, label: "joined (50K)" });
+});
+
+test("token_registry/split (50_000 → 15_000 + 35_000)", async () => {
+  if (!captured.registryToken1) throw new Error("requires registryToken1 (50K)");
+  await executeAndCapture("token_registry.aleo", "split", [
+    captured.registryToken1, "15000u128",
+  ], { slot: "registryToken1", slot2: "registryToken2", min: 2, label: "split[0] (15K)" });
+});
+
+test("token_registry/transfer_private (10_000 to recipient from 35K record)", async () => {
+  if (!captured.registryToken2) throw new Error("requires registryToken2 (35K)");
+  // transfer_private(recipient, amount, Token) → (change, transfer_out, Final)
+  const { txData } = await execute("token_registry.aleo", "transfer_private", [
+    RECIPIENT_ADDRESS, "10000u128", captured.registryToken2,
+  ]);
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  console.log(`  sender change records: ${records.length}`);
+  if (records.length > 0) {
+    captured.registryToken2 = records[0]; // 25K change
+    console.log(`  change (25K): ${records[0].slice(0, 80)}...`);
+  }
+});
+
+test("token_registry/transfer_private_to_public (15_000 to deployer)", async () => {
+  if (!captured.registryToken1) throw new Error("requires registryToken1 (15K)");
+  // transfer_private_to_public(recipient, amount, Token) → (change, Final)
+  const { txData } = await execute("token_registry.aleo", "transfer_private_to_public", [
+    ADDRESS, "15000u128", captured.registryToken1,
+  ]);
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  // Change record (0K) — fully consumed
+  console.log(`  change records: ${records.length}`);
+  captured.registryToken1 = null;
+});
+
+test("token_registry/burn_private (5_000 from 25K record)", async () => {
+  if (!captured.registryToken2) throw new Error("requires registryToken2 (25K)");
+  // burn_private(Token, amount) → (change Token, Final)
+  await executeAndCapture("token_registry.aleo", "burn_private", [
+    captured.registryToken2, "5000u128",
+  ], { slot: "registryToken2", min: 1, label: "change (20K)" });
+});
+
+test("token_registry/approve_public (50_000 allowance for recipient)", async () => {
+  await execute("token_registry.aleo", "approve_public", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "50000u128",
+  ]);
+});
+
+test("token_registry/unapprove_public (25_000 reduces allowance to 25K)", async () => {
+  await execute("token_registry.aleo", "unapprove_public", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "25000u128",
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// Tests: 8 — fixed_registry_wrapper
+//   Uses new 3-layer architecture: deposit/withdraw (bridge), transfer_public
+//   (internal), shield/unshield (private), join/split/transfer_private.
 //   token_id = HARDCODED_TOKEN_ID = 1field (baked in at compile time).
 // ---------------------------------------------------------------------------
 
 test("fixed_registry_wrapper/mint_public (1_000_000 to deployer)", async () => {
-  // mint_public(recipient, amount) — HARDCODED_TOKEN_ID used internally.
-  // Deployer is admin of TOKEN_ID from the register_token step.
+  // mint_public(token_id, recipient, amount)
   await execute("fixed_registry_wrapper.aleo", "mint_public", [
-    ADDRESS, "1000000u128",
+    TOKEN_ID, ADDRESS, "1000000u128",
   ]);
 });
 
+test("fixed_registry_wrapper/deposit (500_000 into vault)", async () => {
+  // deposit(token_id, amount) — transfers registry public balance into wrapper vault.
+  await execute("fixed_registry_wrapper.aleo", "deposit", [TOKEN_ID, "500000u128"]);
+  await assertMapping("fixed_registry_wrapper.aleo", "balances", ADDRESS, "500000u128", "fixed_registry_wrapper/deposit");
+});
+
 test("fixed_registry_wrapper/transfer_public (100_000 deployer → recipient)", async () => {
-  // transfer_public(token_id, recipient, amount)
-  // token_id must equal HARDCODED_TOKEN_ID = 1field.
+  // Pure internal transfer within wrapper.balances (no registry call).
   await execute("fixed_registry_wrapper.aleo", "transfer_public", [
     TOKEN_ID, RECIPIENT_ADDRESS, "100000u128",
   ]);
 });
 
-// ---------------------------------------------------------------------------
-// Tests: 5 — fixed_registry_wrapper: vault-in
-//   transfer_public_to_private debits the signer's public registry balance
-//   and creates a wrapper Token record for the specified recipient.
-//   The wrapper's registry balance increases by `amount` (vault invariant).
-// ---------------------------------------------------------------------------
+test("fixed_registry_wrapper/transfer_public_as_signer (50_000 → recipient)", async () => {
+  await execute("fixed_registry_wrapper.aleo", "transfer_public_as_signer", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "50000u128",
+  ]);
+});
 
-test("fixed_registry_wrapper/transfer_public_to_private 200_000 (vault-in #1)", async () => {
-  const { txData } = await execute(
-    "fixed_registry_wrapper.aleo", "transfer_public_to_private",
+test("fixed_registry_wrapper/shield (200_000 → Token record #1)", async () => {
+  // Debits wrapper.balances[signer] by 200K, creates Token record.
+  await executeAndCapture("fixed_registry_wrapper.aleo", "shield",
     [TOKEN_ID, ADDRESS, "200000u128"],
-  );
-  // Capture the Token record for subsequent join/split/transfer_private tests.
-  const records = decryptRecordOutputs(txData, ACCOUNT);
-  if (records.length === 0) throw new Error("no record output decryptable");
-  captured.fixedWrapperToken1 = records[0];
-  console.log(`  captured: ${records[0].slice(0, 80)}...`);
+    { slot: "fixedWrapperToken1", min: 1, label: "captured fixedWrapperToken1 (200K)" });
 });
 
-test("fixed_registry_wrapper/transfer_public_to_private 100_000 (vault-in #2)", async () => {
-  const { txData } = await execute(
-    "fixed_registry_wrapper.aleo", "transfer_public_to_private",
-    [TOKEN_ID, ADDRESS, "100000u128"],
-  );
-  const records = decryptRecordOutputs(txData, ACCOUNT);
-  if (records.length === 0) throw new Error("no record output decryptable");
-  captured.fixedWrapperToken2 = records[0];
-  console.log(`  captured: ${records[0].slice(0, 80)}...`);
+test("fixed_registry_wrapper/shield (150_000 → Token record #2)", async () => {
+  // Remaining wrapper.balances[deployer] = 500K - 100K - 50K - 200K = 150K
+  await executeAndCapture("fixed_registry_wrapper.aleo", "shield",
+    [TOKEN_ID, ADDRESS, "150000u128"],
+    { slot: "fixedWrapperToken2", min: 1, label: "captured fixedWrapperToken2 (150K)" });
 });
 
-// ---------------------------------------------------------------------------
-// Tests: 6 — fixed_registry_wrapper: local record operations
-//   join, split, transfer_private contain no finalize block — they are pure
-//   record transformations executed in the AVM with dummy proofs.
-// ---------------------------------------------------------------------------
-
-test("fixed_registry_wrapper/join (200_000 + 100_000 = 300_000)", async () => {
-  if (!captured.fixedWrapperToken1) throw new Error("requires vault-in #1");
-  if (!captured.fixedWrapperToken2) throw new Error("requires vault-in #2");
-  // join(r1: Token, r2: Token) -> Token
-  const { txData } = await execute(
-    "fixed_registry_wrapper.aleo", "join",
+test("fixed_registry_wrapper/join (200_000 + 150_000 = 350_000)", async () => {
+  if (!captured.fixedWrapperToken1) throw new Error("requires fixedWrapperToken1");
+  if (!captured.fixedWrapperToken2) throw new Error("requires fixedWrapperToken2");
+  await executeAndCapture("fixed_registry_wrapper.aleo", "join",
     [captured.fixedWrapperToken1, captured.fixedWrapperToken2],
-  );
-  const records = decryptRecordOutputs(txData, ACCOUNT);
-  if (records.length === 0) throw new Error("no joined record output");
-  captured.fixedWrapperToken1 = records[0]; // 300_000
-  console.log(`  joined (300_000): ${records[0].slice(0, 80)}...`);
+    { slot: "fixedWrapperToken1", min: 1, label: "joined (350K)" });
 });
 
-test("fixed_registry_wrapper/split 300_000 → 120_000 + 180_000", async () => {
-  if (!captured.fixedWrapperToken1) throw new Error("requires joined record");
-  // split(input: Token, amount: u128) -> (Token, Token)
-  const { txData } = await execute(
-    "fixed_registry_wrapper.aleo", "split",
-    [captured.fixedWrapperToken1, "120000u128"],
-  );
-  const records = decryptRecordOutputs(txData, ACCOUNT);
-  if (records.length < 2) throw new Error(`expected 2 outputs, got ${records.length}`);
-  captured.fixedWrapperToken1 = records[0]; // 120_000
-  captured.fixedWrapperToken2 = records[1]; // 180_000
-  console.log(`  split[0] (120_000): ${records[0].slice(0, 80)}...`);
-  console.log(`  split[1] (180_000): ${records[1].slice(0, 80)}...`);
+test("fixed_registry_wrapper/split (350_000 → 150_000 + 200_000)", async () => {
+  if (!captured.fixedWrapperToken1) throw new Error("requires fixedWrapperToken1 (350K)");
+  await executeAndCapture("fixed_registry_wrapper.aleo", "split",
+    [captured.fixedWrapperToken1, "150000u128"],
+    { slot: "fixedWrapperToken1", slot2: "fixedWrapperToken2", min: 2, label: "split[0] (150K)" });
 });
 
-test("fixed_registry_wrapper/transfer_private (30_000 to recipient)", async () => {
-  if (!captured.fixedWrapperToken1) throw new Error("requires split record");
-  // transfer_private(recipient: address, amount: u128, input: Token)
-  //   → (change: Token, out: Token, Final)
+test("fixed_registry_wrapper/transfer_private (30_000 to recipient from 150K)", async () => {
+  if (!captured.fixedWrapperToken1) throw new Error("requires fixedWrapperToken1 (150K)");
+  // transfer_private(recipient, amount, Token) → (transfer_out, change, Final)
   const { txData } = await execute(
     "fixed_registry_wrapper.aleo", "transfer_private",
     [RECIPIENT_ADDRESS, "30000u128", captured.fixedWrapperToken1],
   );
-  // Only the sender's change record can be decrypted with ACCOUNT.viewKey().
   const records = decryptRecordOutputs(txData, ACCOUNT);
-  console.log(`  sender change records decryptable: ${records.length}`);
+  console.log(`  sender change records: ${records.length}`);
   if (records.length > 0) {
-    captured.fixedWrapperToken1 = records[0]; // change record (90_000)
-    console.log(`  change (90_000): ${records[0].slice(0, 80)}...`);
+    captured.fixedWrapperToken1 = records[0]; // 120K change
+    console.log(`  change (120K): ${records[0].slice(0, 80)}...`);
   }
 });
 
-// ---------------------------------------------------------------------------
-// Tests: 7 — fixed_registry_wrapper: vault-out
-//   transfer_private_to_public consumes a Token record, releases the
-//   wrapper's registry balance to the recipient.
-//   Vault invariant: wrapper's registry balance decreases by `amount`.
-// ---------------------------------------------------------------------------
-
-test("fixed_registry_wrapper/transfer_private_to_public vault-out (50_000 to recipient)", async () => {
-  if (!captured.fixedWrapperToken1) throw new Error("requires Token record");
-  // transfer_private_to_public(recipient: address, amount: u128, input: Token)
-  //   → (change: Token, Final)
+test("fixed_registry_wrapper/unshield (80_000 from 120K record to vault)", async () => {
+  if (!captured.fixedWrapperToken1) throw new Error("requires fixedWrapperToken1 (120K)");
+  // unshield(recipient, amount, Token) → (change Token, Final)
   const { txData } = await execute(
-    "fixed_registry_wrapper.aleo", "transfer_private_to_public",
-    [RECIPIENT_ADDRESS, "50000u128", captured.fixedWrapperToken1],
+    "fixed_registry_wrapper.aleo", "unshield",
+    [ADDRESS, "80000u128", captured.fixedWrapperToken1],
   );
-  // Change record for sender.
   const records = decryptRecordOutputs(txData, ACCOUNT);
-  console.log(`  change records: ${records.length}`);
   if (records.length > 0) {
-    console.log(`  change: ${records[0].slice(0, 80)}...`);
+    captured.fixedWrapperToken1 = records[0]; // 40K change
+    console.log(`  change (40K): ${records[0].slice(0, 80)}...`);
   }
 });
 
-// ---------------------------------------------------------------------------
-// Tests: 8 — fixed_registry_wrapper: mint_private
-//   Vault-in via minting: calls token_registry/mint_public with
-//   self.address as recipient, then creates a private Token record.
-// ---------------------------------------------------------------------------
+test("token_registry/set_role (MINTER_ROLE=1 for fixed_registry_wrapper.aleo)", async () => {
+  await execute("token_registry.aleo", "set_role", [
+    TOKEN_ID, "fixed_registry_wrapper.aleo", "1u8",
+  ]);
+});
 
 test("fixed_registry_wrapper/mint_private (50_000 to deployer)", async () => {
-  // mint_private(recipient: address, amount: u128) → (Token, Final)
-  const { txData } = await execute(
-    "fixed_registry_wrapper.aleo", "mint_private",
-    [ADDRESS, "50000u128"],
+  // Mints to vault (self.address) and issues Token record to recipient directly.
+  await executeAndCapture("fixed_registry_wrapper.aleo", "mint_private",
+    [TOKEN_ID, ADDRESS, "50000u128"],
+    { slot: "fixedWrapperToken2", min: 1, label: "minted (50K)" });
+});
+
+test("fixed_registry_wrapper/withdraw (80_000 from vault to public registry)", async () => {
+  // Deducts wrapper.balances[caller] and calls token_registry/transfer_public.
+  await execute("fixed_registry_wrapper.aleo", "withdraw", [TOKEN_ID, "80000u128"]);
+});
+
+test("fixed_registry_wrapper/withdraw_as_signer (0K — uses balances[signer])", async () => {
+  // After unshield(80K to ADDRESS) in test 10, wrapper.balances[deployer] = 80K.
+  // After withdraw(80K) above, wrapper.balances[deployer] = 0K.
+  // Skip if balance is 0 — this is a structural limitation after withdraw cleaned it out.
+  // Instead: unshield more first and then withdraw_as_signer.
+  // Use the fixedWrapperToken1 (40K change from test 10) for unshield first.
+  if (captured.fixedWrapperToken1) {
+    const { txData } = await execute(
+      "fixed_registry_wrapper.aleo", "unshield",
+      [ADDRESS, "40000u128", captured.fixedWrapperToken1],
+    );
+    const records = decryptRecordOutputs(txData, ACCOUNT);
+    if (records.length > 0) {
+      console.log(`  pre-unshield change: ${records[0].slice(0, 80)}...`);
+    }
+  } else {
+    console.log("  (no token record available — depositing 40K first)");
+    await execute("fixed_registry_wrapper.aleo", "deposit", [TOKEN_ID, "40000u128"]);
+  }
+  await execute("fixed_registry_wrapper.aleo", "withdraw_as_signer", [TOKEN_ID, "40000u128"]);
+});
+
+test("fixed_registry_wrapper/mint_public to recipient (5_000)", async () => {
+  await execute("fixed_registry_wrapper.aleo", "mint_public", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "5000u128",
+  ]);
+});
+
+test("fixed_registry_wrapper/deposit (50_000)", async () => {
+  await execute("fixed_registry_wrapper.aleo", "deposit", [TOKEN_ID, "50000u128"]);
+});
+
+test("fixed_registry_wrapper/deposit ABORTS with insufficient balance", async () => {
+  // 999_999_999_999u128 far exceeds the deployer's registry balance.
+  await expectAbort(
+    "fixed_registry_wrapper.aleo", "deposit",
+    [TOKEN_ID, "999999999999u128"],
+    () => getMappingValue("fixed_registry_wrapper.aleo", "balances", ADDRESS),
   );
-  const records = decryptRecordOutputs(txData, ACCOUNT);
-  if (records.length === 0) throw new Error("no minted record decryptable");
-  console.log(`  minted: ${records[0].slice(0, 80)}...`);
 });
 
 // ---------------------------------------------------------------------------
-// Tests: 9 — registry_wrapper: public ops and vault cycle
-//   registry_wrapper is a multi-token wrapper: token_id is explicit on all ops.
+// Tests: 9 — registry_wrapper
+//   Multi-token wrapper: token_id is explicit on all operations.
+//   Two-step vault-in: deposit (bridge) + shield (→ record).
+//   Two-step vault-out: unshield (record → bridge) + withdraw (bridge → registry).
 // ---------------------------------------------------------------------------
 
+test("registry_wrapper/deposit (60_000 into vault)", async () => {
+  // wrapper.balances[deployer] = 60K
+  await execute("registry_wrapper.aleo", "deposit", [TOKEN_ID, "60000u128"]);
+});
+
 test("registry_wrapper/transfer_public (10_000 deployer → recipient)", async () => {
+  // wrapper.balances[deployer] = 60K - 10K = 50K
   await execute("registry_wrapper.aleo", "transfer_public", [
     TOKEN_ID, RECIPIENT_ADDRESS, "10000u128",
   ]);
 });
 
-test("registry_wrapper/transfer_public_to_private vault-in (50_000)", async () => {
-  const { txData } = await execute(
-    "registry_wrapper.aleo", "transfer_public_to_private",
-    [TOKEN_ID, ADDRESS, "50000u128"],
-  );
-  const records = decryptRecordOutputs(txData, ACCOUNT);
-  if (records.length === 0) throw new Error("no record from vault-in");
-  captured.registryWrapperToken = records[0];
-  console.log(`  captured: ${records[0].slice(0, 80)}...`);
+test("registry_wrapper/transfer_public_as_signer (5_000 → recipient)", async () => {
+  // wrapper.balances[deployer] = 50K - 5K = 45K
+  await execute("registry_wrapper.aleo", "transfer_public_as_signer", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "5000u128",
+  ]);
 });
 
-test("registry_wrapper/join (need 2 records → run vault-in #2 first)", async () => {
-  // Get a second record for join.
-  const { txData } = await execute(
-    "registry_wrapper.aleo", "transfer_public_to_private",
+test("registry_wrapper/shield (45_000 → Token record)", async () => {
+  // wrapper.balances[deployer] = 45K - 45K = 0K
+  await executeAndCapture("registry_wrapper.aleo", "shield",
+    [TOKEN_ID, ADDRESS, "45000u128"],
+    { slot: "registryWrapperToken", min: 1, label: "captured (45K)" });
+});
+
+test("registry_wrapper/join (deposit 30_000 + shield + join with 45_000)", async () => {
+  // Deposit 30K, shield → r2, join r1(45K) + r2(30K) = 75K.
+  await execute("registry_wrapper.aleo", "deposit", [TOKEN_ID, "30000u128"]);
+  const { txData: shieldData } = await execute(
+    "registry_wrapper.aleo", "shield",
     [TOKEN_ID, ADDRESS, "30000u128"],
   );
-  const records = decryptRecordOutputs(txData, ACCOUNT);
-  if (records.length === 0) throw new Error("no record from second vault-in");
-  const r2 = records[0];
-
-  // join(r1: Token, r2: Token) -> Token
+  const r2Records = decryptRecordOutputs(shieldData, ACCOUNT);
+  if (r2Records.length === 0) throw new Error("no record from second shield");
   const { txData: joinData } = await execute(
     "registry_wrapper.aleo", "join",
-    [captured.registryWrapperToken, r2],
+    [captured.registryWrapperToken, r2Records[0]],
   );
   const joined = decryptRecordOutputs(joinData, ACCOUNT);
   if (joined.length === 0) throw new Error("no joined record");
-  captured.registryWrapperToken = joined[0]; // 80_000
-  console.log(`  joined (80_000): ${joined[0].slice(0, 80)}...`);
+  captured.registryWrapperToken = joined[0]; // 75K
+  console.log(`  joined (75K): ${joined[0].slice(0, 80)}...`);
 });
 
-test("registry_wrapper/transfer_private_to_public vault-out (20_000 to recipient)", async () => {
-  if (!captured.registryWrapperToken) throw new Error("requires Token record");
+test("registry_wrapper/split (75_000 → 30_000 + 45_000)", async () => {
+  if (!captured.registryWrapperToken) throw new Error("requires registryWrapperToken (75K)");
   const { txData } = await execute(
-    "registry_wrapper.aleo", "transfer_private_to_public",
-    [RECIPIENT_ADDRESS, "20000u128", captured.registryWrapperToken],
+    "registry_wrapper.aleo", "split",
+    [captured.registryWrapperToken, "30000u128"],
+  );
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  if (records.length < 2) throw new Error(`expected 2 records, got ${records.length}`);
+  // records[0] = 30K (split amount), records[1] = 45K (remainder).
+  // Keep 45K for subsequent transfer_private + unshield tests.
+  captured.registryWrapperToken = records[1]; // 45K remainder
+  console.log(`  split[0] (30K): ${records[0].slice(0, 80)}...`);
+  console.log(`  split[1] (45K): ${records[1].slice(0, 80)}...`);
+});
+
+test("registry_wrapper/transfer_private (10_000 to recipient from 45K record)", async () => {
+  if (!captured.registryWrapperToken) throw new Error("requires registryWrapperToken (45K)");
+  const { txData } = await execute(
+    "registry_wrapper.aleo", "transfer_private",
+    [RECIPIENT_ADDRESS, "10000u128", captured.registryWrapperToken],
+  );
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  console.log(`  sender change records: ${records.length}`);
+  if (records.length > 0) {
+    captured.registryWrapperToken = records[0]; // 35K change
+    console.log(`  change (35K): ${records[0].slice(0, 80)}...`);
+  }
+});
+
+test("registry_wrapper/unshield (25_000 from 35K record to vault balance)", async () => {
+  if (!captured.registryWrapperToken) throw new Error("requires registryWrapperToken (35K)");
+  const { txData } = await execute(
+    "registry_wrapper.aleo", "unshield",
+    [ADDRESS, "25000u128", captured.registryWrapperToken],
   );
   const records = decryptRecordOutputs(txData, ACCOUNT);
   console.log(`  change records: ${records.length}`);
+  if (records.length > 0) {
+    captured.registryWrapperToken = records[0]; // 10K change
+    console.log(`  change (10K): ${records[0].slice(0, 80)}...`);
+  }
+  // wrapper.balances[deployer] now has 25K (unshielded)
+});
+
+test("registry_wrapper/withdraw (20_000 from vault to registry)", async () => {
+  await execute("registry_wrapper.aleo", "withdraw", [TOKEN_ID, "20000u128"]);
+  // wrapper.balances[deployer] = 5K remaining
+});
+
+test("registry_wrapper/withdraw_as_signer (5_000)", async () => {
+  await execute("registry_wrapper.aleo", "withdraw_as_signer", [TOKEN_ID, "5000u128"]);
+});
+
+test("registry_wrapper deposit+shield+unshield+withdraw round-trip (10_000)", async () => {
+  // Full cycle to verify the bridge works end-to-end.
+  await execute("registry_wrapper.aleo", "deposit", [TOKEN_ID, "10000u128"]);
+  const { txData: shieldTx } = await execute(
+    "registry_wrapper.aleo", "shield",
+    [TOKEN_ID, ADDRESS, "10000u128"],
+  );
+  const shieldRecords = decryptRecordOutputs(shieldTx, ACCOUNT);
+  if (shieldRecords.length === 0) throw new Error("no record from shield in round-trip");
+  const { txData: unshieldTx } = await execute(
+    "registry_wrapper.aleo", "unshield",
+    [ADDRESS, "10000u128", shieldRecords[0]],
+  );
+  const unshieldRecords = decryptRecordOutputs(unshieldTx, ACCOUNT);
+  // Change record has 0 amount (fully unshielded), still present as record.
+  console.log(`  round-trip unshield change records: ${unshieldRecords.length}`);
+  await execute("registry_wrapper.aleo", "withdraw", [TOKEN_ID, "10000u128"]);
+  console.log("  round-trip complete");
 });
 
 // ---------------------------------------------------------------------------
-// Tests: 10 — wrapper_dispatcher: on-chain routing
-//   The dispatcher maps token_id → wrapper program address (as field).
-//   register_route stores the mapping; transfer_public verifies and dispatches.
-//
-//   NOTE: wrapper program IDs as field values are computed from the program
-//   name bytes packed little-endian. programNameToField() computes this.
+// Tests: 10 — credits_wrapper
+//   Requires mint_public in credits_clone simplified source (added above).
+//   Bridge operations cast u128 → u64 for all credits_clone calls.
+// ---------------------------------------------------------------------------
+
+test("credits_clone/mint_public (1_000_000 to deployer)", async () => {
+  // Seed the deployer's credits_clone public balance for bridge testing.
+  // Uses the mint_public function added to CREDITS_CLONE_SIMPLIFIED.
+  await execute("credits_clone.aleo", "mint_public", [ADDRESS, "1000000u64"]);
+});
+
+test("credits_wrapper/deposit (200_000)", async () => {
+  // Calls credits_clone/transfer_public_as_signer(vault, 200K).
+  // wrapper.balances[deployer] = 200K, credits_clone.account[deployer] -= 200K.
+  await execute("credits_wrapper.aleo", "deposit", [TOKEN_ID, "200000u128"]);
+  await assertMapping("credits_wrapper.aleo", "balances", ADDRESS, "200000u128", "credits_wrapper/deposit");
+});
+
+test("credits_wrapper/transfer_public (50_000 → recipient)", async () => {
+  // Pure internal transfer: wrapper.balances[deployer] = 150K, wrapper.balances[recipient] = 50K.
+  await execute("credits_wrapper.aleo", "transfer_public", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "50000u128",
+  ]);
+});
+
+test("credits_wrapper/transfer_public_as_signer (30_000 → recipient)", async () => {
+  // wrapper.balances[deployer] = 120K, wrapper.balances[recipient] = 80K.
+  await execute("credits_wrapper.aleo", "transfer_public_as_signer", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "30000u128",
+  ]);
+});
+
+test("credits_wrapper/shield (80_000 → Token record)", async () => {
+  // Debits wrapper.balances[signer=deployer] by 80K, creates Token record.
+  // wrapper.balances[deployer] = 120K - 80K = 40K
+  await executeAndCapture("credits_wrapper.aleo", "shield",
+    [TOKEN_ID, ADDRESS, "80000u128"],
+    { slot: "creditsWrapperToken", min: 1, label: "captured (80K)" });
+});
+
+test("credits_wrapper/split (80_000 → 30_000 + 50_000)", async () => {
+  if (!captured.creditsWrapperToken) throw new Error("requires creditsWrapperToken (80K)");
+  await executeAndCapture("credits_wrapper.aleo", "split",
+    [captured.creditsWrapperToken, "30000u128"],
+    { slot: "creditsWrapperToken", slot2: "creditsWrapperToken2", min: 2, label: "split[0] (30K)" });
+});
+
+test("credits_wrapper/join (30_000 + 50_000 = 80_000)", async () => {
+  if (!captured.creditsWrapperToken) throw new Error("requires creditsWrapperToken (30K)");
+  if (!captured.creditsWrapperToken2) throw new Error("requires creditsWrapperToken2 (50K)");
+  await executeAndCapture("credits_wrapper.aleo", "join",
+    [captured.creditsWrapperToken, captured.creditsWrapperToken2],
+    { slot: "creditsWrapperToken", min: 1, label: "joined (80K)" });
+  captured.creditsWrapperToken2 = null;
+});
+
+test("credits_wrapper/transfer_private (20_000 to recipient from 80K)", async () => {
+  if (!captured.creditsWrapperToken) throw new Error("requires creditsWrapperToken (80K)");
+  // transfer_private(recipient, amount, Token) → (transfer_out, change, Final)
+  const { txData } = await execute(
+    "credits_wrapper.aleo", "transfer_private",
+    [RECIPIENT_ADDRESS, "20000u128", captured.creditsWrapperToken],
+  );
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  console.log(`  sender change records: ${records.length}`);
+  if (records.length > 0) {
+    captured.creditsWrapperToken = records[0]; // 60K change
+    console.log(`  change (60K): ${records[0].slice(0, 80)}...`);
+  }
+});
+
+test("credits_wrapper/unshield (40_000 to deployer from 60K record)", async () => {
+  if (!captured.creditsWrapperToken) throw new Error("requires creditsWrapperToken (60K)");
+  // unshield(recipient, amount, Token) → (change Token, Final)
+  // Credits wrapper.balances[deployer] += 40K: was 40K, now 80K.
+  const { txData } = await execute(
+    "credits_wrapper.aleo", "unshield",
+    [ADDRESS, "40000u128", captured.creditsWrapperToken],
+  );
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  if (records.length > 0) {
+    captured.creditsWrapperToken = records[0]; // 20K change
+    console.log(`  change (20K): ${records[0].slice(0, 80)}...`);
+  }
+});
+
+test("credits_wrapper/withdraw (40_000 from vault to credits_clone)", async () => {
+  // Calls credits_clone/transfer_public(caller=deployer, 40K).
+  // wrapper.balances[deployer] = 80K - 40K = 40K.
+  await execute("credits_wrapper.aleo", "withdraw", [TOKEN_ID, "40000u128"]);
+});
+
+test("credits_wrapper/withdraw_as_signer (40_000)", async () => {
+  // Uses balances[signer=deployer]. wrapper.balances[deployer] = 40K - 40K = 0K.
+  await execute("credits_wrapper.aleo", "withdraw_as_signer", [TOKEN_ID, "40000u128"]);
+});
+
+// ---------------------------------------------------------------------------
+// Tests: 11 — stablecoin_wrapper
+//   deposit/withdraw enforce stablecoin compliance (freeze + pause checks).
+//   transfer_public/shield/unshield are pure internal (no compliance).
+//   Emits ComplianceRecord (owned by INVESTIGATOR_ADDRESS = deployer) at deposit/withdraw.
+// ---------------------------------------------------------------------------
+
+test("stablecoin_wrapper/deposit (100_000)", async () => {
+  // Calls stablecoin_program/transfer_public_as_signer(vault, 100K).
+  // stablecoin.balances[deployer] -= 100K (was 349K → 249K).
+  // wrapper.balances[deployer] += 100K → 100K.
+  // Emits ComplianceRecord to INVESTIGATOR_ADDRESS (= deployer).
+  const { txData } = await execute(
+    "stablecoin_wrapper.aleo", "deposit",
+    [TOKEN_ID, "100000u128"],
+  );
+  // ComplianceRecord is owned by INVESTIGATOR_ADDRESS = deployer, so decryptable.
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  console.log(`  ComplianceRecord outputs decryptable: ${records.length}`);
+  if (records.length > 0) {
+    console.log(`  ComplianceRecord: ${records[0].slice(0, 100)}...`);
+  }
+  await assertMapping("stablecoin_wrapper.aleo", "balances", ADDRESS, "100000u128", "stablecoin_wrapper/deposit");
+});
+
+test("stablecoin_wrapper/transfer_public (30_000 → recipient)", async () => {
+  // Pure internal: no stablecoin compliance check.
+  // wrapper.balances[deployer] = 70K, wrapper.balances[recipient] = 30K.
+  await execute("stablecoin_wrapper.aleo", "transfer_public", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "30000u128",
+  ]);
+});
+
+test("stablecoin_wrapper/transfer_public_as_signer (20_000 → recipient)", async () => {
+  // wrapper.balances[deployer] = 50K, wrapper.balances[recipient] = 50K.
+  await execute("stablecoin_wrapper.aleo", "transfer_public_as_signer", [
+    TOKEN_ID, RECIPIENT_ADDRESS, "20000u128",
+  ]);
+});
+
+test("stablecoin_wrapper/shield (30_000 → Token record)", async () => {
+  // Debits wrapper.balances[signer=deployer] by 30K → 20K. Creates Token record.
+  await executeAndCapture("stablecoin_wrapper.aleo", "shield",
+    [TOKEN_ID, ADDRESS, "30000u128"],
+    { slot: "stablecoinWrapperToken1", min: 1, label: "captured (30K)" });
+});
+
+test("stablecoin_wrapper/split (30_000 → 10_000 + 20_000)", async () => {
+  if (!captured.stablecoinWrapperToken1) throw new Error("requires stablecoinWrapperToken1 (30K)");
+  await executeAndCapture("stablecoin_wrapper.aleo", "split",
+    [captured.stablecoinWrapperToken1, "10000u128"],
+    { slot: "stablecoinWrapperToken1", slot2: "stablecoinWrapperToken2", min: 2, label: "split[0] (10K)" });
+});
+
+test("stablecoin_wrapper/join (10_000 + 20_000 = 30_000)", async () => {
+  if (!captured.stablecoinWrapperToken1) throw new Error("requires stablecoinWrapperToken1 (10K)");
+  if (!captured.stablecoinWrapperToken2) throw new Error("requires stablecoinWrapperToken2 (20K)");
+  await executeAndCapture("stablecoin_wrapper.aleo", "join",
+    [captured.stablecoinWrapperToken1, captured.stablecoinWrapperToken2],
+    { slot: "stablecoinWrapperToken1", min: 1, label: "joined (30K)" });
+  captured.stablecoinWrapperToken2 = null;
+});
+
+test("stablecoin_wrapper/transfer_private (15_000 to recipient from 30K)", async () => {
+  if (!captured.stablecoinWrapperToken1) throw new Error("requires stablecoinWrapperToken1 (30K)");
+  // transfer_private(recipient, amount, Token) → (transfer_out, change, Final)
+  const { txData } = await execute(
+    "stablecoin_wrapper.aleo", "transfer_private",
+    [RECIPIENT_ADDRESS, "15000u128", captured.stablecoinWrapperToken1],
+  );
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  console.log(`  sender change records: ${records.length}`);
+  if (records.length > 0) {
+    captured.stablecoinWrapperToken1 = records[0]; // 15K change
+    console.log(`  change (15K): ${records[0].slice(0, 80)}...`);
+  }
+});
+
+test("stablecoin_wrapper/unshield (10_000 to deployer from 15K record)", async () => {
+  if (!captured.stablecoinWrapperToken1) throw new Error("requires stablecoinWrapperToken1 (15K)");
+  // wrapper.balances[deployer] = 20K + 10K = 30K.
+  const { txData } = await execute(
+    "stablecoin_wrapper.aleo", "unshield",
+    [ADDRESS, "10000u128", captured.stablecoinWrapperToken1],
+  );
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  if (records.length > 0) {
+    captured.stablecoinWrapperToken1 = records[0]; // 5K change
+    console.log(`  change (5K): ${records[0].slice(0, 80)}...`);
+  }
+});
+
+test("stablecoin_wrapper/withdraw (10_000)", async () => {
+  // Calls stablecoin_program/transfer_public(caller=deployer, 10K).
+  // Enforces freeze+pause checks. Emits ComplianceRecord.
+  // wrapper.balances[deployer] = 30K - 10K = 20K.
+  const { txData } = await execute(
+    "stablecoin_wrapper.aleo", "withdraw",
+    [TOKEN_ID, "10000u128"],
+  );
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  console.log(`  ComplianceRecord outputs decryptable: ${records.length}`);
+  if (records.length > 0) {
+    console.log(`  ComplianceRecord: ${records[0].slice(0, 100)}...`);
+  }
+});
+
+test("stablecoin_wrapper/withdraw_as_signer (10_000)", async () => {
+  // wrapper.balances[deployer] = 20K - 10K = 10K.
+  const { txData } = await execute(
+    "stablecoin_wrapper.aleo", "withdraw_as_signer",
+    [TOKEN_ID, "10000u128"],
+  );
+  const records = decryptRecordOutputs(txData, ACCOUNT);
+  console.log(`  ComplianceRecord outputs: ${records.length}`);
+});
+
+test("stablecoin_wrapper/deposit ABORTS when stablecoin is paused", async () => {
+  // Pause, attempt deposit (should abort), verify state unchanged, unpause.
+  await execute("stablecoin_program.aleo", "set_pause_status", ["true"]);
+  await expectAbort(
+    "stablecoin_wrapper.aleo", "deposit",
+    [TOKEN_ID, "10000u128"],
+    () => getMappingValue("stablecoin_wrapper.aleo", "balances", ADDRESS),
+  );
+  await execute("stablecoin_program.aleo", "set_pause_status", ["false"]);
+});
+
+// ---------------------------------------------------------------------------
+// Tests: 12 — Dispatchers (expected failures — dyn record not parseable)
 // ---------------------------------------------------------------------------
 
 test("wrapper_dispatcher/register_route (TOKEN_ID → fixed_registry_wrapper)", async () => {
-  // program_id is the program name bytes packed little-endian into a field element.
-  // programNameToField("fixed_registry_wrapper.aleo") computes this at runtime.
   await execute("wrapper_dispatcher.aleo", "register_route", [
     TOKEN_ID, PROGRAM_ID.fixed_registry_wrapper,
   ]);
 });
 
 test("wrapper_dispatcher/transfer_public (route dispatches to fixed_registry_wrapper)", async () => {
-  // transfer_public(token_id, recipient, amount, program_id)
-  // Dispatches to fixed_registry_wrapper.aleo/transfer_public via call.dynamic.
-  // Finalize verifies token_routes[token_id] == program_id (set above).
   await execute("wrapper_dispatcher.aleo", "transfer_public", [
     TOKEN_ID, RECIPIENT_ADDRESS, "1000u128", PROGRAM_ID.fixed_registry_wrapper,
   ]);
 });
 
-// ---------------------------------------------------------------------------
-// Tests: 11 — direct_dispatcher: generic dispatch
-//   Registers (program_id, network_id, token_id, convention) routes.
-//   dispatch_f_a_u and dispatch_a_u provide typed generic dispatch.
-// ---------------------------------------------------------------------------
-
 test("direct_dispatcher/register_route (TOKEN_ID → token_registry)", async () => {
-  // register_route(program_id: field, network_id: field, token_id: field, convention: u8)
-  // NETWORK_ALEO = programNameToField("aleo") = 1868917857field (matches wrapper_dispatcher constant).
-  // convention = 1 = ARC-0020 interface convention.
-  const NETWORK_ALEO = programNameToField("aleo"); // 1868917857field
+  const NETWORK_ALEO = programNameToField("aleo");
   const CONVENTION   = "1u8";
   await execute("direct_dispatcher.aleo", "register_route", [
     PROGRAM_ID.token_registry, NETWORK_ALEO, TOKEN_ID, CONVENTION,

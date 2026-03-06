@@ -6,6 +6,7 @@
 //   PrivateCompliant : PrivateToken     — compliance variant; adds ComplianceRecord, Credentials
 //   ARC20 : PublicToken + PrivateToken
 //   ARC21 : PublicToken + PrivateCompliant
+//   Bridge                              — formally enforced; deposit/withdraw vault boundary
 //   MintPublic                          — formally enforced
 //   MintPrivate : PrivateToken          — informally specified
 //   MintPrivateCompliant : PrivateCompliant — informally specified
@@ -22,8 +23,8 @@
 //   ARC21:
 //     shield(field, address, u128) -> (ComplianceRecord, Token, Final)
 //     unshield(address, u128, Token, [MerkleProof; 2]) -> (ComplianceRecord, Token, Final)
-//   MintPrivate:        mint_private(address, u128) -> (Token, Final)
-//   MintPrivateCompliant: mint_private(address, u128) -> (ComplianceRecord, Token, Final)
+//   MintPrivate:        mint_private(field, address, u128) -> (Token, Final)
+//   MintPrivateCompliant: mint_private(field, address, u128) -> (ComplianceRecord, Token, Final)
 //
 // Vault invariant: wrapper's balance on underlying program = sum of all outstanding Token amounts.
 
@@ -54,9 +55,19 @@ interface ARC20 : PublicToken + PrivateToken {
 interface ARC21 : PublicToken + PrivateCompliant {
 }
 
-// mint_public: no token_id param; implementations use HARDCODED_TOKEN_ID.
+// deposit: moves signer's underlying public balance into the wrapper vault.
+// withdraw: moves caller's wrapper balance back to the underlying program (self.caller).
+// withdraw_as_signer: same as withdraw but uses self.signer; correct for dispatcher calls.
+// stablecoin_wrapper cannot implement Bridge (different return types) — intentionally a hybrid.
+interface Bridge {
+    fn deposit(public token_id: field, public amount: u128) -> Final;
+    fn withdraw(public token_id: field, public amount: u128) -> Final;
+    fn withdraw_as_signer(public token_id: field, public amount: u128) -> Final;
+}
+
+// mint_public: token_id is ignored; implementations use HARDCODED_TOKEN_ID.
 interface MintPublic {
-    fn mint_public(public recipient: address, public amount: u128) -> Final;
+    fn mint_public(public token_id: field, public recipient: address, public amount: u128) -> Final;
 }
 
 // mint_private: vault-in mint — mints to self.address on underlying, creates Token record.

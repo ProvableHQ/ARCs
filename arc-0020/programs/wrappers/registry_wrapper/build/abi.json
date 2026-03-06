@@ -33,9 +33,85 @@
       ]
     }
   ],
-  "mappings": [],
+  "mappings": [
+    {
+      "name": "balances",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U128"
+        }
+      }
+    }
+  ],
   "storage_variables": [],
   "transitions": [
+    {
+      "name": "deposit",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
     {
       "name": "transfer_public",
       "is_async": true,
@@ -215,7 +291,7 @@
       ]
     },
     {
-      "name": "transfer_public_to_private",
+      "name": "shield",
       "is_async": true,
       "inputs": [
         {
@@ -267,7 +343,7 @@
       ]
     },
     {
-      "name": "transfer_private_to_public",
+      "name": "unshield",
       "is_async": true,
       "inputs": [
         {

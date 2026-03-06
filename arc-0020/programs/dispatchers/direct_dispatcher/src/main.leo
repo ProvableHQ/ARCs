@@ -14,14 +14,14 @@
 //
 // on-chain token routes are stored in the token_routes mapping, keyed by token_id.
 //
-// Phase 1: → Final                          (functions 1–8)
-// Phase 2: → dyn record                     (functions 9–10)
-// Phase 3: → (dyn record, dyn record)       (functions 11–12)
-// Phase 4: → (dyn record, Final)            (functions 13–17)
-// Phase 5: → (dyn record, dyn record, Final)(functions 18–21)
-// Phase 6: → (r, r, r, Final)               (functions 22–24)
-// Phase 7: → (r, r, r, r, Final)            (functions 25–26)
-// Phase 8: → (r, r, r, r, r, Final)         (functions 27–29)
+// Phase 1: → Final                          (functions 1–9)
+// Phase 2: → dyn record                     (functions 10–11)
+// Phase 3: → (dyn record, dyn record)       (functions 12–13)
+// Phase 4: → (dyn record, Final)            (functions 14–19)
+// Phase 5: → (dyn record, dyn record, Final)(functions 20–23)
+// Phase 6: → (r, r, r, Final)               (functions 24–26)
+// Phase 7: → (r, r, r, r, Final)            (functions 27–28)
+// Phase 8: → (r, r, r, r, r, Final)         (functions 29–31)
 
 program direct_dispatcher.aleo {
 
@@ -175,7 +175,20 @@ program direct_dispatcher.aleo {
     return final { f.run(); };
   }
 
-  // 8. (address, u16) → Final
+  // 8. (field, u128) → Final
+  //    e.g. deposit(token_id, amount), withdraw(token_id, amount)
+  fn dispatch_f_u(
+    public program_id: field,
+    public network_id: field,
+    public func_id: field,
+    public arg0: field,
+    public arg1: u128
+  ) -> Final {
+    let f: Final = _dynamic_call::[Final](program_id, network_id, func_id, arg0, arg1);
+    return final { f.run(); };
+  }
+
+  // 9. (address, u16) → Final
   //    e.g. update_role(new_address, role)
   fn dispatch_a_u16(
     public program_id: field,
@@ -193,8 +206,8 @@ program direct_dispatcher.aleo {
   // Covers: join
   // ===========================================================================
 
-  // 9. (record, record) → record
-  //    e.g. join(r1, r2)
+  // 10. (record, record) → record
+  //     e.g. join(r1, r2)
   fn dispatch_r_r_to_r(
     r0: dyn record,
     r1: dyn record,
@@ -206,7 +219,7 @@ program direct_dispatcher.aleo {
     return r;
   }
 
-  // 10. (record) → record
+  // 11. (record) → record
   //     e.g. single-input record transformation
   fn dispatch_r_to_r(
     r0: dyn record,
@@ -223,7 +236,7 @@ program direct_dispatcher.aleo {
   // Covers: split, transfer_private
   // ===========================================================================
 
-  // 11. (record, u128) → (record, record)
+  // 12. (record, u128) → (record, record)
   //     e.g. split(input, amount)
   fn dispatch_r_u_to_rr(
     r0: dyn record,
@@ -236,7 +249,7 @@ program direct_dispatcher.aleo {
     return (r1, r2);
   }
 
-  // 12. (record, u64) → (record, record)
+  // 13. (record, u64) → (record, record)
   //     e.g. credits split(input, amount_u64)
   fn dispatch_r_u64_to_rr(
     r0: dyn record,
@@ -255,7 +268,20 @@ program direct_dispatcher.aleo {
   //         unshield (credits u64 variant), authorize
   // ===========================================================================
 
-  // 13. (field, address, u128) → (record, Final)
+  // 14. (field, u128) → (record, Final)
+  //     e.g. compliant deposit(token_id, amount) → (ComplianceRecord, Final)
+  fn dispatch_f_u_to_r_f(
+    public program_id: field,
+    public network_id: field,
+    public func_id: field,
+    public arg0: field,
+    public arg1: u128
+  ) -> (dyn record, Final) {
+    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, network_id, func_id, arg0, arg1);
+    return (r, final { f.run(); });
+  }
+
+  // 15. (field, address, u128) → (record, Final)
   //     e.g. shield(token_id, recipient, amount)
   fn dispatch_f_a_u_to_r_f(
     public program_id: field,
@@ -269,7 +295,7 @@ program direct_dispatcher.aleo {
     return (r, final { f.run(); });
   }
 
-  // 14. (address, u128) → (record, Final)
+  // 16. (address, u128) → (record, Final)
   //     e.g. single-token shield(recipient, amount)
   fn dispatch_a_u_to_r_f(
     public program_id: field,
@@ -282,7 +308,7 @@ program direct_dispatcher.aleo {
     return (r, final { f.run(); });
   }
 
-  // 15. (address, u128, record) → (record, Final)
+  // 17. (address, u128, record) → (record, Final)
   //     e.g. unshield(recipient, amount, input)
   fn dispatch_a_u_r_to_r_f(
     public program_id: field,
@@ -296,7 +322,7 @@ program direct_dispatcher.aleo {
     return (r, final { f.run(); });
   }
 
-  // 16. (address, u64, record) → (record, Final)
+  // 18. (address, u64, record) → (record, Final)
   //     e.g. credits unshield(recipient, amount_u64, input)
   fn dispatch_a_u64_r_to_r_f(
     public program_id: field,
@@ -310,7 +336,7 @@ program direct_dispatcher.aleo {
     return (r, final { f.run(); });
   }
 
-  // 17. (address, u64) → (record, Final)
+  // 19. (address, u64) → (record, Final)
   //     e.g. credits shield(recipient, amount_u64)
   fn dispatch_a_u64_to_r_f(
     public program_id: field,
@@ -329,7 +355,7 @@ program direct_dispatcher.aleo {
   //         mint_private, burn_private
   // ===========================================================================
 
-  // 18. (address, u128, record) → (record, record, Final)
+  // 20. (address, u128, record) → (record, record, Final)
   //     e.g. transfer_private(recipient, amount, input)
   fn dispatch_a_u_r_to_rr_f(
     public program_id: field,
@@ -343,7 +369,7 @@ program direct_dispatcher.aleo {
     return (r1, r2, final { f.run(); });
   }
 
-  // 19. (address, u128) → (record, record, Final)
+  // 21. (address, u128) → (record, record, Final)
   //     e.g. mint_private(recipient, amount) → (ComplianceRecord, Token, Final)
   fn dispatch_a_u_to_rr_f(
     public program_id: field,
@@ -356,7 +382,7 @@ program direct_dispatcher.aleo {
     return (r1, r2, final { f.run(); });
   }
 
-  // 20. (address, u128, record, [MerkleProof; 2]) → (record, record, Final)
+  // 22. (address, u128, record, [MerkleProof; 2]) → (record, record, Final)
   //     e.g. compliant_transfer_to_public(recipient, amount, input, proofs)
   fn dispatch_a_u_r_proofs_to_rr_f(
     public program_id: field,
@@ -371,7 +397,7 @@ program direct_dispatcher.aleo {
     return (r1, r2, final { f.run(); });
   }
 
-  // 21. (record, u128) → (record, record, Final)
+  // 23. (record, u128) → (record, record, Final)
   //     e.g. burn_private(input_record, amount) → (ComplianceRecord, Token, Final)
   fn dispatch_r_u_to_rr_f(
     r0: dyn record,
@@ -389,7 +415,7 @@ program direct_dispatcher.aleo {
   // Covers: transfer_private (with compliance), compliant_transfer_private
   // ===========================================================================
 
-  // 22. (address, u128, record) → (record, record, record, Final)
+  // 24. (address, u128, record) → (record, record, record, Final)
   //     e.g. stablecoin transfer_private(recipient, amount, input) → (Compliance, change, transfer, Final)
   fn dispatch_a_u_r_to_rrr_f(
     public program_id: field,
@@ -403,7 +429,7 @@ program direct_dispatcher.aleo {
     return (r1, r2, r3, final { f.run(); });
   }
 
-  // 23. (address, u128, record, [MerkleProof; 2]) → (record, record, record, Final)
+  // 25. (address, u128, record, [MerkleProof; 2]) → (record, record, record, Final)
   //     e.g. compliant_transfer_private(recipient, amount, input, proofs)
   fn dispatch_a_u_r_proofs_to_rrr_f(
     public program_id: field,
@@ -418,7 +444,7 @@ program direct_dispatcher.aleo {
     return (r1, r2, r3, final { f.run(); });
   }
 
-  // 24. (address, u128, record, record) → (record, record, record, Final)
+  // 26. (address, u128, record, record) → (record, record, record, Final)
   //     e.g. transfer_private_with_creds variant (3 record outputs)
   fn dispatch_a_u_r_r_to_rrr_f(
     public program_id: field,
@@ -438,7 +464,7 @@ program direct_dispatcher.aleo {
   // Covers: compliant_transfer_with_creds
   // ===========================================================================
 
-  // 25. (address, u128, record, record) → (record, record, record, record, Final)
+  // 27. (address, u128, record, record) → (record, record, record, record, Final)
   //     e.g. compliant_transfer_with_creds(recipient, amount, input, credentials)
   fn dispatch_a_u_r_r_to_rrrr_f(
     public program_id: field,
@@ -453,7 +479,7 @@ program direct_dispatcher.aleo {
     return (ra, rb, rc, rd, final { f.run(); });
   }
 
-  // 26. (address, u128, record, [MerkleProof; 2]) → (record, record, record, record, Final)
+  // 28. (address, u128, record, [MerkleProof; 2]) → (record, record, record, record, Final)
   //     e.g. compliant op returning 4 records
   fn dispatch_a_u_r_proofs_to_rrrr_f(
     public program_id: field,
@@ -469,11 +495,11 @@ program direct_dispatcher.aleo {
   }
 
   // ===========================================================================
-  // Phase 8: → (r, r, r, r, r, Final)
-  // Covers: transfer_private_with_creds (compliance + change + transfer + creds + Final)
+  // Phase 8: → (r, r, r, r, r, Final) and utility shapes
+  // Covers: transfer_private_with_creds; plus two mismatched-type helpers placed here by shape
   // ===========================================================================
 
-  // 27. (address, u128, record, record) → (record, record, record, record, record, Final)
+  // 29. (address, u128, record, record) → (record, record, record, record, record, Final)
   //     e.g. transfer_private_with_creds → (Compliance, change, transfer, Credentials, Final)
   fn dispatch_a_u_r_r_to_rrrrr_f(
     public program_id: field,
@@ -488,7 +514,7 @@ program direct_dispatcher.aleo {
     return (ra, rb, rc, rd, re, final { f.run(); });
   }
 
-  // 28. (record, [MerkleProof; 2]) → (record, record, Final)
+  // 30. (record, [MerkleProof; 2]) → (record, record, Final)
   //     e.g. get_credentials(merkle_proofs) → (Credentials, Final) via shape
   fn dispatch_r_proofs_to_rr_f(
     r0: dyn record,
@@ -501,7 +527,7 @@ program direct_dispatcher.aleo {
     return (r1, r2, final { f.run(); });
   }
 
-  // 29. ([MerkleProof; 2]) → (record, Final)
+  // 31. ([MerkleProof; 2]) → (record, Final)
   //     e.g. get_credentials(sender_merkle_proofs) → (Credentials, Final)
   fn dispatch_proofs_to_r_f(
     public proofs: [MerkleProof; 2],
