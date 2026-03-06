@@ -3,7 +3,8 @@ import credits.aleo;
 // Interface matching compliant_token_template.aleo transfer signatures (PR 29151)
 interface Transferrable {
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
-    fn transfer_public_to_private(public to: address, public amount: u128) -> (Token, Final);
+    fn shield(public amount: u128) -> (Token, Final);
+    fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
     fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
 }
 
@@ -93,15 +94,34 @@ program wrapped_credits.aleo : Transferrable {
         };
     }
 
-    fn transfer_public_to_private(public to: address, public amount: u128) -> (Token, Final) {
+    fn shield(public amount: u128) -> (Token, Final) {
         let token = Token {
-            owner: to,
+            owner: self.caller,
             amount
         };
         let caller = self.caller;
         return (token, final {
             let previous_balance_caller = balances.get(caller);
             balances.set(caller, previous_balance_caller - amount); // TODO: do we error automatically on underflow?
+        });
+    }
+
+    fn unshield(input: Token, amount: u128) -> (Token, Token, Final) {
+        assert(input.owner == self.signer);
+        assert(input.amount >= amount);
+        let (credits_record, credits_finalization) = credits.aleo/transfer_public_to_private(input.owner, amount as u64);
+        let (_, conv_final) = credits.aleo/transfer_private_to_public(credits_record, input.owner, amount as u64);
+        let change_token = Token {
+            owner: input.owner,
+            amount: input.amount - amount
+        };
+        let zero_token = Token {
+            owner: input.owner,
+            amount: 0u128
+        };
+        return (change_token, zero_token, final {
+            credits_finalization.run();
+            conv_final.run();
         });
     }
 

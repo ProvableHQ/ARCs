@@ -270,11 +270,7 @@ describe("token_registry.aleo", () => {
     await setupWrappedToken();
     await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "200u128");
 
-    const toPrivate = await WrappedTokenRegistry.transferPublicToPrivate(
-      AleoUtils.accounts[0],
-      addr0,
-      "80u128",
-    );
+    const toPrivate = await WrappedTokenRegistry.shield(AleoUtils.accounts[0], "80u128");
     await expectConfirmed(toPrivate);
     const tokenRecords = extractRecordPlaintexts(toPrivate.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
@@ -323,17 +319,13 @@ describe("token_registry.aleo", () => {
     await expectConfirmed(execBack);
   });
 
-  test("wrapped_token_registry: transfer_public_to_private via Transferrable interface", async () => {
+  test("wrapped_token_registry: shield via Transferrable interface", async () => {
     if (!wrappedTokenRegistryDeployed) return;
     await setupWrappedToken();
     await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
 
     const before0 = await WrappedTokenRegistry.getPublicBalance(addr0);
-    const exec = await WrappedTokenRegistry.transferPublicToPrivate(
-      AleoUtils.accounts[0],
-      addr0,
-      "100u128",
-    );
+    const exec = await WrappedTokenRegistry.shield(AleoUtils.accounts[0], "100u128");
     await expectConfirmed(exec);
     const records = extractRecordPlaintexts(exec.stdout);
     expect(records.length).toBeGreaterThanOrEqual(1);
@@ -345,11 +337,7 @@ describe("token_registry.aleo", () => {
     if (!wrappedTokenRegistryDeployed) return;
     await setupWrappedToken();
     await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
-    const toPrivate = await WrappedTokenRegistry.transferPublicToPrivate(
-      AleoUtils.accounts[0],
-      addr0,
-      "80u128",
-    );
+    const toPrivate = await WrappedTokenRegistry.shield(AleoUtils.accounts[0], "80u128");
     await expectConfirmed(toPrivate);
     const tokenRecords = extractRecordPlaintexts(toPrivate.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);

@@ -71,9 +71,16 @@ export async function transferPublic(account, recipient, amountU128) {
   });
 }
 
-export async function transferPublicToPrivate(account, to, amountU128) {
+export async function shield(account, amountU128) {
   const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(PROGRAM_PATH, "transfer_public_to_private", [to, amountU128], {
+  return await AleoUtils.leoExecute(PROGRAM_PATH, "shield", [amountU128], {
+    privateKey,
+  });
+}
+
+export async function unshield(account, inputRecord, amountU128) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(PROGRAM_PATH, "unshield", [inputRecord, amountU128], {
     privateKey,
   });
 }

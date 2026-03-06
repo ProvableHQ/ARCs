@@ -3,7 +3,8 @@ import token_registry.aleo;
 // Interface matching compliant_token_template.aleo transfer signatures (PR 29151)
 interface Transferrable {
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
-    fn transfer_public_to_private(public to: address, public amount: u128) -> (token_registry.aleo/Token, Final);
+    fn shield(public amount: u128) -> (token_registry.aleo/Token, Final);
+    fn unshield(input: token_registry.aleo/Token, amount: u128) -> (token_registry.aleo/Token, token_registry.aleo/Token, Final);
     fn transfer_private(input: token_registry.aleo/Token, to: address, amount: u128) -> (token_registry.aleo/Token, token_registry.aleo/Token);
 }
 
@@ -78,14 +79,23 @@ program wrapped_token_registry.aleo : Transferrable {
         };
     }
 
-    fn transfer_public_to_private(public to: address, public amount: u128) -> (token_registry.aleo/Token, Final) {
+    fn shield(public amount: u128) -> (token_registry.aleo/Token, Final) {
         let caller = self.caller;
-        let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(WRAPPED_TOKEN_ID, to, amount, false);
+        let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(WRAPPED_TOKEN_ID, caller, amount, false);
         return (token_out, final {
             let prev = balances.get(caller);
             balances.set(caller, prev - amount);
             tr_final.run();
         });
+    }
+
+    fn unshield(input: token_registry.aleo/Token, amount: u128) -> (token_registry.aleo/Token, token_registry.aleo/Token, Final) {
+        assert(input.owner == self.signer);
+        assert(input.token_id == WRAPPED_TOKEN_ID);
+        assert(input.amount >= amount);
+        let (change_token, transfer_token) =
+            token_registry.aleo/transfer_private(input, input.owner, amount);
+        return (change_token, transfer_token, final { });
     }
 
     fn transfer_private(input: token_registry.aleo/Token, to: address, amount: u128) -> (token_registry.aleo/Token, token_registry.aleo/Token) {

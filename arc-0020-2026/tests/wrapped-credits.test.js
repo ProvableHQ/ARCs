@@ -167,7 +167,7 @@ describe("wrapped_credits.aleo", () => {
     expect(after1).toBe(before1);
   });
 
-  describe("Transferrable interface: transfer_public, transfer_public_to_private, transfer_private", () => {
+  describe("Transferrable interface: transfer_public, shield, unshield, transfer_private", () => {
     test("transfer_public (positive): moves balances between users", async () => {
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
@@ -189,12 +189,12 @@ describe("wrapped_credits.aleo", () => {
     expect(after1).toBe(before1);
   });
 
-  test("transfer_public_to_private (positive): outputs a Token and debits caller", async () => {
+  test("shield (positive): outputs a Token and debits caller", async () => {
     const before0 = await bal(addr0);
     const exec = await AleoUtils.leoExecute(
       programPath,
-      "transfer_public_to_private",
-      [addr0, "400u128"],
+      "shield",
+      ["400u128"],
       { privateKey: pk0 },
     );
     await expectConfirmed(exec);
@@ -204,14 +204,14 @@ describe("wrapped_credits.aleo", () => {
     expect(before0 - after0).toBe(400n);
   });
 
-  test("transfer_public_to_private (negative): transferring too much rejects", async () => {
+  test("shield (negative): shielding too much rejects", async () => {
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
     await expectRejected(
       AleoUtils.leoExecute(
         programPath,
-        "transfer_public_to_private",
-        [addr0, "999999999999999999999999u128"],
+        "shield",
+        ["999999999999999999999999u128"],
         { privateKey: pk0 },
       ),
     );
@@ -222,11 +222,11 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("transfer_private (positive): signer-owned Token can be split into change + new token", async () => {
-    // Create a Token owned by signer.
+    // Create a Token owned by signer via shield.
     const mint = await AleoUtils.leoExecute(
       programPath,
-      "transfer_public_to_private",
-      [addr0, "200u128"],
+      "shield",
+      ["200u128"],
       { privateKey: pk0 },
     );
     await expectConfirmed(mint);
@@ -254,14 +254,11 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("transfer_private (negative): rejects if Token owner != signer", async () => {
-    // Create a Token owned by addr1 (not signer account0).
-    const mint = await AleoUtils.leoExecute(
-      programPath,
-      "transfer_public_to_private",
-      [addr1, "100u128"],
-      { privateKey: pk0 },
-    );
-    const tokenRecords = extractRecordPlaintexts(mint.stdout);
+    // Transfer to addr1, then addr1 shields to create Token owned by addr1.
+    await expectConfirmed(await WrappedCredits.transferPublic(AleoUtils.accounts[0], addr1, "100u128"));
+    const shieldExec = await WrappedCredits.shield(AleoUtils.accounts[1], "100u128");
+    await expectConfirmed(shieldExec);
+    const tokenRecords = extractRecordPlaintexts(shieldExec.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
     const before0 = await bal(addr0);
@@ -283,11 +280,11 @@ describe("wrapped_credits.aleo", () => {
   }); // Transferrable interface
 
   test("transfer_private_to_public (positive): increases receiver public balance", async () => {
-    // Token owned by signer.
+    // Token owned by signer via shield.
     const mint = await AleoUtils.leoExecute(
       programPath,
-      "transfer_public_to_private",
-      [addr0, "80u128"],
+      "shield",
+      ["80u128"],
       { privateKey: pk0 },
     );
     await expectConfirmed(mint);
@@ -310,13 +307,10 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("transfer_private_to_public (negative): rejects if Token owner != signer", async () => {
-    // Mint token owned by addr1.
-    const mint = await AleoUtils.leoExecute(
-      programPath,
-      "transfer_public_to_private",
-      [addr1, "60u128"],
-      { privateKey: pk0 },
-    );
+    // Transfer to addr1, then addr1 shields to create token owned by addr1.
+    await expectConfirmed(await WrappedCredits.transferPublic(AleoUtils.accounts[0], addr1, "60u128"));
+    const mint = await WrappedCredits.shield(AleoUtils.accounts[1], "60u128");
+    await expectConfirmed(mint);
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
@@ -337,11 +331,11 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("withdraw_credits_private (positive): converts Token amount into private credits record", async () => {
-    // Mint token owned by signer.
+    // Shield to create token owned by signer.
     const mint = await AleoUtils.leoExecute(
       programPath,
-      "transfer_public_to_private",
-      [addr0, "70u128"],
+      "shield",
+      ["70u128"],
       { privateKey: pk0 },
     );
     await expectConfirmed(mint);
@@ -368,11 +362,26 @@ describe("wrapped_credits.aleo", () => {
     expect(after1).toBe(before1);
   });
 
+  test("unshield (positive): converts Token amount into private credits record", async () => {
+    const mint = await AleoUtils.leoExecute(programPath, "shield", ["50u128"], { privateKey: pk0 });
+    await expectConfirmed(mint);
+    const tokenRecords = extractRecordPlaintexts(mint.stdout);
+    expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
+
+    const before0 = await bal(addr0);
+    const res = await WrappedCredits.unshield(AleoUtils.accounts[0], tokenRecords[0], "20u128");
+    await expectConfirmed(res);
+    const out = extractRecordPlaintexts(res.stdout);
+    expect(out.length).toBeGreaterThanOrEqual(2);
+    const after0 = await bal(addr0);
+    expect(after0).toBe(before0);
+  });
+
   test("withdraw_credits_private (negative): rejects when amount exceeds Token amount", async () => {
     const mint = await AleoUtils.leoExecute(
       programPath,
-      "transfer_public_to_private",
-      [addr0, "10u128"],
+      "shield",
+      ["10u128"],
       { privateKey: pk0 },
     );
     const tokenRecords = extractRecordPlaintexts(mint.stdout);

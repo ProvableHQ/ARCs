@@ -2,7 +2,7 @@
 
 Stateless wrapper around `token_registry.aleo` implementing the `Transferrable` interface (same as `wrapped_credits.aleo`).
 
-**Interface:** `transfer_public`, `transfer_public_to_private`, `transfer_private`.
+**Interface:** `transfer_public`, `shield`, `unshield`, `transfer_private`.
 
 **Token:** Wraps custom token ID `99999field` (not CREDITS_RESERVED_TOKEN_ID). No state; forwards to `token_registry.aleo`.
 
