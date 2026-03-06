@@ -25,10 +25,7 @@ interface ARC20 {
         token_registry.aleo/Token,
         Final,
     );
-    fn transfer_private(input: token_registry.aleo/Token, to: address, amount: u128) -> (
-        token_registry.aleo/Token,
-        token_registry.aleo/Token,
-    );
+    fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
     fn transfer_private_to_public(input: token_registry.aleo/Token, to: address, amount: u128) -> (
         token_registry.aleo/Token,
         Final,
@@ -168,15 +165,12 @@ program wrapped_token_registry.aleo: ARC20 {
         return (change_token, transfer_token, final {});
     }
 
-    fn transfer_private(
-        input: token_registry.aleo/Token,
-        to: address,
-        amount: u128,
-    ) -> (token_registry.aleo/Token, token_registry.aleo/Token) {
+    fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token) {
         assert(input.owner == self.signer);
-        assert(input.token_id == WRAPPED_TOKEN_ID);
-        let result = token_registry.aleo/transfer_private(input, to, amount);
-        return result;
+        assert(input.amount >= amount);
+        let change = Token { owner: input.owner, amount: input.amount - amount };
+        let transfer = Token { owner: to, amount: amount };
+        return (change, transfer);
     }
 
     fn transfer_private_to_public(
