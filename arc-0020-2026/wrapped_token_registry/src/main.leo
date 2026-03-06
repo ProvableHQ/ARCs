@@ -1,7 +1,16 @@
 import token_registry.aleo;
 
+struct TokenInfo {
+    name: u128,
+    symbol: u128,
+    decimals: u8,
+    supply: u128,
+    max_supply: u128,
+}
+
 // Interface matching compliant_token_template.aleo transfer signatures (PR 29151)
 interface Transferrable {
+    mapping token_info: bool => TokenInfo;
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn shield(public amount: u128) -> (token_registry.aleo/Token, Final);
     fn unshield(input: token_registry.aleo/Token, amount: u128) -> (token_registry.aleo/Token, token_registry.aleo/Token, Final);
@@ -16,6 +25,7 @@ program wrapped_token_registry.aleo : Transferrable {
     constructor() {}
 
     mapping balances: address => u128;
+    mapping token_info: bool => TokenInfo;
 
     fn deposit_token_public(public amount: u128) -> Final {
         let tr_final = token_registry.aleo/transfer_public_as_signer(WRAPPED_TOKEN_ID, self.address, amount);
