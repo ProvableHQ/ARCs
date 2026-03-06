@@ -214,6 +214,90 @@ describe("token_registry.aleo", () => {
     );
   });
 
+  async function setupWrappedToken() {
+    const name = "1413829460u128";
+    const symbol = "1413829460u128";
+    const decimals = "6u8";
+    const extAuthRequired = "false";
+    const extAuthParty = addr0;
+
+    try {
+      const reg = await AleoUtils.leoExecute(
+        programPath,
+        "register_token",
+        [WRAPPED_TOKEN_ID, name, symbol, decimals, MAX_SUPPLY, extAuthRequired, extAuthParty],
+        { privateKey: pk0 },
+      );
+      await expectConfirmed(reg);
+    } catch {
+      // already registered
+    }
+    const mintExec = await TokenRegistry.mintPublic(
+      AleoUtils.accounts[0],
+      WRAPPED_TOKEN_ID,
+      addr0,
+      "1000u128",
+      AUTHORIZED_UNTIL,
+    );
+    await expectConfirmed(mintExec);
+  }
+
+  test("wrapped_token_registry: deposit_token_public increases balance", async () => {
+    if (!wrappedTokenRegistryDeployed) return;
+    await setupWrappedToken();
+
+    const before = await WrappedTokenRegistry.getPublicBalance(addr0);
+    const exec = await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "300u128");
+    await expectConfirmed(exec);
+    const after = await WrappedTokenRegistry.getPublicBalance(addr0);
+    expect(after - before).toBe(300n);
+  });
+
+  test("wrapped_token_registry: withdraw_token_public decreases balance", async () => {
+    if (!wrappedTokenRegistryDeployed) return;
+    await setupWrappedToken();
+    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "400u128");
+
+    const before = await WrappedTokenRegistry.getPublicBalance(addr0);
+    const exec = await WrappedTokenRegistry.withdrawTokenPublic(AleoUtils.accounts[0], "100u128");
+    await expectConfirmed(exec);
+    const after = await WrappedTokenRegistry.getPublicBalance(addr0);
+    expect(before - after).toBe(100n);
+  });
+
+  test("wrapped_token_registry: deposit_token_private and withdraw_token_private", async () => {
+    if (!wrappedTokenRegistryDeployed) return;
+    await setupWrappedToken();
+    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "200u128");
+
+    const toPrivate = await WrappedTokenRegistry.transferPublicToPrivate(
+      AleoUtils.accounts[0],
+      addr0,
+      "80u128",
+    );
+    await expectConfirmed(toPrivate);
+    const tokenRecords = extractRecordPlaintexts(toPrivate.stdout);
+    expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
+
+    const before = await WrappedTokenRegistry.getPublicBalance(addr0);
+    const dep = await WrappedTokenRegistry.depositTokenPrivate(
+      AleoUtils.accounts[0],
+      tokenRecords[0],
+      "40u128",
+    );
+    await expectConfirmed(dep);
+    const after = await WrappedTokenRegistry.getPublicBalance(addr0);
+    expect(after - before).toBe(40n);
+
+    const beforeW = await WrappedTokenRegistry.getPublicBalance(addr0);
+    const wd = await WrappedTokenRegistry.withdrawTokenPrivate(AleoUtils.accounts[0], "30u128");
+    await expectConfirmed(wd);
+    const outRecords = extractRecordPlaintexts(wd.stdout);
+    expect(outRecords.length).toBeGreaterThanOrEqual(1);
+    const afterW = await WrappedTokenRegistry.getPublicBalance(addr0);
+    expect(beforeW - afterW).toBe(30n);
+  });
+
   test("wrapped_token_registry: transfer via Transferrable interface", async () => {
     if (!wrappedTokenRegistryDeployed) {
       console.warn(
@@ -221,31 +305,9 @@ describe("token_registry.aleo", () => {
       );
       return;
     }
-    // Register and mint the token wrapped by wrapped_token_registry (99999field)
-    const name = "1413829460u128";
-    const symbol = "1413829460u128";
-    const decimals = "6u8";
-    const extAuthRequired = "false";
-    const extAuthParty = addr0;
+    await setupWrappedToken();
+    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
 
-    const registerExec = await AleoUtils.leoExecute(
-      programPath,
-      "register_token",
-      [WRAPPED_TOKEN_ID, name, symbol, decimals, MAX_SUPPLY, extAuthRequired, extAuthParty],
-      { privateKey: pk0 },
-    );
-    await expectConfirmed(registerExec);
-
-    const mintExec = await TokenRegistry.mintPublic(
-      AleoUtils.accounts[0],
-      WRAPPED_TOKEN_ID,
-      addr0,
-      "500u128",
-      AUTHORIZED_UNTIL,
-    );
-    await expectConfirmed(mintExec);
-
-    // Transfer using wrapped_token_registry (Transferrable interface)
     const transferExec = await WrappedTokenRegistry.transferPublic(
       AleoUtils.accounts[0],
       addr1,
@@ -253,10 +315,8 @@ describe("token_registry.aleo", () => {
     );
     await expectConfirmed(transferExec);
 
-    // Verify: addr1 received and can transfer back via token_registry
-    const execBack = await TokenRegistry.transferPublic(
+    const execBack = await WrappedTokenRegistry.transferPublic(
       AleoUtils.accounts[1],
-      WRAPPED_TOKEN_ID,
       addr0,
       "50u128",
     );
@@ -265,20 +325,10 @@ describe("token_registry.aleo", () => {
 
   test("wrapped_token_registry: transfer_public_to_private via Transferrable interface", async () => {
     if (!wrappedTokenRegistryDeployed) return;
+    await setupWrappedToken();
+    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
 
-    // Reuse setup from previous test: WRAPPED_TOKEN_ID registered, addr0 has balance
-    const before0 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr0);
-    if (before0 < 100n) {
-      const mintExec = await TokenRegistry.mintPublic(
-        AleoUtils.accounts[0],
-        WRAPPED_TOKEN_ID,
-        addr0,
-        "500u128",
-        AUTHORIZED_UNTIL,
-      );
-      await expectConfirmed(mintExec);
-    }
-
+    const before0 = await WrappedTokenRegistry.getPublicBalance(addr0);
     const exec = await WrappedTokenRegistry.transferPublicToPrivate(
       AleoUtils.accounts[0],
       addr0,
@@ -287,25 +337,25 @@ describe("token_registry.aleo", () => {
     await expectConfirmed(exec);
     const records = extractRecordPlaintexts(exec.stdout);
     expect(records.length).toBeGreaterThanOrEqual(1);
-    const after0 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr0);
-    expect(after0).toBeLessThan(before0);
+    const after0 = await WrappedTokenRegistry.getPublicBalance(addr0);
+    expect(before0 - after0).toBe(100n);
   });
 
   test("wrapped_token_registry: transfer_private via Transferrable interface", async () => {
     if (!wrappedTokenRegistryDeployed) return;
-
-    // Create a private token via transfer_public_to_private
-    const mintExec = await WrappedTokenRegistry.transferPublicToPrivate(
+    await setupWrappedToken();
+    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
+    const toPrivate = await WrappedTokenRegistry.transferPublicToPrivate(
       AleoUtils.accounts[0],
       addr0,
       "80u128",
     );
-    await expectConfirmed(mintExec);
-    const tokenRecords = extractRecordPlaintexts(mintExec.stdout);
+    await expectConfirmed(toPrivate);
+    const tokenRecords = extractRecordPlaintexts(toPrivate.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
-    const before0 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr0);
-    const before1 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr1);
+    const before0 = await WrappedTokenRegistry.getPublicBalance(addr0);
+    const before1 = await WrappedTokenRegistry.getPublicBalance(addr1);
     const transferExec = await WrappedTokenRegistry.transferPrivate(
       AleoUtils.accounts[0],
       tokenRecords[0],
@@ -316,9 +366,8 @@ describe("token_registry.aleo", () => {
     const outRecords = extractRecordPlaintexts(transferExec.stdout);
     expect(outRecords.length).toBeGreaterThanOrEqual(2);
 
-    // Private transfer does not change public balances
-    const after0 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr0);
-    const after1 = await TokenRegistry.getPublicBalance(WRAPPED_TOKEN_ID, addr1);
+    const after0 = await WrappedTokenRegistry.getPublicBalance(addr0);
+    const after1 = await WrappedTokenRegistry.getPublicBalance(addr1);
     expect(after0).toBe(before0);
     expect(after1).toBe(before1);
   });

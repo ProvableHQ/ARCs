@@ -14,20 +14,78 @@ program wrapped_token_registry.aleo : Transferrable {
     @noupgrade
     constructor() {}
 
-    fn transfer_public(public recipient: address, public amount: u128) -> Final {
-        // Use transfer_public_as_signer so the sender is the transaction signer (user),
-        // not this program's address (self.caller would be wrapped_token_registry).
-        let tr_final = token_registry.aleo/transfer_public_as_signer(WRAPPED_TOKEN_ID, recipient, amount);
+    mapping balances: address => u128;
+
+    fn deposit_token_public(public amount: u128) -> Final {
+        let tr_final = token_registry.aleo/transfer_public_as_signer(WRAPPED_TOKEN_ID, self.address, amount);
+        let depositor = self.signer;
         return final {
+            tr_final.run();
+            let prev = balances.get_or_use(depositor, 0u128);
+            balances.set(depositor, prev + amount);
+        };
+    }
+
+    fn deposit_token_private(input: token_registry.aleo/Token, amount: u128) -> (token_registry.aleo/Token, Final) {
+        assert(input.owner == self.signer);
+        assert(input.token_id == WRAPPED_TOKEN_ID);
+        assert(input.amount >= amount);
+        let (change_token, _) = token_registry.aleo/transfer_private(input, self.address, amount);
+        let depositor = self.signer;
+        return (change_token, final {
+            let prev = balances.get_or_use(depositor, 0u128);
+            balances.set(depositor, prev + amount);
+        });
+    }
+
+    fn withdraw_token_public(amount: u128) -> Final {
+        let withdrawer = self.caller;
+        let tr_final = token_registry.aleo/transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
+        return final {
+            let prev = balances.get(withdrawer);
+            balances.set(withdrawer, prev - amount);
             tr_final.run();
         };
     }
 
+    fn withdraw_token_public_signer(amount: u128) -> Final {
+        let withdrawer = self.signer;
+        let tr_final = token_registry.aleo/transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
+        return final {
+            let prev = balances.get(withdrawer);
+            balances.set(withdrawer, prev - amount);
+            tr_final.run();
+        };
+    }
+
+    fn withdraw_token_private(amount: u128) -> (token_registry.aleo/Token, Final) {
+        let withdrawer = self.signer;
+        let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(WRAPPED_TOKEN_ID, withdrawer, amount, false);
+        return (token_out, final {
+            let prev = balances.get(withdrawer);
+            balances.set(withdrawer, prev - amount);
+            tr_final.run();
+        });
+    }
+
+    fn transfer_public(public recipient: address, public amount: u128) -> Final {
+        let caller = self.caller;
+        return final {
+            let prev_caller = balances.get(caller);
+            balances.set(caller, prev_caller - amount);
+            let prev_recv = balances.get_or_use(recipient, 0u128);
+            balances.set(recipient, prev_recv + amount);
+        };
+    }
+
     fn transfer_public_to_private(public to: address, public amount: u128) -> (token_registry.aleo/Token, Final) {
-        // Use transfer_public_as_signer so the sender is the transaction signer (user),
-        // not this program's address (self.caller would be wrapped_token_registry).
-        let (token_out, tr_final) = token_registry.aleo/transfer_pub_to_priv_as_signer(WRAPPED_TOKEN_ID, to, amount, false);
-        return (token_out, final { tr_final.run(); });
+        let caller = self.caller;
+        let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(WRAPPED_TOKEN_ID, to, amount, false);
+        return (token_out, final {
+            let prev = balances.get(caller);
+            balances.set(caller, prev - amount);
+            tr_final.run();
+        });
     }
 
     fn transfer_private(input: token_registry.aleo/Token, to: address, amount: u128) -> (token_registry.aleo/Token, token_registry.aleo/Token) {

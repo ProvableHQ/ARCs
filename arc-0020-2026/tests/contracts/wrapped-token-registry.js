@@ -5,11 +5,64 @@ import * as AleoUtils from "../lib/aleo-test-utils.js";
 
 export const PROGRAM_ID = "wrapped_token_registry.aleo";
 export const WRAPPED_TOKEN_ID = "99999field";
+export const BALANCES_MAPPING = "balances";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const PROGRAM_PATH = path.join(__dirname, "..", "..", "wrapped_token_registry");
+
+function parseNumericPlaintext(s) {
+  const t = String(s);
+  if (t.trim() === "" || t.includes("null")) return 0n;
+  const matches = [...t.matchAll(/(^|[^0-9])([0-9]+)u[0-9]+([^0-9]|$)/g)];
+  if (!matches.length) throw new Error(`Unexpected mapping value output: ${t}`);
+  return BigInt(matches[matches.length - 1][2]);
+}
+
+export async function getPublicBalance(address) {
+  try {
+    const { stdout } = await AleoUtils.leoMappingValue(PROGRAM_ID, BALANCES_MAPPING, address);
+    return parseNumericPlaintext(stdout);
+  } catch {
+    return 0n;
+  }
+}
+
+export async function depositTokenPublic(account, amountU128) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(PROGRAM_PATH, "deposit_token_public", [amountU128], {
+    privateKey,
+  });
+}
+
+export async function depositTokenPrivate(account, inputRecord, amountU128) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(PROGRAM_PATH, "deposit_token_private", [inputRecord, amountU128], {
+    privateKey,
+  });
+}
+
+export async function withdrawTokenPublic(account, amountU128) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(PROGRAM_PATH, "withdraw_token_public", [amountU128], {
+    privateKey,
+  });
+}
+
+export async function withdrawTokenPublicSigner(account, amountU128) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(PROGRAM_PATH, "withdraw_token_public_signer", [amountU128], {
+    privateKey,
+  });
+}
+
+export async function withdrawTokenPrivate(account, amountU128) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(PROGRAM_PATH, "withdraw_token_private", [amountU128], {
+    privateKey,
+  });
+}
 
 export async function transferPublic(account, recipient, amountU128) {
   const privateKey = account.privateKey().to_string();
