@@ -12,7 +12,11 @@ function extractInterfaceARC20(content) {
 
 function normalizeForComparison(s) {
   return s
+    .replace(/Token record:\s*\{\s*owner:\s*address,\s*amount:\s*u128,\s*\.\.\.\s*\}/g, "")
     .replace(/token_registry\.aleo\/Token/g, "Token")
+    .replace(/\s*,\s*\)/g, ")")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")")
     .replace(/\s+/g, " ")
     .trim();
 }

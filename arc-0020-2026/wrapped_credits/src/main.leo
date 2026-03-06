@@ -13,8 +13,10 @@ struct TokenAllowance {
     spender: address,
 }
 
-// ARC20 interface. 
+// ARC20 interface.
 interface ARC20 {
+    record Token;
+
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn shield(public amount: u128) -> (Token, Final);
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
