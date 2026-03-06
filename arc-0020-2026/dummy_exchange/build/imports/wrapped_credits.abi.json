@@ -47,6 +47,25 @@
           }
         }
       ]
+    },
+    {
+      "path": [
+        "TokenAllowance"
+      ],
+      "fields": [
+        {
+          "name": "account",
+          "ty": {
+            "Primitive": "Address"
+          }
+        },
+        {
+          "name": "spender",
+          "ty": {
+            "Primitive": "Address"
+          }
+        }
+      ]
     }
   ],
   "records": [
@@ -103,7 +122,12 @@
     {
       "name": "allowances",
       "key": {
-        "Primitive": "Field"
+        "Struct": {
+          "path": [
+            "TokenAllowance"
+          ],
+          "program": "wrapped_credits"
+        }
       },
       "value": {
         "Primitive": {
@@ -642,6 +666,49 @@
         }
       ],
       "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "transfer_from_public_to_private",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "owner",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Record": {
+              "path": [
+                "Token"
+              ],
+              "program": "wrapped_credits"
+            }
+          },
+          "mode": "None"
+        },
         {
           "ty": "Future",
           "mode": "None"

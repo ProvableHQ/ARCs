@@ -13,14 +13,17 @@ struct TokenAllowance {
     spender: address,
 }
 
+// ARC20 interface. 
 interface ARC20 {
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn shield(public amount: u128) -> (Token, Final);
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
     fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
+    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Final);
+    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
+    fn transfer_from_public_to_private(public owner: address, public amount: u128) -> (Token, Final);
     fn approve_public(public spender: address, public amount: u128) -> Final;
     fn unapprove_public(public spender: address, public amount: u128) -> Final;
-    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
 }
 
 program wrapped_credits.aleo: ARC20 {
@@ -34,7 +37,7 @@ program wrapped_credits.aleo: ARC20 {
 
     mapping balances: address => u128;
     mapping token_info: bool => TokenInfo;
-    mapping allowances: field => u128;
+    mapping allowances: TokenAllowance => u128;
 
     fn deposit_credits_public(public amount: u64) -> Final {
         let credits_finalization = credits.aleo/transfer_public_as_signer(self.address, amount);
@@ -166,22 +169,18 @@ program wrapped_credits.aleo: ARC20 {
     }
 
     fn approve_public(public spender: address, public amount: u128) -> Final {
-        let allowance_key = BHP256::hash_to_field(
-            TokenAllowance { account: self.caller, spender: spender },
-        );
+        let key = TokenAllowance { account: self.caller, spender: spender };
         return final {
-            let current = allowances.get_or_use(allowance_key, 0u128);
-            allowances.set(allowance_key, current + amount);
+            let current = allowances.get_or_use(key, 0u128);
+            allowances.set(key, current + amount);
         };
     }
 
     fn unapprove_public(public spender: address, public amount: u128) -> Final {
-        let allowance_key = BHP256::hash_to_field(
-            TokenAllowance { account: self.caller, spender: spender },
-        );
+        let key = TokenAllowance { account: self.caller, spender: spender };
         return final {
-            let current = allowances.get(allowance_key);
-            allowances.set(allowance_key, current - amount);
+            let current = allowances.get(key);
+            allowances.set(key, current - amount);
         };
     }
 
@@ -190,17 +189,33 @@ program wrapped_credits.aleo: ARC20 {
         public recipient: address,
         public amount: u128,
     ) -> Final {
-        let allowance_key = BHP256::hash_to_field(
-            TokenAllowance { account: owner, spender: self.caller },
-        );
+        let key = TokenAllowance { account: owner, spender: self.caller };
         return final {
-            let current = allowances.get(allowance_key);
-            allowances.set(allowance_key, current - amount);
+            let current = allowances.get(key);
+            allowances.set(key, current - amount);
             let prev_owner = balances.get(owner);
             balances.set(owner, prev_owner - amount);
             let prev_recv = balances.get_or_use(recipient, 0u128);
             balances.set(recipient, prev_recv + amount);
         };
+    }
+
+    fn transfer_from_public_to_private(
+        public owner: address,
+        public amount: u128,
+    ) -> (Token, Final) {
+        let spender = self.caller;
+        let key = TokenAllowance { account: owner, spender: spender };
+        let token = Token { owner: spender, amount };
+        return (
+            token,
+            final {
+                let current = allowances.get(key);
+                allowances.set(key, current - amount);
+                let prev_owner = balances.get(owner);
+                balances.set(owner, prev_owner - amount);
+            },
+        );
     }
 
     fn transfer_public_as_signer(to: address, amount: u128) -> Final {

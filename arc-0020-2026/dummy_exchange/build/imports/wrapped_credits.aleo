@@ -25,7 +25,7 @@ mapping token_info:
     value as TokenInfo.public;
 
 mapping allowances:
-    key as field.public;
+    key as TokenAllowance.public;
     value as u128.public;
 
 function deposit_credits_public:
@@ -198,12 +198,11 @@ function approve_public:
     input r0 as address.public;
     input r1 as u128.public;
     cast self.caller r0 into r2 as TokenAllowance;
-    hash.bhp256 r2 into r3 as field;
-    async approve_public r3 r1 into r4;
-    output r4 as wrapped_credits.aleo/approve_public.future;
+    async approve_public r2 r1 into r3;
+    output r3 as wrapped_credits.aleo/approve_public.future;
 
 finalize approve_public:
-    input r0 as field.public;
+    input r0 as TokenAllowance.public;
     input r1 as u128.public;
     get.or_use allowances[r0] 0u128 into r2;
     add r2 r1 into r3;
@@ -213,12 +212,11 @@ function unapprove_public:
     input r0 as address.public;
     input r1 as u128.public;
     cast self.caller r0 into r2 as TokenAllowance;
-    hash.bhp256 r2 into r3 as field;
-    async unapprove_public r3 r1 into r4;
-    output r4 as wrapped_credits.aleo/unapprove_public.future;
+    async unapprove_public r2 r1 into r3;
+    output r3 as wrapped_credits.aleo/unapprove_public.future;
 
 finalize unapprove_public:
-    input r0 as field.public;
+    input r0 as TokenAllowance.public;
     input r1 as u128.public;
     get allowances[r0] into r2;
     sub r2 r1 into r3;
@@ -229,12 +227,11 @@ function transfer_from_public:
     input r1 as address.public;
     input r2 as u128.public;
     cast r0 self.caller into r3 as TokenAllowance;
-    hash.bhp256 r3 into r4 as field;
-    async transfer_from_public r4 r2 r0 r1 into r5;
-    output r5 as wrapped_credits.aleo/transfer_from_public.future;
+    async transfer_from_public r3 r2 r0 r1 into r4;
+    output r4 as wrapped_credits.aleo/transfer_from_public.future;
 
 finalize transfer_from_public:
-    input r0 as field.public;
+    input r0 as TokenAllowance.public;
     input r1 as u128.public;
     input r2 as address.public;
     input r3 as address.public;
@@ -247,6 +244,26 @@ finalize transfer_from_public:
     get.or_use balances[r3] 0u128 into r8;
     add r8 r1 into r9;
     set r9 into balances[r3];
+
+function transfer_from_public_to_private:
+    input r0 as address.public;
+    input r1 as u128.public;
+    cast r0 self.caller into r2 as TokenAllowance;
+    cast self.caller r1 into r3 as Token.record;
+    async transfer_from_public_to_private r2 r1 r0 into r4;
+    output r3 as Token.record;
+    output r4 as wrapped_credits.aleo/transfer_from_public_to_private.future;
+
+finalize transfer_from_public_to_private:
+    input r0 as TokenAllowance.public;
+    input r1 as u128.public;
+    input r2 as address.public;
+    get allowances[r0] into r3;
+    sub r3 r1 into r4;
+    set r4 into allowances[r0];
+    get balances[r2] into r5;
+    sub r5 r1 into r6;
+    set r6 into balances[r2];
 
 function transfer_public_as_signer:
     input r0 as address.private;

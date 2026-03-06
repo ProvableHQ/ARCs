@@ -13,6 +13,7 @@ struct TokenAllowance {
     spender: address,
 }
 
+// ARC20 interface.
 interface ARC20 {
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn shield(public amount: u128) -> (token_registry.aleo/Token, Final);
@@ -25,9 +26,17 @@ interface ARC20 {
         token_registry.aleo/Token,
         token_registry.aleo/Token,
     );
+    fn transfer_private_to_public(input: token_registry.aleo/Token, to: address, amount: u128) -> (
+        token_registry.aleo/Token,
+        Final,
+    );
+    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
+    fn transfer_from_public_to_private(public owner: address, public amount: u128) -> (
+        token_registry.aleo/Token,
+        Final,
+    );
     fn approve_public(public spender: address, public amount: u128) -> Final;
     fn unapprove_public(public spender: address, public amount: u128) -> Final;
-    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
 }
 
 // Custom token ID wrapped by this program (distinct from CREDITS_RESERVED_TOKEN_ID)
@@ -39,7 +48,7 @@ program wrapped_token_registry.aleo: ARC20 {
 
     mapping balances: address => u128;
     mapping token_info: bool => TokenInfo;
-    mapping allowances: field => u128;
+    mapping allowances: TokenAllowance => u128;
 
     fn deposit_token_public(public amount: u128) -> Final {
         let tr_final = token_registry.aleo/transfer_public_as_signer(
@@ -165,23 +174,61 @@ program wrapped_token_registry.aleo: ARC20 {
         return result;
     }
 
-    fn approve_public(public spender: address, public amount: u128) -> Final {
-        let allowance_key = BHP256::hash_to_field(
-            TokenAllowance { account: self.caller, spender: spender },
+    fn transfer_private_to_public(
+        input: token_registry.aleo/Token,
+        to: address,
+        amount: u128,
+    ) -> (token_registry.aleo/Token, Final) {
+        assert(input.owner == self.signer);
+        assert(input.token_id == WRAPPED_TOKEN_ID);
+        assert(input.amount >= amount);
+        let (change_token, _) = token_registry.aleo/transfer_private(input, self.address, amount);
+        return (
+            change_token,
+            final {
+                let prev = balances.get_or_use(to, 0u128);
+                balances.set(to, prev + amount);
+            },
         );
+    }
+
+    fn transfer_from_public_to_private(
+        public owner: address,
+        public amount: u128,
+    ) -> (token_registry.aleo/Token, Final) {
+        let spender = self.caller;
+        let key = TokenAllowance { account: owner, spender: spender };
+        let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(
+            WRAPPED_TOKEN_ID,
+            spender,
+            amount,
+            false,
+        );
+        return (
+            token_out,
+            final {
+                let current = allowances.get(key);
+                allowances.set(key, current - amount);
+                let prev_owner = balances.get(owner);
+                balances.set(owner, prev_owner - amount);
+                tr_final.run();
+            },
+        );
+    }
+
+    fn approve_public(public spender: address, public amount: u128) -> Final {
+        let key = TokenAllowance { account: self.caller, spender: spender };
         return final {
-            let current = allowances.get_or_use(allowance_key, 0u128);
-            allowances.set(allowance_key, current + amount);
+            let current = allowances.get_or_use(key, 0u128);
+            allowances.set(key, current + amount);
         };
     }
 
     fn unapprove_public(public spender: address, public amount: u128) -> Final {
-        let allowance_key = BHP256::hash_to_field(
-            TokenAllowance { account: self.caller, spender: spender },
-        );
+        let key = TokenAllowance { account: self.caller, spender: spender };
         return final {
-            let current = allowances.get(allowance_key);
-            allowances.set(allowance_key, current - amount);
+            let current = allowances.get(key);
+            allowances.set(key, current - amount);
         };
     }
 
@@ -190,12 +237,10 @@ program wrapped_token_registry.aleo: ARC20 {
         public recipient: address,
         public amount: u128,
     ) -> Final {
-        let allowance_key = BHP256::hash_to_field(
-            TokenAllowance { account: owner, spender: self.caller },
-        );
+        let key = TokenAllowance { account: owner, spender: self.caller };
         return final {
-            let current = allowances.get(allowance_key);
-            allowances.set(allowance_key, current - amount);
+            let current = allowances.get(key);
+            allowances.set(key, current - amount);
             let prev_owner = balances.get(owner);
             balances.set(owner, prev_owner - amount);
             let prev_recv = balances.get_or_use(recipient, 0u128);

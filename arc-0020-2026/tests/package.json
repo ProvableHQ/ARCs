@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "fmt": "../fmt-leo.sh"
   },
   "dependencies": {
     "@provablehq/sdk": "^0.9.11"
