@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function extractInterfaceTransferrable(content) {
-  const m = content.match(/interface Transferrable \{\s*([\s\S]*?)\n\}/);
+function extractInterfaceARC20(content) {
+  const m = content.match(/interface ARC20 \{\s*([\s\S]*?)\n\}/);
   return m ? m[1].trim() : null;
 }
 
@@ -17,7 +17,7 @@ function normalizeForComparison(s) {
     .trim();
 }
 
-describe("interface Transferrable", () => {
+describe("interface ARC20", () => {
   const root = path.join(__dirname, "..");
   const wrappedCredits = path.join(root, "wrapped_credits", "src", "main.leo");
   const wrappedTokenRegistry = path.join(root, "wrapped_token_registry", "src", "main.leo");
@@ -26,8 +26,8 @@ describe("interface Transferrable", () => {
     const content1 = fs.readFileSync(wrappedCredits, "utf-8");
     const content2 = fs.readFileSync(wrappedTokenRegistry, "utf-8");
 
-    const iface1 = extractInterfaceTransferrable(content1);
-    const iface2 = extractInterfaceTransferrable(content2);
+    const iface1 = extractInterfaceARC20(content1);
+    const iface2 = extractInterfaceARC20(content2);
 
     expect(iface1).not.toBeNull();
     expect(iface2).not.toBeNull();

@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 
 import * as AleoUtils from "./lib/aleo-test-utils.js";
 import * as WrappedCredits from "./contracts/wrapped-credits.js";
+import * as DummyExchange from "./contracts/dummy-exchange.js";
+import { Address } from "@provablehq/sdk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +36,9 @@ describe("wrapped_credits.aleo", () => {
     await expect(p).rejects.toThrow(/Transaction rejected|failed \(code/i);
   }
 
+  const exchangeAddress = Address.fromProgramId(DummyExchange.PROGRAM_ID).to_string();
+  let exchangeDeployed = false;
+
   beforeAll(async () => {
     try {
       await AleoUtils.startDevnode();
@@ -42,6 +47,20 @@ describe("wrapped_credits.aleo", () => {
         programId: WrappedCredits.PROGRAM_ID,
         programPath,
       });
+
+      const exchangePath = path.join(__dirname, "..", "dummy_exchange");
+      try {
+        await AleoUtils.deployProgramFromFile({
+          programId: DummyExchange.PROGRAM_ID,
+          programPath: exchangePath,
+          skipProgramCheck: true,
+          skip: ["wrapped_credits"],
+        });
+      } catch (e) {
+        const exists = await AleoUtils.leoProgramExists(DummyExchange.PROGRAM_ID);
+        if (!exists) throw e;
+      }
+      exchangeDeployed = await AleoUtils.leoProgramExists(DummyExchange.PROGRAM_ID);
     } catch (e) {
       await AleoUtils.stopDevnode();
       throw e;
@@ -50,7 +69,8 @@ describe("wrapped_credits.aleo", () => {
     // Ensure addr0 has an initial wrapped balance for tests.
     const b0 = await bal(addr0);
     if (b0 < 2000n) {
-      await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "5000u64");
+      const dep = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "5000u64");
+      await expectConfirmed(dep);
       const b1 = await bal(addr0);
       expect(b1 - b0).toBe(5000n);
     }
@@ -421,9 +441,83 @@ describe("wrapped_credits.aleo", () => {
     expect(after1 - before1).toBe(40n);
   });
 
+  test("approve_public and transfer_from_public: spender can transfer on behalf of owner", async () => {
+    const approveAmount = "150u128";
+    await expectConfirmed(await WrappedCredits.approvePublic(AleoUtils.accounts[0], addr1, approveAmount));
+
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
+    await expectConfirmed(
+      WrappedCredits.transferFromPublic(AleoUtils.accounts[1], addr0, addr1, "100u128"),
+    );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(before0 - after0).toBe(100n);
+    expect(after1 - before1).toBe(100n);
+  });
+
+  test("approve_public (negative): transfer_from exceeds allowance rejects", async () => {
+    const addr3 = AleoUtils.addresses[3];
+    await expectConfirmed(await WrappedCredits.approvePublic(AleoUtils.accounts[0], addr3, "25u128"));
+
+    const before0 = await bal(addr0);
+    const before3 = await bal(addr3);
+    await expectRejected(
+      WrappedCredits.transferFromPublic(AleoUtils.accounts[3], addr0, addr3, "50u128"),
+    );
+    const after0 = await bal(addr0);
+    const after3 = await bal(addr3);
+    expect(after0).toBe(before0);
+    expect(after3).toBe(before3);
+  });
+
+  test("unapprove_public: decreases allowance", async () => {
+    const addr2 = AleoUtils.addresses[2];
+    await expectConfirmed(await WrappedCredits.approvePublic(AleoUtils.accounts[0], addr2, "200u128"));
+    await expectConfirmed(await WrappedCredits.unapprovePublic(AleoUtils.accounts[0], addr2, "100u128"));
+
+    const before0 = await bal(addr0);
+    const before2 = await bal(addr2);
+    await expectConfirmed(
+      WrappedCredits.transferFromPublic(AleoUtils.accounts[2], addr0, addr2, "100u128"),
+    );
+    const after0 = await bal(addr0);
+    const after2 = await bal(addr2);
+    expect(before0 - after0).toBe(100n);
+    expect(after2 - before2).toBe(100n);
+
+    await expectRejected(
+      WrappedCredits.transferFromPublic(AleoUtils.accounts[2], addr0, addr2, "1u128"),
+    );
+  });
+
+  test("dummy_exchange: spendable allowance via transfer_from", async () => {
+    if (!exchangeDeployed) {
+      console.warn("Skipping dummy_exchange test: program not deployed");
+      return;
+    }
+    const amount = "75u128";
+    await expectConfirmed(
+      WrappedCredits.approvePublic(AleoUtils.accounts[0], exchangeAddress, amount),
+    );
+
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
+    await expectConfirmed(
+      DummyExchange.transferFrom(AleoUtils.accounts[0], addr0, addr1, amount),
+    );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(before0 - after0).toBe(75n);
+    expect(after1 - before1).toBe(75n);
+  });
+
   test("transfer_public_as_signer (negative): insufficient balance rejects", async () => {
     const before1 = await bal(addr1);
-    const amount = before1 + 1n;
+    if (before1 === 0n) {
+      await expectConfirmed(await WrappedCredits.transferPublic(AleoUtils.accounts[0], addr1, "1u128"));
+    }
+    const amount = (await bal(addr1)) + 1n;
     const before0 = await bal(addr0);
     await expectRejected(
       WrappedCredits.transferPublicAsSigner(AleoUtils.accounts[1], addr0, `${amount}u128`),

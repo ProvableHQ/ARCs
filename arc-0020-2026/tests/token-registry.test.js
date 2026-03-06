@@ -333,6 +333,24 @@ describe("token_registry.aleo", () => {
     expect(before0 - after0).toBe(100n);
   });
 
+  test("wrapped_token_registry: approve_public and transfer_from_public", async () => {
+    if (!wrappedTokenRegistryDeployed) return;
+    await setupWrappedToken();
+    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
+
+    await expectConfirmed(await WrappedTokenRegistry.approvePublic(AleoUtils.accounts[0], addr1, "150u128"));
+
+    const before0 = await WrappedTokenRegistry.getPublicBalance(addr0);
+    const before1 = await WrappedTokenRegistry.getPublicBalance(addr1);
+    await expectConfirmed(
+      WrappedTokenRegistry.transferFromPublic(AleoUtils.accounts[1], addr0, addr1, "100u128"),
+    );
+    const after0 = await WrappedTokenRegistry.getPublicBalance(addr0);
+    const after1 = await WrappedTokenRegistry.getPublicBalance(addr1);
+    expect(before0 - after0).toBe(100n);
+    expect(after1 - before1).toBe(100n);
+  });
+
   test("wrapped_token_registry: transfer_private via Transferrable interface", async () => {
     if (!wrappedTokenRegistryDeployed) return;
     await setupWrappedToken();

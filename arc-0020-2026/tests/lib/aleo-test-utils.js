@@ -29,8 +29,9 @@ export function sleep(ms) {
 export function extractTransactionId(output) {
   const s = String(output || "");
   // Leo/snarkOS transaction IDs are bech32-like and typically start with "at1".
-  // Keep this intentionally permissive to handle minor output formatting changes.
-  const m = s.match(/\b(at1[0-9a-z]{20,})\b/i);
+  // Match various formats: "at1...", "transaction ID: 'at1...'", etc.
+  const m = s.match(/(?:transaction\s+id|transaction_id|txId)[:\s]*['"]?(at1[0-9a-z]{20,})['"]?/i)
+    || s.match(/\b(at1[0-9a-z]{20,})\b/i);
   return m?.[1] || null;
 }
 
@@ -104,8 +105,14 @@ async function run(cmd, args, opts = {}) {
 
     let stdout = "";
     let stderr = "";
-    p.stdout?.on("data", (d) => (stdout += d.toString()));
-    p.stderr?.on("data", (d) => (stderr += d.toString()));
+    p.stdout?.on("data", (d) => {
+      const chunk = d.toString();
+      stdout += chunk;
+    });
+    p.stderr?.on("data", (d) => {
+      const chunk = d.toString();
+      stderr += chunk;
+    });
 
     // Some Leo commands (notably `deploy`) prompt for confirmation.
     // Allow callers to provide stdin to make these commands non-interactive.
@@ -120,7 +127,9 @@ async function run(cmd, args, opts = {}) {
 
     p.on("error", reject);
     p.on("exit", (code) => {
-      if (code === 0) return resolve({ stdout, stderr });
+      if (code === 0) {
+        return resolve({ stdout, stderr });
+      }
       reject(
         new Error(
           `${opts.label || cmd} failed (code ${code}).\n\n--- stdout ---\n${stdout}\n\n--- stderr ---\n${stderr}`,
@@ -412,7 +421,7 @@ export async function leoProgramExists(programName, opts = {}) {
 }
 
 export async function deployProgramFromFile(opts) {
-  const { programId, programPath, skip } = opts;
+  const { programId, programPath, skip, skipProgramCheck } = opts;
   if (!programId) throw new Error("deployProgramFromFile requires programId");
   if (!programPath) throw new Error("deployProgramFromFile requires programPath");
 
@@ -428,8 +437,10 @@ export async function deployProgramFromFile(opts) {
   }
 
   // Ensure the program can be fetched from the node after deployment.
-  const ok = await leoProgramExists(programId, opts);
-  if (!ok) throw new Error(`Program ${programId} not found after deployment`);
+  if (!skipProgramCheck) {
+    const ok = await leoProgramExists(programId, opts);
+    if (!ok) throw new Error(`Program ${programId} not found after deployment`);
+  }
 
   return { alreadyDeployed: false };
 }
