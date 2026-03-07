@@ -87,7 +87,10 @@ export async function waitForTransactionConfirmedFromLeoExecution(execResult, op
   const txId = execResult?.txId || extractTransactionId(`${stdout}\n${stderr}`);
   if (!txId) {
     throw new Error(
-      `Could not extract transaction id from leo output.\n\n--- stdout ---\n${stdout}\n\n--- stderr ---\n${stderr}`,
+      "Could not extract transaction id from leo output.\n\n--- stdout ---\n" +
+        stdout +
+        "\n\n--- stderr ---\n" +
+        stderr,
     );
   }
   return await waitForTransactionConfirmed(txId, opts);

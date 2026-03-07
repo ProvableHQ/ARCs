@@ -194,6 +194,7 @@ program wrapped_credits.aleo: ARC20 {
         let key = TokenAllowance { account: owner, spender: self.caller };
         return final {
             let current = allowances.get(key);
+            assert(current >= amount);
             allowances.set(key, current - amount);
             let prev_owner = balances.get(owner);
             balances.set(owner, prev_owner - amount);
@@ -213,6 +214,7 @@ program wrapped_credits.aleo: ARC20 {
             token,
             final {
                 let current = allowances.get(key);
+                assert(current >= amount);
                 allowances.set(key, current - amount);
                 let prev_owner = balances.get(owner);
                 balances.set(owner, prev_owner - amount);
