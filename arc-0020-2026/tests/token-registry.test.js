@@ -270,15 +270,16 @@ describe("token_registry.aleo", () => {
     await setupWrappedToken();
     await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "200u128");
 
-    const toPrivate = await WrappedTokenRegistry.shield(AleoUtils.accounts[0], "80u128");
-    await expectConfirmed(toPrivate);
-    const tokenRecords = extractRecordPlaintexts(toPrivate.stdout);
-    expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
+    // Get token_registry.aleo/Token from withdraw_token_private (shield returns local Token)
+    const wd1 = await WrappedTokenRegistry.withdrawTokenPrivate(AleoUtils.accounts[0], "80u128");
+    await expectConfirmed(wd1);
+    const registryTokenRecords = extractRecordPlaintexts(wd1.stdout);
+    expect(registryTokenRecords.length).toBeGreaterThanOrEqual(1);
 
     const before = await WrappedTokenRegistry.getPublicBalance(addr0);
     const dep = await WrappedTokenRegistry.depositTokenPrivate(
       AleoUtils.accounts[0],
-      tokenRecords[0],
+      registryTokenRecords[0],
       "40u128",
     );
     await expectConfirmed(dep);

@@ -13,23 +13,15 @@ struct TokenAllowance {
     spender: address,
 }
 
-// ARC20 interface. Uses local Token for outputs; unshield/transfer_private/transfer_private_to_public
-// must use token_registry.aleo/Token (Leo forbids creating records from other programs).
+// ARC20 interface. Uses local Token for all private functions.
 interface ARC20 {
     record Token;
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn shield(public amount: u128) -> (Token, Final);
-    fn unshield(input: token_registry.aleo/Token, amount: u128) -> (
-        token_registry.aleo/Token,
-        token_registry.aleo/Token,
-        Final,
-    );
+    fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
     fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
-    fn transfer_private_to_public(input: token_registry.aleo/Token, to: address, amount: u128) -> (
-        token_registry.aleo/Token,
-        Final,
-    );
+    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Final);
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
     fn transfer_from_public_to_private(public owner: address, public amount: u128) -> (Token, Final);
     fn approve_public(public spender: address, public amount: u128) -> Final;
@@ -150,19 +142,19 @@ program wrapped_token_registry.aleo: ARC20 {
         );
     }
 
-    fn unshield(
-        input: token_registry.aleo/Token,
-        amount: u128,
-    ) -> (token_registry.aleo/Token, token_registry.aleo/Token, Final) {
+    fn unshield(input: Token, amount: u128) -> (Token, Token, Final) {
         assert(input.owner == self.signer);
-        assert(input.token_id == WRAPPED_TOKEN_ID);
         assert(input.amount >= amount);
-        let (change_token, transfer_token) = token_registry.aleo/transfer_private(
-            input,
-            input.owner,
-            amount,
+        let change_token = Token { owner: input.owner, amount: input.amount - amount };
+        let zero_token = Token { owner: input.owner, amount: 0u128 };
+        return (
+            change_token,
+            zero_token,
+            final {
+                let prev = balances.get_or_use(input.owner, 0u128);
+                balances.set(input.owner, prev + amount);
+            },
         );
-        return (change_token, transfer_token, final {});
     }
 
     fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token) {
@@ -173,15 +165,10 @@ program wrapped_token_registry.aleo: ARC20 {
         return (change, transfer);
     }
 
-    fn transfer_private_to_public(
-        input: token_registry.aleo/Token,
-        to: address,
-        amount: u128,
-    ) -> (token_registry.aleo/Token, Final) {
+    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Final) {
         assert(input.owner == self.signer);
-        assert(input.token_id == WRAPPED_TOKEN_ID);
         assert(input.amount >= amount);
-        let (change_token, _) = token_registry.aleo/transfer_private(input, self.address, amount);
+        let change_token = Token { owner: input.owner, amount: input.amount - amount };
         return (
             change_token,
             final {
