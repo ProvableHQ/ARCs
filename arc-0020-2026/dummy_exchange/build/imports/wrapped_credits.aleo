@@ -236,14 +236,16 @@ finalize transfer_from_public:
     input r2 as address.public;
     input r3 as address.public;
     get allowances[r0] into r4;
-    sub r4 r1 into r5;
-    set r5 into allowances[r0];
-    get balances[r2] into r6;
-    sub r6 r1 into r7;
-    set r7 into balances[r2];
-    get.or_use balances[r3] 0u128 into r8;
-    add r8 r1 into r9;
-    set r9 into balances[r3];
+    gte r4 r1 into r5;
+    assert.eq r5 true;
+    sub r4 r1 into r6;
+    set r6 into allowances[r0];
+    get balances[r2] into r7;
+    sub r7 r1 into r8;
+    set r8 into balances[r2];
+    get.or_use balances[r3] 0u128 into r9;
+    add r9 r1 into r10;
+    set r10 into balances[r3];
 
 function transfer_from_public_to_private:
     input r0 as address.public;
@@ -259,11 +261,13 @@ finalize transfer_from_public_to_private:
     input r1 as u128.public;
     input r2 as address.public;
     get allowances[r0] into r3;
-    sub r3 r1 into r4;
-    set r4 into allowances[r0];
-    get balances[r2] into r5;
-    sub r5 r1 into r6;
-    set r6 into balances[r2];
+    gte r3 r1 into r4;
+    assert.eq r4 true;
+    sub r3 r1 into r5;
+    set r5 into allowances[r0];
+    get balances[r2] into r6;
+    sub r6 r1 into r7;
+    set r7 into balances[r2];
 
 function transfer_public_as_signer:
     input r0 as address.private;

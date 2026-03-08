@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import * as AleoUtils from "./lib/aleo-test-utils.js";
 import * as TokenRegistry from "./contracts/token-registry.js";
 import * as WrappedTokenRegistry from "./contracts/wrapped-token-registry.js";
+import { registerArc20WrapperTests, extractRecordPlaintexts } from "./lib/arc20-wrapper-tests.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,14 +31,6 @@ describe("token_registry.aleo", () => {
 
   async function expectRejected(p) {
     await expect(p).rejects.toThrow(/Transaction rejected|failed \(code/i);
-  }
-
-  function extractRecordPlaintexts(stdout) {
-    const s = String(stdout || "");
-    const blocks = [...s.matchAll(/•\s*\{\n[\s\S]*?\n\}/g)].map((m) =>
-      String(m[0]).replace(/^\s*•\s*/m, "").trim(),
-    );
-    return blocks.filter((b) => b.includes("_nonce:") && b.includes("_version:"));
   }
 
   let wrappedTokenRegistryDeployed = false;
@@ -200,6 +193,10 @@ describe("token_registry.aleo", () => {
       "50u128",
     );
     await expectConfirmed(execOut);
+
+    await expectConfirmed(
+      TokenRegistry.unapprovePublic(AleoUtils.accounts[1], CUSTOM_TOKEN_ID, addr0, "50u128"),
+    );
   });
 
   test("transfer_from_public (negative): exceeds allowance rejects", async () => {
@@ -295,87 +292,21 @@ describe("token_registry.aleo", () => {
     expect(beforeW - afterW).toBe(30n);
   });
 
-  test("wrapped_token_registry: transfer via Transferrable interface", async () => {
-    if (!wrappedTokenRegistryDeployed) {
-      console.warn(
-        "Skipping: wrapped_token_registry not deployed (dependency deploy skips both programs)",
-      );
-      return;
-    }
-    await setupWrappedToken();
-    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
-
-    const transferExec = await WrappedTokenRegistry.transferPublic(
-      AleoUtils.accounts[0],
-      addr1,
-      "150u128",
-    );
-    await expectConfirmed(transferExec);
-
-    const execBack = await WrappedTokenRegistry.transferPublic(
-      AleoUtils.accounts[1],
-      addr0,
-      "50u128",
-    );
-    await expectConfirmed(execBack);
-  });
-
-  test("wrapped_token_registry: shield via Transferrable interface", async () => {
-    if (!wrappedTokenRegistryDeployed) return;
-    await setupWrappedToken();
-    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
-
-    const before0 = await WrappedTokenRegistry.getPublicBalance(addr0);
-    const exec = await WrappedTokenRegistry.shield(AleoUtils.accounts[0], "100u128");
-    await expectConfirmed(exec);
-    const records = extractRecordPlaintexts(exec.stdout);
-    expect(records.length).toBeGreaterThanOrEqual(1);
-    const after0 = await WrappedTokenRegistry.getPublicBalance(addr0);
-    expect(before0 - after0).toBe(100n);
-  });
-
-  test("wrapped_token_registry: approve_public and transfer_from_public", async () => {
-    if (!wrappedTokenRegistryDeployed) return;
-    await setupWrappedToken();
-    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
-
-    await expectConfirmed(await WrappedTokenRegistry.approvePublic(AleoUtils.accounts[0], addr1, "150u128"));
-
-    const before0 = await WrappedTokenRegistry.getPublicBalance(addr0);
-    const before1 = await WrappedTokenRegistry.getPublicBalance(addr1);
-    await expectConfirmed(
-      WrappedTokenRegistry.transferFromPublic(AleoUtils.accounts[1], addr0, addr1, "100u128"),
-    );
-    const after0 = await WrappedTokenRegistry.getPublicBalance(addr0);
-    const after1 = await WrappedTokenRegistry.getPublicBalance(addr1);
-    expect(before0 - after0).toBe(100n);
-    expect(after1 - before1).toBe(100n);
-  });
-
-  test("wrapped_token_registry: transfer_private via Transferrable interface", async () => {
-    if (!wrappedTokenRegistryDeployed) return;
-    await setupWrappedToken();
-    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
-    const toPrivate = await WrappedTokenRegistry.shield(AleoUtils.accounts[0], "80u128");
-    await expectConfirmed(toPrivate);
-    const tokenRecords = extractRecordPlaintexts(toPrivate.stdout);
-    expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
-
-    const before0 = await WrappedTokenRegistry.getPublicBalance(addr0);
-    const before1 = await WrappedTokenRegistry.getPublicBalance(addr1);
-    const transferExec = await WrappedTokenRegistry.transferPrivate(
-      AleoUtils.accounts[0],
-      tokenRecords[0],
-      addr1,
-      "30u128",
-    );
-    await expectConfirmed(transferExec);
-    const outRecords = extractRecordPlaintexts(transferExec.stdout);
-    expect(outRecords.length).toBeGreaterThanOrEqual(2);
-
-    const after0 = await WrappedTokenRegistry.getPublicBalance(addr0);
-    const after1 = await WrappedTokenRegistry.getPublicBalance(addr1);
-    expect(after0).toBe(before0);
-    expect(after1).toBe(before1);
+  registerArc20WrapperTests({
+    Wrapper: WrappedTokenRegistry,
+    accounts: AleoUtils.accounts,
+    addresses: AleoUtils.addresses,
+    expectConfirmed,
+    expectRejected,
+    skipCondition: () => !wrappedTokenRegistryDeployed,
+    ensureBalance: async () => {
+      if (!wrappedTokenRegistryDeployed) return;
+      await setupWrappedToken();
+      const b = await WrappedTokenRegistry.getPublicBalance(addr0);
+      if (b < 500n) {
+        const r = await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128");
+        await expectConfirmed(r);
+      }
+    },
   });
 });

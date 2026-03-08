@@ -92,6 +92,16 @@ export async function approvePublic(account, tokenId, spender, amount) {
   );
 }
 
+export async function unapprovePublic(account, tokenId, spender, amount) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(
+    PROGRAM_PATH,
+    "unapprove_public",
+    [tokenId, spender, amount],
+    { privateKey },
+  );
+}
+
 export async function transferFromPublic(account, tokenId, owner, recipient, amount) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(
