@@ -116,19 +116,18 @@ program wrapped_credits.aleo: ARC20 {
     }
 
     fn shield(public amount: u128) -> (Token, Final) {
-        let token = Token { owner: self.caller, amount };
-        let caller = self.caller;
+        let signer = self.signer;
+        let token = Token { owner: signer, amount };
         return (
             token,
             final {
-                let previous_balance_caller = balances.get(caller);
-                balances.set(caller, previous_balance_caller - amount); // TODO: do we error automatically on underflow?
+                let previous_balance_caller = balances.get(signer);
+                balances.set(signer, previous_balance_caller - amount); // TODO: do we error automatically on underflow?
             },
         );
     }
 
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final) {
-        assert(input.owner == self.signer);
         assert(input.amount >= amount);
         let (credits_record, credits_finalization) = credits.aleo/transfer_public_to_private(
             input.owner,

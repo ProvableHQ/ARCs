@@ -13,7 +13,7 @@ struct TokenAllowance {
     spender: address,
 }
 
-// ARC20 interface. Uses local Token for all private functions.
+// ARC20 interface.
 interface ARC20 {
     record Token;
 
@@ -58,23 +58,7 @@ program wrapped_token_registry.aleo: ARC20 {
         };
     }
 
-    fn deposit_token_private(
-        input: token_registry.aleo/Token,
-        amount: u128,
-    ) -> (token_registry.aleo/Token, Final) {
-        assert(input.owner == self.signer);
-        assert(input.token_id == WRAPPED_TOKEN_ID);
-        assert(input.amount >= amount);
-        let (change_token, _) = token_registry.aleo/transfer_private(input, self.address, amount);
-        let depositor = self.signer;
-        return (
-            change_token,
-            final {
-                let prev = balances.get_or_use(depositor, 0u128);
-                balances.set(depositor, prev + amount);
-            },
-        );
-    }
+    // deposit_token_private not possible because token_registry doesn't support transfer_private_to_public
 
     fn withdraw_token_public(amount: u128) -> Final {
         let withdrawer = self.caller;
@@ -125,34 +109,34 @@ program wrapped_token_registry.aleo: ARC20 {
     }
 
     fn shield(public amount: u128) -> (Token, Final) {
-        let caller = self.caller;
+        let signer = self.signer;
         let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(
             WRAPPED_TOKEN_ID,
-            caller,
+            signer,
             amount,
             false,
         );
         return (
             Token { owner: token_out.owner, amount: token_out.amount },
             final {
-                let prev = balances.get(caller);
-                balances.set(caller, prev - amount);
+                let prev = balances.get(signer);
+                balances.set(signer, prev - amount);
                 tr_final.run();
             },
         );
     }
 
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final) {
-        assert(input.owner == self.signer);
         assert(input.amount >= amount);
         let change_token = Token { owner: input.owner, amount: input.amount - amount };
         let zero_token = Token { owner: input.owner, amount: 0u128 };
+        let owner = input.owner;
         return (
             change_token,
             zero_token,
             final {
-                let prev = balances.get_or_use(input.owner, 0u128);
-                balances.set(input.owner, prev + amount);
+                let prev = balances.get_or_use(owner, 0u128);
+                balances.set(owner, prev + amount);
             },
         );
     }

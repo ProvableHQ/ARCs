@@ -126,8 +126,8 @@ finalize transfer_public:
 
 function shield:
     input r0 as u128.public;
-    cast self.caller r0 into r1 as Token.record;
-    async shield self.caller r0 into r2;
+    cast self.signer r0 into r1 as Token.record;
+    async shield self.signer r0 into r2;
     output r1 as Token.record;
     output r2 as wrapped_credits.aleo/shield.future;
 
@@ -141,21 +141,19 @@ finalize shield:
 function unshield:
     input r0 as Token.record;
     input r1 as u128.private;
-    is.eq r0.owner self.signer into r2;
+    gte r0.amount r1 into r2;
     assert.eq r2 true;
-    gte r0.amount r1 into r3;
-    assert.eq r3 true;
-    cast r1 into r4 as u64;
-    call credits.aleo/transfer_public_to_private r0.owner r4 into r5 r6;
-    cast r1 into r7 as u64;
-    call credits.aleo/transfer_private_to_public r5 r0.owner r7 into r8 r9;
-    sub r0.amount r1 into r10;
-    cast r0.owner r10 into r11 as Token.record;
-    cast r0.owner 0u128 into r12 as Token.record;
-    async unshield r6 r9 into r13;
+    cast r1 into r3 as u64;
+    call credits.aleo/transfer_public_to_private r0.owner r3 into r4 r5;
+    cast r1 into r6 as u64;
+    call credits.aleo/transfer_private_to_public r4 r0.owner r6 into r7 r8;
+    sub r0.amount r1 into r9;
+    cast r0.owner r9 into r10 as Token.record;
+    cast r0.owner 0u128 into r11 as Token.record;
+    async unshield r5 r8 into r12;
+    output r10 as Token.record;
     output r11 as Token.record;
-    output r12 as Token.record;
-    output r13 as wrapped_credits.aleo/unshield.future;
+    output r12 as wrapped_credits.aleo/unshield.future;
 
 finalize unshield:
     input r0 as credits.aleo/transfer_public_to_private.future;

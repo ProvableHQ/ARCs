@@ -36,13 +36,6 @@ export async function depositTokenPublic(account, amountU128) {
   });
 }
 
-export async function depositTokenPrivate(account, inputRecord, amountU128) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(PROGRAM_PATH, "deposit_token_private", [inputRecord, amountU128], {
-    privateKey,
-  });
-}
-
 export async function withdrawTokenPublic(account, amountU128) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, "withdraw_token_public", [amountU128], {

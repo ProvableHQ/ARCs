@@ -284,15 +284,13 @@ describe("wrapped_credits.aleo", () => {
       return;
     }
     const amount = "75u128";
-    await expectConfirmed(
-      WrappedCredits.approvePublic(AleoUtils.accounts[0], exchangeAddress, amount),
-    );
+    const execApprovePublic = await WrappedCredits.approvePublic(AleoUtils.accounts[0], exchangeAddress, amount);
+    await expectConfirmed(execApprovePublic);
 
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
-    await expectConfirmed(
-      DummyExchange.transferFrom(AleoUtils.accounts[0], addr0, addr1, amount),
-    );
+    const execTransferFrom = await DummyExchange.transferFrom(AleoUtils.accounts[0], addr0, addr1, amount);
+    await expectConfirmed(execTransferFrom);
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
     expect(before0 - after0).toBe(75n);

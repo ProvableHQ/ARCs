@@ -82,6 +82,7 @@ export async function waitForTransactionConfirmed(txId, opts = {}) {
 }
 
 export async function waitForTransactionConfirmedFromLeoExecution(execResult, opts = {}) {
+  console.log("execResult", execResult);
   const stdout = execResult?.stdout || "";
   const stderr = execResult?.stderr || "";
   const txId = execResult?.txId || extractTransactionId(`${stdout}\n${stderr}`);
