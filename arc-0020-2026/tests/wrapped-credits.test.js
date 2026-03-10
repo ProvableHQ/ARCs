@@ -24,16 +24,12 @@ describe("wrapped_credits.aleo", () => {
     return await WrappedCredits.getPublicBalance(addr);
   }
 
-  async function expectRejected(p) {
-    await expect(p).rejects.toThrow(/Transaction rejected|failed \(code/i);
-  }
-
   const exchangeAddress = Address.fromProgramId(DummyExchange.PROGRAM_ID).to_string();
   let exchangeDeployed = false;
 
   beforeAll(async () => {
     try {
-      await AleoUtils.startDevnode();
+      await AleoUtils.startDevnode({ suiteName: "wrapped_credits.aleo", port: 3030 });
 
       await AleoUtils.deployProgramFromFile({
         programId: WrappedCredits.PROGRAM_ID,
@@ -128,13 +124,11 @@ describe("wrapped_credits.aleo", () => {
 
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
-    await expectRejected(
-      AleoUtils.leoExecute(
-        programPath,
-        "deposit_credits_private",
-        [creditsRecords[0], "100u64"],
-        { privateKey: pk0 },
-      ),
+    await AleoUtils.leoExecute(
+      programPath,
+      "deposit_credits_private",
+      [creditsRecords[0], "100u64"],
+      { privateKey: pk0, expectRejection: true },
     );
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
@@ -152,9 +146,9 @@ describe("wrapped_credits.aleo", () => {
 
   test("withdraw_credits_public (negative): withdrawing too much rejects and balance unchanged", async () => {
     const before0 = await bal(addr0);
-    await expectRejected(
-      WrappedCredits.withdrawCreditsPublic(AleoUtils.accounts[0], "999999999999u64"),
-    );
+    await WrappedCredits.withdrawCreditsPublic(AleoUtils.accounts[0], "999999999999u64", {
+      expectRejection: true,
+    });
     const after0 = await bal(addr0);
     expect(after0).toBe(before0);
   });
@@ -170,9 +164,9 @@ describe("wrapped_credits.aleo", () => {
   test("withdraw_credits_public_signer (negative): withdrawing too much rejects", async () => {
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
-    await expectRejected(
-      WrappedCredits.withdrawCreditsPublicSigner(AleoUtils.accounts[0], "999999999999u64"),
-    );
+    await WrappedCredits.withdrawCreditsPublicSigner(AleoUtils.accounts[0], "999999999999u64", {
+      expectRejection: true,
+    });
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
     expect(after0).toBe(before0);
@@ -184,7 +178,6 @@ describe("wrapped_credits.aleo", () => {
     accounts: AleoUtils.accounts,
     addresses: AleoUtils.addresses,
     expectConfirmed,
-    expectRejected,
   });
 
   test("withdraw_credits_private (positive): converts Token amount into private credits record", async () => {
@@ -246,13 +239,11 @@ describe("wrapped_credits.aleo", () => {
 
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
-    await expectRejected(
-      AleoUtils.leoExecute(
-        programPath,
-        "withdraw_credits_private",
-        [tokenRecords[0], "100u64"],
-        { privateKey: pk0 },
-      ),
+    await AleoUtils.leoExecute(
+      programPath,
+      "withdraw_credits_private",
+      [tokenRecords[0], "100u64"],
+      { privateKey: pk0, expectRejection: true },
     );
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
@@ -304,9 +295,9 @@ describe("wrapped_credits.aleo", () => {
     }
     const amount = (await bal(addr1)) + 1n;
     const before0 = await bal(addr0);
-    await expectRejected(
-      WrappedCredits.transferPublicAsSigner(AleoUtils.accounts[1], addr0, `${amount}u128`),
-    );
+    await WrappedCredits.transferPublicAsSigner(AleoUtils.accounts[1], addr0, `${amount}u128`, {
+      expectRejection: true,
+    });
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
     expect(after0).toBe(before0);

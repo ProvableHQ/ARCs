@@ -29,15 +29,11 @@ describe("token_registry.aleo", () => {
     await AleoUtils.waitForTransactionConfirmedFromLeoExecution(execResult);
   }
 
-  async function expectRejected(p) {
-    await expect(p).rejects.toThrow(/Transaction rejected|failed \(code/i);
-  }
-
   let wrappedTokenRegistryDeployed = false;
 
   beforeAll(async () => {
     try {
-      await AleoUtils.startDevnode();
+      await AleoUtils.startDevnode({ suiteName: "token_registry.aleo", port: 3031 });
 
       await AleoUtils.deployProgramFromFile({
         programId: TokenRegistry.PROGRAM_ID,
@@ -46,7 +42,7 @@ describe("token_registry.aleo", () => {
 
       try {
         const prevEndpoint = process.env.ENDPOINT;
-        process.env.ENDPOINT = AleoUtils.NETWORK_URL;
+        process.env.ENDPOINT = AleoUtils.getNetworkUrl();
         await AleoUtils.deployProgramFromFile({
           programId: WrappedTokenRegistry.PROGRAM_ID,
           programPath: wrappedProgramPath,
@@ -73,7 +69,7 @@ describe("token_registry.aleo", () => {
   });
 
   test("initialize (negative): rejects second call", async () => {
-    await expectRejected(TokenRegistry.initialize(AleoUtils.accounts[0]));
+    await TokenRegistry.initialize(AleoUtils.accounts[0], { expectRejection: true });
   });
 
   test("register_token: admin can register a custom token", async () => {
@@ -97,13 +93,11 @@ describe("token_registry.aleo", () => {
     const name = "1413829460u128";
     const symbol = "1413829460u128";
     const decimals = "6u8";
-    await expectRejected(
-      AleoUtils.leoExecute(
-        programPath,
-        "register_token",
-        [CUSTOM_TOKEN_ID, name, symbol, decimals, MAX_SUPPLY, "false", addr0],
-        { privateKey: pk0 },
-      ),
+    await AleoUtils.leoExecute(
+      programPath,
+      "register_token",
+      [CUSTOM_TOKEN_ID, name, symbol, decimals, MAX_SUPPLY, "false", addr0],
+      { privateKey: pk0, expectRejection: true },
     );
   });
 
@@ -127,14 +121,13 @@ describe("token_registry.aleo", () => {
   });
 
   test("mint_public (negative): non-admin cannot mint", async () => {
-    await expectRejected(
-      TokenRegistry.mintPublic(
-        AleoUtils.accounts[1],
-        CUSTOM_TOKEN_ID,
-        addr1,
-        "100u128",
-        AUTHORIZED_UNTIL,
-      ),
+    await TokenRegistry.mintPublic(
+      AleoUtils.accounts[1],
+      CUSTOM_TOKEN_ID,
+      addr1,
+      "100u128",
+      AUTHORIZED_UNTIL,
+      { expectRejection: true },
     );
   });
 
@@ -157,25 +150,23 @@ describe("token_registry.aleo", () => {
   });
 
   test("transfer_public (negative): insufficient balance rejects", async () => {
-    await expectRejected(
-      TokenRegistry.transferPublic(
-        AleoUtils.accounts[1],
-        CUSTOM_TOKEN_ID,
-        addr0,
-        "999999999999u128",
-      ),
+    await TokenRegistry.transferPublic(
+      AleoUtils.accounts[1],
+      CUSTOM_TOKEN_ID,
+      addr0,
+      "999999999999u128",
+      { expectRejection: true },
     );
   });
 
   test("transfer_from_public (negative): exceeds allowance rejects", async () => {
-    await expectRejected(
-      TokenRegistry.transferFromPublic(
-        AleoUtils.accounts[0],
-        CUSTOM_TOKEN_ID,
-        addr1,
-        addr0,
-        "999999u128",
-      ),
+    await TokenRegistry.transferFromPublic(
+      AleoUtils.accounts[0],
+      CUSTOM_TOKEN_ID,
+      addr1,
+      addr0,
+      "999999u128",
+      { expectRejection: true },
     );
   });
 
@@ -235,7 +226,6 @@ describe("token_registry.aleo", () => {
     accounts: AleoUtils.accounts,
     addresses: AleoUtils.addresses,
     expectConfirmed,
-    expectRejected,
     ensureBalance: async () => {
       await setupWrappedToken();
       const b = await WrappedTokenRegistry.getPublicBalance(addr0);

@@ -8,7 +8,11 @@ import { Account } from "@provablehq/sdk";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const NETWORK_URL = process.env.NETWORK_URL || "http://127.0.0.1:3030";
+let _networkUrl = process.env.NETWORK_URL || "http://127.0.0.1:3030";
+
+export function getNetworkUrl() {
+  return _networkUrl;
+}
 
 export const DEFAULT_PRIVATE_KEYS = [
   "APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH",
@@ -37,7 +41,8 @@ export function extractTransactionId(output) {
 
 async function fetchTransactionConfirmedOnce(txId) {
   const suffix = `/transaction/confirmed/${txId}`;
-  const urls = [`${NETWORK_URL}${suffix}`, `${NETWORK_URL}/testnet${suffix}`];
+  const base = getNetworkUrl();
+  const urls = [`${base}${suffix}`, `${base}/testnet${suffix}`];
 
   let last = null;
   for (const url of urls) {
@@ -82,7 +87,11 @@ export async function waitForTransactionConfirmed(txId, opts = {}) {
 }
 
 export async function waitForTransactionConfirmedFromLeoExecution(execResult, opts = {}) {
-  console.log("execResult", execResult);
+  if (execResult?.rejected) {
+    throw new Error(
+      "Expected successful execution but got rejection. Do not pass expectRejection results to expectConfirmed.",
+    );
+  }
   const stdout = execResult?.stdout || "";
   const stderr = execResult?.stderr || "";
   const txId = execResult?.txId || extractTransactionId(`${stdout}\n${stderr}`);
@@ -191,9 +200,18 @@ export async function startDevnode(opts = {}) {
   const logsDir = path.join(__dirname, "..", "logs");
   fs.mkdirSync(logsDir, { recursive: true });
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const logPath = opts.logPath || path.join(logsDir, `snarkos-devnet-${timestamp}.log`);
+  const suiteSuffix = opts.suiteName
+    ? `-${String(opts.suiteName).replace(/[^a-zA-Z0-9_-]/g, "_")}`
+    : "";
+  const logPath =
+    opts.logPath || path.join(logsDir, `snarkos-devnet-${timestamp}${suiteSuffix}.log`);
+  const port = opts.port ?? 3030;
+  const socketAddr = opts.socketAddr ?? `127.0.0.1:${port}`;
+  const storageSuffix = opts.suiteName
+    ? `-${String(opts.suiteName).replace(/[^a-zA-Z0-9_-]/g, "_")}`
+    : `-${port}`;
   const storageRoot =
-    opts.storageRoot || path.join(__dirname, "..", ".snarkos-devnet");
+    opts.storageRoot || path.join(__dirname, "..", `.snarkos-devnet${storageSuffix}`);
 
   if (opts.clearStorage !== false) {
     try {
@@ -209,6 +227,8 @@ export async function startDevnode(opts = {}) {
   devnetLogStream = fs.createWriteStream(logPath, { flags: "a" });
   devnetLogStream.write(`\n=== devnet start ${new Date().toISOString()} ===\n`);
 
+  _networkUrl = `http://${socketAddr}`;
+
   devnetProc = spawn(
     leoDevnodeBin,
     [
@@ -218,6 +238,8 @@ export async function startDevnode(opts = {}) {
       privateKey,
       "--network",
       "testnet",
+      "--socket-addr",
+      socketAddr,
     ],
     { stdio: ["ignore", "pipe", "pipe"] },
   );
@@ -231,15 +253,15 @@ export async function startDevnode(opts = {}) {
     try {
       // Some snarkOS REST endpoints are network-prefixed (e.g. /testnet),
       // while others are not. Try both for compatibility.
-      const r1 = await fetch(`${NETWORK_URL}/block/height/latest`);
+      const r1 = await fetch(`${_networkUrl}/block/height/latest`);
       if (r1.ok) break;
-      const r2 = await fetch(`${NETWORK_URL}/testnet/block/height/latest`);
+      const r2 = await fetch(`${_networkUrl}/testnet/block/height/latest`);
       if (r2.ok) break;
     } catch {
       // ignore
     }
     if (Date.now() - startedAt > maxWaitMs) {
-      throw new Error(`Timed out waiting for local devnet at ${NETWORK_URL} to start`);
+      throw new Error(`Timed out waiting for local devnet at ${_networkUrl} to start`);
     }
     await sleep(1000);
   }
@@ -291,7 +313,7 @@ export async function waitForMinHeight(minHeight, timeoutMs = 120_000) {
     // Try both REST variants (prefixed and non-prefixed).
     let txt1 = "";
     try {
-      const r1 = await fetch(`${NETWORK_URL}/block/height/latest`);
+      const r1 = await fetch(`${getNetworkUrl()}/block/height/latest`);
       txt1 = await r1.text();
       const h1 = Number(txt1);
       if (Number.isFinite(h1) && h1 >= minHeight) return h1;
@@ -301,7 +323,7 @@ export async function waitForMinHeight(minHeight, timeoutMs = 120_000) {
 
     let txt2 = "";
     try {
-      const r2 = await fetch(`${NETWORK_URL}/testnet/block/height/latest`);
+      const r2 = await fetch(`${getNetworkUrl()}/testnet/block/height/latest`);
       txt2 = await r2.text();
       const h2 = Number(txt2);
       if (Number.isFinite(h2) && h2 >= minHeight) return h2;
@@ -329,7 +351,7 @@ export async function leoDeploy(programPath, opts = {}) {
     "--network",
     "testnet",
     "--endpoint",
-    NETWORK_URL,
+    getNetworkUrl(),
     "--private-key",
     privateKey,
     "--broadcast",
@@ -351,35 +373,51 @@ export async function leoDeploy(programPath, opts = {}) {
 
 export async function leoExecute(programPath, fnName, inputs, opts = {}) {
   const privateKey = opts.privateKey || DEFAULT_PRIVATE_KEYS[0];
+  const expectRejection = opts.expectRejection === true;
 
-  const res = await run(
-    LEO_BIN,
-    [
-      "execute",
-      fnName,
-      ...(inputs || []),
-      "--broadcast",
-      "--network",
-      "testnet",
-      "--endpoint",
-      NETWORK_URL,
-      "--private-key",
-      privateKey,
-      "--yes",
-      "--devnet",
-      "--max-wait",
-      String(opts.maxWait ?? 15),
-      "--blocks-to-check",
-      String(opts.blocksToCheck ?? 15),
-    ],
-    { cwd: programPath, label: `leo execute ${fnName}` },
-  );
-  if (res.stdout.includes("Transaction rejected")) {
-    throw new Error(`Transaction rejected.\n\n${res.stdout}`);
+  try {
+    const res = await run(
+      LEO_BIN,
+      [
+        "execute",
+        fnName,
+        ...(inputs || []),
+        "--broadcast",
+        "--network",
+        "testnet",
+        "--endpoint",
+        getNetworkUrl(),
+        "--private-key",
+        privateKey,
+        "--yes",
+        "--devnet",
+        "--max-wait",
+        String(opts.maxWait ?? 15),
+        "--blocks-to-check",
+        String(opts.blocksToCheck ?? 15),
+      ],
+      { cwd: programPath, label: `leo execute ${fnName}` },
+    );
+    if (res.stdout.includes("Transaction rejected")) {
+      if (expectRejection) {
+        return { rejected: true, stdout: res.stdout, stderr: res.stderr };
+      }
+      throw new Error(`Transaction rejected.\n\n${res.stdout}`);
+    }
+    if (expectRejection) {
+      throw new Error(
+        `Expected execution to reject but it succeeded.\n\n--- stdout ---\n${res.stdout}\n\n--- stderr ---\n${res.stderr}`,
+      );
+    }
+
+    const txId = extractTransactionId(`${res.stdout}\n${res.stderr}`);
+    return { ...res, txId };
+  } catch (err) {
+    if (expectRejection) {
+      return { rejected: true, error: err };
+    }
+    throw err;
   }
-
-  const txId = extractTransactionId(`${res.stdout}\n${res.stderr}`);
-  return { ...res, txId };
 }
 
 export async function leoMappingValue(programName, mappingName, key, opts = {}) {
@@ -395,7 +433,7 @@ export async function leoMappingValue(programName, mappingName, key, opts = {}) 
       "--network",
       "testnet",
       "--endpoint",
-      NETWORK_URL,
+      getNetworkUrl(),
     ],
     { label: "leo query program --mapping-value" },
   );
@@ -410,10 +448,11 @@ export async function leoProgramExists(programName, opts = {}) {
       "--network",
       "testnet",
       "--endpoint",
-      NETWORK_URL,
+      getNetworkUrl(),
     ];
+    const url = getNetworkUrl();
     const isLocalEndpoint =
-      NETWORK_URL.includes("127.0.0.1") || NETWORK_URL.includes("localhost");
+      url.includes("127.0.0.1") || url.includes("localhost");
     if (opts.devnet !== false && isLocalEndpoint) {
       args.push("--devnet");
     }

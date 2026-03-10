@@ -7,11 +7,10 @@
  * @param {Object[]} config.accounts - AleoUtils.accounts
  * @param {string[]} config.addresses - AleoUtils.addresses
  * @param {Function} config.expectConfirmed - (execResult) => Promise
- * @param {Function} config.expectRejected - (promise) => Promise
  * @param {Function} [config.ensureBalance] - async () => ensure addr0 has enough balance before tests
  */
 export function registerArc20WrapperTests(config) {
-  const { Wrapper, accounts, addresses, expectConfirmed, expectRejected, ensureBalance } = config;
+  const { Wrapper, accounts, addresses, expectConfirmed, ensureBalance } = config;
   const addr0 = addresses[0];
   const addr1 = addresses[1];
   const addr2 = addresses[2];
@@ -48,7 +47,7 @@ export function registerArc20WrapperTests(config) {
     test("transfer_public (negative): insufficient balance rejects", async () => {
       const before1 = await bal(addr1);
       const amount = before1 + 1n;
-      await expectRejected(Wrapper.transferPublic(accounts[1], addr0, `${amount}u128`));
+      await Wrapper.transferPublic(accounts[1], addr0, `${amount}u128`, { expectRejection: true });
       const after1 = await bal(addr1);
       expect(after1).toBe(before1);
     });
@@ -66,7 +65,7 @@ export function registerArc20WrapperTests(config) {
     test("shield (negative): shielding too much rejects", async () => {
       const before0 = await bal(addr0);
       const before1 = await bal(addr1);
-      await expectRejected(Wrapper.shield(accounts[0], "999999999999999999999999u128"));
+      await Wrapper.shield(accounts[0], "999999999999999999999999u128", { expectRejection: true });
       const after0 = await bal(addr0);
       const after1 = await bal(addr1);
       expect(after0).toBe(before0);
@@ -101,9 +100,9 @@ export function registerArc20WrapperTests(config) {
 
       const before0 = await bal(addr0);
       const before1 = await bal(addr1);
-      await expectRejected(
-        Wrapper.transferPrivate(accounts[0], tokenRecords[0], addr0, "1u128"),
-      );
+      await Wrapper.transferPrivate(accounts[0], tokenRecords[0], addr0, "1u128", {
+        expectRejection: true,
+      });
       const after0 = await bal(addr0);
       const after1 = await bal(addr1);
       expect(after0).toBe(before0);
@@ -134,9 +133,9 @@ export function registerArc20WrapperTests(config) {
 
       const before0 = await bal(addr0);
       const before1 = await bal(addr1);
-      await expectRejected(
-        Wrapper.transferPrivateToPublic(accounts[0], tokenRecords[0], addr0, "1u128"),
-      );
+      await Wrapper.transferPrivateToPublic(accounts[0], tokenRecords[0], addr0, "1u128", {
+        expectRejection: true,
+      });
       const after0 = await bal(addr0);
       const after1 = await bal(addr1);
       expect(after0).toBe(before0);
@@ -163,8 +162,9 @@ export function registerArc20WrapperTests(config) {
 
       const before0 = await bal(addr0);
       const before3 = await bal(addr3);
-      const execTransferFromPublic = await Wrapper.transferFromPublic(accounts[3], addr0, addr3, "50u128");
-      await expectRejected(execTransferFromPublic);
+      await Wrapper.transferFromPublic(accounts[3], addr0, addr3, "50u128", {
+        expectRejection: true,
+      });
       const after0 = await bal(addr0);
       const after3 = await bal(addr3);
       expect(after0).toBe(before0);
@@ -184,9 +184,9 @@ export function registerArc20WrapperTests(config) {
       expect(before0 - after0).toBe(100n);
       expect(after2 - before2).toBe(100n);
 
-      await expectRejected(
-        Wrapper.transferFromPublic(accounts[2], addr0, addr2, "1u128"),
-      );
+      await Wrapper.transferFromPublic(accounts[2], addr0, addr2, "1u128", {
+        expectRejection: true,
+      });
 
       await expectConfirmed(await Wrapper.unapprovePublic(accounts[0], addr2, "100u128"));
     });

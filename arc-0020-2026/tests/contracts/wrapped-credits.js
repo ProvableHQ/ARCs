@@ -32,38 +32,43 @@ export async function getPublicBalance(address) {
   }
 }
 
-export async function depositCreditsPublic(account, amountU64) {
+export async function depositCreditsPublic(account, amountU64, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `deposit_credits_public`, [amountU64], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function withdrawCreditsPublic(account, amountU64) {
+export async function withdrawCreditsPublic(account, amountU64, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `withdraw_credits_public`, [amountU64], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function withdrawCreditsPublicSigner(account, amountU64) {
+export async function withdrawCreditsPublicSigner(account, amountU64, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `withdraw_credits_public_signer`, [amountU64], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function transferPublic(account, to, amountU128) {
+export async function transferPublic(account, to, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `transfer_public`, [to, amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function shield(account, amountU128) {
+export async function shield(account, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `shield`, [amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
@@ -74,24 +79,27 @@ export async function unshield(account, inputRecord, amountU128) {
   });
 }
 
-export async function transferPrivate(account, inputRecord, to, amountU128) {
+export async function transferPrivate(account, inputRecord, to, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `transfer_private`, [inputRecord, to, amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function transferPrivateToPublic(account, inputRecord, to, amountU128) {
+export async function transferPrivateToPublic(account, inputRecord, to, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, "transfer_private_to_public", [inputRecord, to, amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function transferPublicAsSigner(account, to, amountU128) {
+export async function transferPublicAsSigner(account, to, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `transfer_public_as_signer`, [to, amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
@@ -109,10 +117,11 @@ export async function unapprovePublic(account, spender, amountU128) {
   });
 }
 
-export async function transferFromPublic(account, owner, recipient, amountU128) {
+export async function transferFromPublic(account, owner, recipient, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `transfer_from_public`, [owner, recipient, amountU128], {
     privateKey,
+    ...opts,
   });
 }
 

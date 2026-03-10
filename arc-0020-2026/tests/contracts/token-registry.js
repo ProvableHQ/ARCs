@@ -45,40 +45,51 @@ export async function getPublicBalance(tokenId, address) {
   }
 }
 
-export async function initialize(account) {
+export async function initialize(account, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, "initialize", [], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function registerToken(account, tokenId, name, symbol, decimals, maxSupply, extAuthRequired, extAuthParty) {
+export async function registerToken(
+  account,
+  tokenId,
+  name,
+  symbol,
+  decimals,
+  maxSupply,
+  extAuthRequired,
+  extAuthParty,
+  opts = {},
+) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(
     PROGRAM_PATH,
     "register_token",
     [tokenId, name, symbol, decimals, maxSupply, extAuthRequired, extAuthParty],
-    { privateKey },
+    { privateKey, ...opts },
   );
 }
 
-export async function mintPublic(account, tokenId, recipient, amount, authorizedUntil) {
+export async function mintPublic(account, tokenId, recipient, amount, authorizedUntil, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(
     PROGRAM_PATH,
     "mint_public",
     [tokenId, recipient, amount, authorizedUntil],
-    { privateKey },
+    { privateKey, ...opts },
   );
 }
 
-export async function transferPublic(account, tokenId, recipient, amount) {
+export async function transferPublic(account, tokenId, recipient, amount, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(
     PROGRAM_PATH,
     "transfer_public",
     [tokenId, recipient, amount],
-    { privateKey },
+    { privateKey, ...opts },
   );
 }
 
@@ -102,13 +113,13 @@ export async function unapprovePublic(account, tokenId, spender, amount) {
   );
 }
 
-export async function transferFromPublic(account, tokenId, owner, recipient, amount) {
+export async function transferFromPublic(account, tokenId, owner, recipient, amount, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(
     PROGRAM_PATH,
     "transfer_from_public",
     [tokenId, owner, recipient, amount],
-    { privateKey },
+    { privateKey, ...opts },
   );
 }
 

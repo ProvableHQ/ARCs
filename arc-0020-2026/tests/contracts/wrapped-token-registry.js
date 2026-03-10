@@ -57,17 +57,19 @@ export async function withdrawTokenPrivate(account, amountU128) {
   });
 }
 
-export async function transferPublic(account, recipient, amountU128) {
+export async function transferPublic(account, recipient, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, "transfer_public", [recipient, amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function shield(account, amountU128) {
+export async function shield(account, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, "shield", [amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
@@ -78,17 +80,19 @@ export async function unshield(account, inputRecord, amountU128) {
   });
 }
 
-export async function transferPrivate(account, inputRecord, to, amountU128) {
+export async function transferPrivate(account, inputRecord, to, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, "transfer_private", [inputRecord, to, amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
-export async function transferPrivateToPublic(account, inputRecord, to, amountU128) {
+export async function transferPrivateToPublic(account, inputRecord, to, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, "transfer_private_to_public", [inputRecord, to, amountU128], {
     privateKey,
+    ...opts,
   });
 }
 
@@ -106,9 +110,10 @@ export async function unapprovePublic(account, spender, amountU128) {
   });
 }
 
-export async function transferFromPublic(account, owner, recipient, amountU128) {
+export async function transferFromPublic(account, owner, recipient, amountU128, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, "transfer_from_public", [owner, recipient, amountU128], {
     privateKey,
+    ...opts,
   });
 }
