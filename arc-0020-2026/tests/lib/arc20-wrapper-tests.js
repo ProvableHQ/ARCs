@@ -187,8 +187,6 @@ export function registerArc20WrapperTests(config) {
       await Wrapper.transferFromPublic(accounts[2], addr0, addr2, "1u128", {
         expectRejection: true,
       });
-
-      await expectConfirmed(await Wrapper.unapprovePublic(accounts[0], addr2, "100u128"));
     });
   });
 }

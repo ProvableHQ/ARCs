@@ -16,6 +16,7 @@ describe("wrapped_credits.aleo", () => {
   const addr0 = AleoUtils.addresses[0];
   const addr1 = AleoUtils.addresses[1];
 
+  // TODO: awaiting confirmation is already natively supported in leo execute right?
   async function expectConfirmed(execResult) {
     await AleoUtils.waitForTransactionConfirmedFromLeoExecution(execResult);
   }
