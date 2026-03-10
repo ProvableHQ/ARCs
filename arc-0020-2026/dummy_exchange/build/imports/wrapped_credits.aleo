@@ -284,5 +284,66 @@ finalize transfer_public_as_signer:
     add r5 r1 into r6;
     set r6 into balances[r2];
 
+function mint_public:
+    input r0 as address.public;
+    input r1 as u128.public;
+    cast r1 into r2 as u64;
+    call credits.aleo/transfer_public_as_signer wrapped_credits.aleo r2 into r3;
+    async mint_public r3 r0 r1 into r4;
+    output r4 as wrapped_credits.aleo/mint_public.future;
+
+finalize mint_public:
+    input r0 as credits.aleo/transfer_public_as_signer.future;
+    input r1 as address.public;
+    input r2 as u128.public;
+    await r0;
+    get.or_use balances[r1] 0u128 into r3;
+    add r3 r2 into r4;
+    set r4 into balances[r1];
+
+function mint_private:
+    input r0 as address.public;
+    input r1 as u128.public;
+    cast r0 r1 into r2 as Token.record;
+    async mint_private self.signer r1 into r3;
+    output r2 as Token.record;
+    output r3 as wrapped_credits.aleo/mint_private.future;
+
+finalize mint_private:
+    input r0 as address.public;
+    input r1 as u128.public;
+    get balances[r0] into r2;
+    sub r2 r1 into r3;
+    set r3 into balances[r0];
+
+function burn_public:
+    input r0 as u128.public;
+    cast r0 into r1 as u64;
+    call credits.aleo/transfer_public self.caller r1 into r2;
+    async burn_public self.caller r0 r2 into r3;
+    output r3 as wrapped_credits.aleo/burn_public.future;
+
+finalize burn_public:
+    input r0 as address.public;
+    input r1 as u128.public;
+    input r2 as credits.aleo/transfer_public.future;
+    get balances[r0] into r3;
+    sub r3 r1 into r4;
+    set r4 into balances[r0];
+    await r2;
+
+function burn_private:
+    input r0 as Token.record;
+    is.eq r0.owner self.signer into r1;
+    assert.eq r1 true;
+    cast r0.amount into r2 as u64;
+    call credits.aleo/transfer_public_to_private r0.owner r2 into r3 r4;
+    async burn_private r4 into r5;
+    output r5 as wrapped_credits.aleo/burn_private.future;
+
+finalize burn_private:
+    input r0 as credits.aleo/transfer_public_to_private.future;
+    await r0;
+
 constructor:
     assert.eq edition 0u16;

@@ -464,7 +464,7 @@ export async function leoProgramExists(programName, opts = {}) {
 }
 
 export async function deployProgramFromFile(opts) {
-  const { programId, programPath, skip, skipProgramCheck } = opts;
+  const { programId, programPath, skip } = opts;
   if (!programId) throw new Error("deployProgramFromFile requires programId");
   if (!programPath) throw new Error("deployProgramFromFile requires programPath");
 
@@ -480,10 +480,8 @@ export async function deployProgramFromFile(opts) {
   }
 
   // Ensure the program can be fetched from the node after deployment.
-  if (!skipProgramCheck) {
-    const ok = await leoProgramExists(programId, opts);
-    if (!ok) throw new Error(`Program ${programId} not found after deployment`);
-  }
+  const ok = await leoProgramExists(programId, opts);
+  if (!ok) throw new Error(`Program ${programId} not found after deployment`);
 
   return { alreadyDeployed: false };
 }

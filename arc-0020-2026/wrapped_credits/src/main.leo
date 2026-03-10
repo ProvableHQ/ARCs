@@ -22,7 +22,7 @@ interface ARC20 {
     fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Final);
     fn shield(public amount: u128) -> (Token, Final);
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
-    
+
     // Interoperability
     fn approve_public(public spender: address, public amount: u128) -> Final;
     fn unapprove_public(public spender: address, public amount: u128) -> Final;
@@ -30,7 +30,15 @@ interface ARC20 {
     fn transfer_from_public_to_private(public owner: address, public amount: u128) -> (Token, Final);
 }
 
-program wrapped_credits.aleo: ARC20 {
+// MintableToken extends ARC20 with mint/burn operations.
+interface MintableToken: ARC20 {
+    fn mint_public(public recipient: address, public amount: u128) -> Final;
+    fn mint_private(public recipient: address, public amount: u128) -> (Token, Final);
+    fn burn_public(public amount: u128) -> Final;
+    fn burn_private(input: Token) -> Final;
+}
+
+program wrapped_credits.aleo: MintableToken {
     @noupgrade
     constructor() {}
 
@@ -230,6 +238,50 @@ program wrapped_credits.aleo: ARC20 {
             balances.set(signer, previous_balance_signer - amount); // TODO: do we error automatically on underflow?
             let previous_balance_receiver = balances.get_or_use(to, 0u128);
             balances.set(to, previous_balance_receiver + amount); // TODO: do we error automatically on overflow?
+        };
+    }
+
+    // MintableToken interface
+    fn mint_public(public recipient: address, public amount: u128) -> Final {
+        let credits_finalization = credits.aleo/transfer_public_as_signer(self.address, amount as u64);
+        let depositor = self.signer;
+        return final {
+            credits_finalization.run();
+            let previous_balance = balances.get_or_use(recipient, 0u128);
+            balances.set(recipient, previous_balance + amount);
+        };
+    }
+
+    fn mint_private(public recipient: address, public amount: u128) -> (Token, Final) {
+        let signer = self.signer;
+        let token = Token { owner: recipient, amount };
+        return (
+            token,
+            final {
+                let previous_balance = balances.get(signer);
+                balances.set(signer, previous_balance - amount);
+            },
+        );
+    }
+
+    fn burn_public(public amount: u128) -> Final {
+        let credits_finalization = credits.aleo/transfer_public(self.caller, amount as u64);
+        let burner = self.caller;
+        return final {
+            let previous_balance = balances.get(burner);
+            balances.set(burner, previous_balance - amount);
+            credits_finalization.run();
+        };
+    }
+
+    fn burn_private(input: Token) -> Final {
+        assert(input.owner == self.signer);
+        let (_, credits_finalization) = credits.aleo/transfer_public_to_private(
+            input.owner,
+            input.amount as u64,
+        );
+        return final {
+            credits_finalization.run();
         };
     }
 }

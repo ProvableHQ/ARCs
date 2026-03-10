@@ -29,31 +29,19 @@ describe("wrapped_credits.aleo", () => {
   let exchangeDeployed = false;
 
   beforeAll(async () => {
-    try {
-      await AleoUtils.startDevnode({ suiteName: "wrapped_credits.aleo", port: 3030 });
+    await AleoUtils.startDevnode({ suiteName: "wrapped_credits.aleo", port: 3030 });
 
-      await AleoUtils.deployProgramFromFile({
-        programId: WrappedCredits.PROGRAM_ID,
-        programPath,
-      });
+    await AleoUtils.deployProgramFromFile({
+      programId: WrappedCredits.PROGRAM_ID,
+      programPath,
+    });
 
-      const exchangePath = path.join(__dirname, "..", "dummy_exchange");
-      try {
-        await AleoUtils.deployProgramFromFile({
-          programId: DummyExchange.PROGRAM_ID,
-          programPath: exchangePath,
-          skipProgramCheck: true,
-          skip: ["wrapped_credits"],
-        });
-      } catch (e) {
-        const exists = await AleoUtils.leoProgramExists(DummyExchange.PROGRAM_ID);
-        if (!exists) throw e;
-      }
-      exchangeDeployed = await AleoUtils.leoProgramExists(DummyExchange.PROGRAM_ID);
-    } catch (e) {
-      await AleoUtils.stopDevnode();
-      throw e;
-    }
+    const exchangePath = path.join(__dirname, "..", "dummy_exchange");
+    await AleoUtils.deployProgramFromFile({
+      programId: DummyExchange.PROGRAM_ID,
+      programPath: exchangePath,
+      skip: ["wrapped_credits"],
+    });
 
     // Ensure addr0 has an initial wrapped balance for tests.
     const b0 = await bal(addr0);
@@ -69,22 +57,18 @@ describe("wrapped_credits.aleo", () => {
     await AleoUtils.stopDevnode();
   });
 
-  test("deposit_credits_public (positive): increases depositor balance", async () => {
+  test("deposit_credits_public (positive and negative test): increases only depositor balance", async () => {
     const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
     const exec = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "1000u64");
     await expectConfirmed(exec);
     const after0 = await bal(addr0);
-    expect(after0 - before0).toBe(1000n);
-  });
-
-  test("deposit_credits_public (negative): does not change other user's balance", async () => {
-    const before1 = await bal(addr1);
-    await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "200u64");
     const after1 = await bal(addr1);
+    expect(after0 - before0).toBe(1000n);
     expect(after1 - before1).toBe(0n);
   });
 
-  test("deposit_credits_private (positive): accepts a credits record and returns a Token", async () => {
+  test("deposit_credits_private (positive and negative test): accepts a credits record and returns a Token", async () => {
     // Create a credits.aleo/credits record for addr0.
     const creditsExec = await AleoUtils.leoExecute(
       programPath,
@@ -97,6 +81,18 @@ describe("wrapped_credits.aleo", () => {
     expect(creditsRecords.length).toBeGreaterThanOrEqual(1);
 
     const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
+    await AleoUtils.leoExecute(
+      programPath,
+      "deposit_credits_private",
+      [creditsRecords[0], "100u64"],
+      { privateKey: pk0, expectRejection: true },
+    );
+    let after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
+
     const dep = await AleoUtils.leoExecute(
       programPath,
       "deposit_credits_private",
@@ -109,32 +105,8 @@ describe("wrapped_credits.aleo", () => {
     expect(outRecords.length).toBeGreaterThanOrEqual(2);
 
     // This transition mints a private Token output and should not touch public balances mapping.
-    const after0 = await bal(addr0);
+    after0 = await bal(addr0);
     expect(after0 - before0).toBe(0n);
-  });
-
-  test("deposit_credits_private (negative): rejects when amount exceeds record value", async () => {
-    const creditsExec = await AleoUtils.leoExecute(
-      programPath,
-      "credits.aleo/transfer_public_to_private",
-      [addr0, "50u64"],
-      { privateKey: pk0 },
-    );
-    const creditsRecords = extractRecordPlaintexts(creditsExec.stdout);
-    expect(creditsRecords.length).toBeGreaterThanOrEqual(1);
-
-    const before0 = await bal(addr0);
-    const before1 = await bal(addr1);
-    await AleoUtils.leoExecute(
-      programPath,
-      "deposit_credits_private",
-      [creditsRecords[0], "100u64"],
-      { privateKey: pk0, expectRejection: true },
-    );
-    const after0 = await bal(addr0);
-    const after1 = await bal(addr1);
-    expect(after0).toBe(before0);
-    expect(after1).toBe(before1);
   });
 
   test("withdraw_credits_public (positive): decreases caller balance", async () => {
@@ -179,6 +151,13 @@ describe("wrapped_credits.aleo", () => {
     accounts: AleoUtils.accounts,
     addresses: AleoUtils.addresses,
     expectConfirmed,
+    ensureBalance: async () => {
+      const b = await bal(addr0);
+      if (b < 500n) {
+        const dep = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "500u64");
+        await expectConfirmed(dep);
+      }
+    },
   });
 
   test("withdraw_credits_private (positive): converts Token amount into private credits record", async () => {

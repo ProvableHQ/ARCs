@@ -15,6 +15,7 @@ struct TokenAllowance {
 
 // ARC20 interface.
 interface ARC20 {
+    // TODO: can we add some record fields.
     record Token;
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
@@ -30,10 +31,18 @@ interface ARC20 {
     fn transfer_from_public_to_private(public owner: address, public amount: u128) -> (Token, Final);
 }
 
+// MintableToken extends ARC20 with mint/burn operations.
+interface MintableToken: ARC20 {
+    fn mint_public(public recipient: address, public amount: u128) -> Final;
+    fn mint_private(public recipient: address, public amount: u128) -> (Token, Final);
+    fn burn_public(public amount: u128) -> Final;
+    fn burn_private(input: Token) -> Final;
+}
+
 // Custom token ID wrapped by this program (distinct from CREDITS_RESERVED_TOKEN_ID)
 const WRAPPED_TOKEN_ID: field = 99999field;
 
-program wrapped_token_registry.aleo: ARC20 {
+program wrapped_token_registry.aleo: MintableToken {
     @noupgrade
     constructor() {}
 
@@ -221,5 +230,49 @@ program wrapped_token_registry.aleo: ARC20 {
             let prev_recv = balances.get_or_use(recipient, 0u128);
             balances.set(recipient, prev_recv + amount);
         };
+    }
+
+    // MintableToken interface
+    fn mint_public(public recipient: address, public amount: u128) -> Final {
+        let tr_final = token_registry.aleo/transfer_public_as_signer(
+            WRAPPED_TOKEN_ID,
+            self.address,
+            amount,
+        );
+        let depositor = self.signer;
+        return final {
+            tr_final.run();
+            let prev = balances.get_or_use(recipient, 0u128);
+            balances.set(recipient, prev + amount);
+        };
+    }
+
+    fn mint_private(public recipient: address, public amount: u128) -> (Token, Final) {
+        let signer = self.signer;
+        let token = Token { owner: recipient, amount };
+        return (
+            token,
+            final {
+                let prev = balances.get(signer);
+                balances.set(signer, prev - amount);
+            },
+        );
+    }
+
+    fn burn_public(public amount: u128) -> Final {
+        let withdrawer = self.caller;
+        let tr_final = token_registry.aleo/transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
+        return final {
+            let prev = balances.get(withdrawer);
+            balances.set(withdrawer, prev - amount);
+            tr_final.run();
+        };
+    }
+
+    fn burn_private(input: Token) -> Final {
+        assert(input.owner == self.signer);
+        // Consume the Token. For wrapped_token_registry, the underlying was already
+        // sent to the owner when they shielded, so we just consume the record.
+        return final {};
     }
 }
