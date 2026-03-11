@@ -32,6 +32,7 @@ describe("token_registry.aleo", () => {
   let wrappedTokenRegistryDeployed = false;
 
   beforeAll(async () => {
+    const start = Date.now();
     try {
       await AleoUtils.startDevnode({ suiteName: "token_registry.aleo", port: 3031 });
 
@@ -57,6 +58,7 @@ describe("token_registry.aleo", () => {
       await AleoUtils.stopDevnode();
       throw e;
     }
+    process.stdout.write(`wrapped-token-registry.test.js beforeAll: ${Date.now() - start}ms\n`);
   });
 
   afterAll(async () => {

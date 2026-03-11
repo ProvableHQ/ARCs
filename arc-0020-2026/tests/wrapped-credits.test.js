@@ -29,6 +29,7 @@ describe("wrapped_credits.aleo", () => {
   let exchangeDeployed = false;
 
   beforeAll(async () => {
+    const start = Date.now();
     await AleoUtils.startDevnode({ suiteName: "wrapped_credits.aleo", port: 3030 });
 
     await AleoUtils.deployProgramFromFile({
@@ -51,6 +52,7 @@ describe("wrapped_credits.aleo", () => {
       const b1 = await bal(addr0);
       expect(b1 - b0).toBe(5000n);
     }
+    process.stdout.write(`wrapped-credits.test.js beforeAll: ${Date.now() - start}ms\n`);
   });
 
   afterAll(async () => {
@@ -68,7 +70,7 @@ describe("wrapped_credits.aleo", () => {
     expect(after1 - before1).toBe(0n);
   });
 
-  test("deposit_credits_private (positive and negative test): accepts a credits record and returns a Token", async () => {
+  test("deposit_credits_private (positive): accepts a credits record and returns a Token", async () => {
     // Create a credits.aleo/credits record for addr0.
     const creditsExec = await AleoUtils.leoExecute(
       programPath,
@@ -81,18 +83,6 @@ describe("wrapped_credits.aleo", () => {
     expect(creditsRecords.length).toBeGreaterThanOrEqual(1);
 
     const before0 = await bal(addr0);
-    const before1 = await bal(addr1);
-    await AleoUtils.leoExecute(
-      programPath,
-      "deposit_credits_private",
-      [creditsRecords[0], "100u64"],
-      { privateKey: pk0, expectRejection: true },
-    );
-    let after0 = await bal(addr0);
-    const after1 = await bal(addr1);
-    expect(after0).toBe(before0);
-    expect(after1).toBe(before1);
-
     const dep = await AleoUtils.leoExecute(
       programPath,
       "deposit_credits_private",
@@ -105,8 +95,32 @@ describe("wrapped_credits.aleo", () => {
     expect(outRecords.length).toBeGreaterThanOrEqual(2);
 
     // This transition mints a private Token output and should not touch public balances mapping.
-    after0 = await bal(addr0);
+    const after0 = await bal(addr0);
     expect(after0 - before0).toBe(0n);
+  });
+
+  test("deposit_credits_private (negative): rejects when amount exceeds record value", async () => {
+    const creditsExec = await AleoUtils.leoExecute(
+      programPath,
+      "credits.aleo/transfer_public_to_private",
+      [addr0, "50u64"],
+      { privateKey: pk0 },
+    );
+    const creditsRecords = extractRecordPlaintexts(creditsExec.stdout);
+    expect(creditsRecords.length).toBeGreaterThanOrEqual(1);
+
+    const before0 = await bal(addr0);
+    const before1 = await bal(addr1);
+    await AleoUtils.leoExecute(
+      programPath,
+      "deposit_credits_private",
+      [creditsRecords[0], "100u64"],
+      { privateKey: pk0, expectRejection: true },
+    );
+    const after0 = await bal(addr0);
+    const after1 = await bal(addr1);
+    expect(after0).toBe(before0);
+    expect(after1).toBe(before1);
   });
 
   test("withdraw_credits_public (positive): decreases caller balance", async () => {
@@ -144,20 +158,6 @@ describe("wrapped_credits.aleo", () => {
     const after1 = await bal(addr1);
     expect(after0).toBe(before0);
     expect(after1).toBe(before1);
-  });
-
-  registerArc20WrapperTests({
-    Wrapper: WrappedCredits,
-    accounts: AleoUtils.accounts,
-    addresses: AleoUtils.addresses,
-    expectConfirmed,
-    ensureBalance: async () => {
-      const b = await bal(addr0);
-      if (b < 500n) {
-        const dep = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "500u64");
-        await expectConfirmed(dep);
-      }
-    },
   });
 
   test("withdraw_credits_private (positive): converts Token amount into private credits record", async () => {
@@ -282,6 +282,22 @@ describe("wrapped_credits.aleo", () => {
     const after1 = await bal(addr1);
     expect(after0).toBe(before0);
     expect(after1).toBe(before1);
+  });
+
+  registerArc20WrapperTests({
+    Wrapper: WrappedCredits,
+    accounts: AleoUtils.accounts,
+    addresses: AleoUtils.addresses,
+    expectConfirmed,
+    ensureBalance: async () => {
+      const b = await bal(addr0);
+      if (b < 500n) {
+        throw new Error("Insufficient balance");
+        //   NOTE: don't deposit more by default because this creates a lot of overhead.
+        //   const dep = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "500u64");
+        //   await expectConfirmed(dep);
+      }
+    },
   });
 });
 

@@ -215,14 +215,13 @@ export function registerArc20WrapperTests(config) {
     test("mint_private (positive): debits signer, outputs Token for recipient", async () => {
       const before0 = await bal(addr0);
       const before1 = await bal(addr1);
-      const amount = 75n;
-      const exec = await Wrapper.mintPrivate(accounts[0], addr1, `${amount}u128`);
+      const exec = await Wrapper.mintPrivate(accounts[0], addr1, "75u128");
       await expectConfirmed(exec);
       const records = extractRecordPlaintexts(exec.stdout);
       expect(records.length).toBeGreaterThanOrEqual(1);
       const after0 = await bal(addr0);
       const after1 = await bal(addr1);
-      expect(before0 - after0).toBe(amount);
+      expect(before0 - after0).toBe(75n);
       expect(after1).toBe(before1);
     });
 
@@ -239,12 +238,11 @@ export function registerArc20WrapperTests(config) {
     });
 
     test("burn_public (positive): decreases caller balance, returns underlying", async () => {
-      const amount = 50n;
       const before0 = await bal(addr0);
-      const exec = await Wrapper.burnPublic(accounts[0], `${amount}u128`);
+      const exec = await Wrapper.burnPublic(accounts[0], "50u128");
       await expectConfirmed(exec);
       const after0 = await bal(addr0);
-      expect(before0 - after0).toBe(amount);
+      expect(before0 - after0).toBe(50n);
     });
 
     test("burn_public (negative): insufficient balance rejects", async () => {

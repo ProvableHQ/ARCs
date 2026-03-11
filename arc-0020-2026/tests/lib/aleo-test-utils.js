@@ -367,6 +367,9 @@ export async function leoDeploy(programPath, opts = {}) {
       args.push("--skip", s);
     }
   }
+  if (process.env.SKIP_LEO_CHECKS === "1") {
+    args.push("--skip-deploy-certificate");
+  }
 
   return await run(LEO_BIN, args, { cwd: programPath, label: "leo deploy" });
 }
@@ -376,28 +379,31 @@ export async function leoExecute(programPath, fnName, inputs, opts = {}) {
   const expectRejection = opts.expectRejection === true;
 
   try {
-    const res = await run(
-      LEO_BIN,
-      [
-        "execute",
-        fnName,
-        ...(inputs || []),
-        "--broadcast",
-        "--network",
-        "testnet",
-        "--endpoint",
-        getNetworkUrl(),
-        "--private-key",
-        privateKey,
-        "--yes",
-        "--devnet",
-        "--max-wait",
-        String(opts.maxWait ?? 15),
-        "--blocks-to-check",
-        String(opts.blocksToCheck ?? 15),
-      ],
-      { cwd: programPath, label: `leo execute ${fnName}` },
-    );
+    const executeArgs = [
+      "execute",
+      fnName,
+      ...(inputs || []),
+      "--broadcast",
+      "--network",
+      "testnet",
+      "--endpoint",
+      getNetworkUrl(),
+      "--private-key",
+      privateKey,
+      "--yes",
+      "--devnet",
+      "--max-wait",
+      String(opts.maxWait ?? 15),
+      "--blocks-to-check",
+      String(opts.blocksToCheck ?? 15),
+    ];
+    if (process.env.SKIP_LEO_CHECKS === "1") {
+      executeArgs.push("--skip-execute-proof");
+    }
+    const res = await run(LEO_BIN, executeArgs, {
+      cwd: programPath,
+      label: `leo execute ${fnName}`,
+    });
     if (res.stdout.includes("Transaction rejected")) {
       if (expectRejection) {
         return { rejected: true, stdout: res.stdout, stderr: res.stderr };
