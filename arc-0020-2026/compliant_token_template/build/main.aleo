@@ -74,13 +74,13 @@ finalize update_role:
     is.eq r4 8u16 into r5;
     assert.eq r5 true;
     is.eq r0 r1 into r6;
-    branch.eq r6 false to end_then_0_0;
+    branch.eq r6 false to end_then_0_10;
     and r2 8u16 into r7;
     is.eq r7 8u16 into r8;
     assert.eq r8 true;
-    branch.eq true true to end_otherwise_0_1;
-    position end_then_0_0;
-    position end_otherwise_0_1;
+    branch.eq true true to end_otherwise_0_11;
+    position end_then_0_10;
+    position end_otherwise_0_11;
     set r2 into address_to_role[r1];
 
 function initialize:
@@ -625,16 +625,16 @@ finalize get_credentials:
     get freezelist.aleo/freeze_list_root[1u8] into r1;
     get freezelist.aleo/block_height_window[true] into r2;
     is.neq r1 r0 into r3;
-    branch.eq r3 false to end_then_0_2;
+    branch.eq r3 false to end_then_0_12;
     get freezelist.aleo/freeze_list_root[2u8] into r4;
     assert.eq r0 r4;
     get freezelist.aleo/root_updated_height[true] into r5;
     add r5 r2 into r6;
     gt r6 block.height into r7;
     assert.eq r7 true;
-    branch.eq true true to end_otherwise_0_3;
-    position end_then_0_2;
-    position end_otherwise_0_3;
+    branch.eq true true to end_otherwise_0_13;
+    position end_then_0_12;
+    position end_otherwise_0_13;
 
 function mint_public:
     input r0 as address.public;
@@ -868,6 +868,26 @@ finalize transfer_public_to_private:
     sub r4 r1 into r5;
     set r5 into balances[r0];
 
+function shield:
+    input r0 as u128.public;
+    cast self.signer r0 into r1 as Token.record;
+    cast aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px r0 self.caller self.signer into r2 as ComplianceRecord.record;
+    async shield self.caller r0 into r3;
+    output r2 as ComplianceRecord.record;
+    output r1 as Token.record;
+    output r3 as compliant_token_template.aleo/shield.future;
+
+finalize shield:
+    input r0 as address.public;
+    input r1 as u128.public;
+    get.or_use freezelist.aleo/freeze_list[r0] false into r2;
+    assert.eq r2 false;
+    get pause[true] into r3;
+    assert.eq r3 false;
+    get balances[r0] into r4;
+    sub r4 r1 into r5;
+    set r5 into balances[r0];
+
 function transfer_from_public_to_private:
     input r0 as address.public;
     input r1 as address.private;
@@ -919,16 +939,16 @@ finalize transfer_private:
     get freezelist.aleo/freeze_list_root[1u8] into r2;
     get freezelist.aleo/block_height_window[true] into r3;
     is.neq r2 r0 into r4;
-    branch.eq r4 false to end_then_0_4;
+    branch.eq r4 false to end_then_0_14;
     get freezelist.aleo/freeze_list_root[2u8] into r5;
     assert.eq r0 r5;
     get freezelist.aleo/root_updated_height[true] into r6;
     add r6 r3 into r7;
     gt r7 block.height into r8;
     assert.eq r8 true;
-    branch.eq true true to end_otherwise_0_5;
-    position end_then_0_4;
-    position end_otherwise_0_5;
+    branch.eq true true to end_otherwise_0_15;
+    position end_then_0_14;
+    position end_otherwise_0_15;
 
 function transfer_private_to_public:
     input r0 as address.public;
@@ -953,16 +973,55 @@ finalize transfer_private_to_public:
     get freezelist.aleo/freeze_list_root[1u8] into r4;
     get freezelist.aleo/block_height_window[true] into r5;
     is.neq r4 r0 into r6;
-    branch.eq r6 false to end_then_0_6;
+    branch.eq r6 false to end_then_0_16;
     get freezelist.aleo/freeze_list_root[2u8] into r7;
     assert.eq r0 r7;
     get freezelist.aleo/root_updated_height[true] into r8;
     add r8 r5 into r9;
     gt r9 block.height into r10;
     assert.eq r10 true;
-    branch.eq true true to end_otherwise_0_7;
-    position end_then_0_6;
-    position end_otherwise_0_7;
+    branch.eq true true to end_otherwise_0_17;
+    position end_then_0_16;
+    position end_otherwise_0_17;
+    get.or_use freezelist.aleo/freeze_list[r1] false into r11;
+    assert.eq r11 false;
+    get.or_use balances[r1] 0u128 into r12;
+    add r12 r2 into r13;
+    set r13 into balances[r1];
+
+function unshield:
+    input r0 as address.public;
+    input r1 as u128.public;
+    input r2 as Token.record;
+    input r3 as [freezelist.aleo/MerkleProof; 2u32].private;
+    call verify_non_inclusion r2.owner r3 into r4;
+    sub r2.amount r1 into r5;
+    cast r2.owner r5 into r6 as Token.record;
+    cast aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px r1 r2.owner r0 into r7 as ComplianceRecord.record;
+    async unshield r4 r0 r1 into r8;
+    output r7 as ComplianceRecord.record;
+    output r6 as Token.record;
+    output r8 as compliant_token_template.aleo/unshield.future;
+
+finalize unshield:
+    input r0 as field.public;
+    input r1 as address.public;
+    input r2 as u128.public;
+    get pause[true] into r3;
+    assert.eq r3 false;
+    get freezelist.aleo/freeze_list_root[1u8] into r4;
+    get freezelist.aleo/block_height_window[true] into r5;
+    is.neq r4 r0 into r6;
+    branch.eq r6 false to end_then_0_18;
+    get freezelist.aleo/freeze_list_root[2u8] into r7;
+    assert.eq r0 r7;
+    get freezelist.aleo/root_updated_height[true] into r8;
+    add r8 r5 into r9;
+    gt r9 block.height into r10;
+    assert.eq r10 true;
+    branch.eq true true to end_otherwise_0_19;
+    position end_then_0_18;
+    position end_otherwise_0_19;
     get.or_use freezelist.aleo/freeze_list[r1] false into r11;
     assert.eq r11 false;
     get.or_use balances[r1] 0u128 into r12;
@@ -1023,26 +1082,26 @@ finalize transfer_private_with_creds:
     get freezelist.aleo/freeze_list_root[1u8] into r2;
     get freezelist.aleo/block_height_window[true] into r3;
     is.neq r2 r0 into r4;
-    branch.eq r4 false to end_then_0_8;
+    branch.eq r4 false to end_then_0_20;
     get freezelist.aleo/freeze_list_root[2u8] into r5;
     assert.eq r0 r5;
     get freezelist.aleo/root_updated_height[true] into r6;
     add r6 r3 into r7;
     gt r7 block.height into r8;
     assert.eq r8 true;
-    branch.eq true true to end_otherwise_0_9;
-    position end_then_0_8;
-    position end_otherwise_0_9;
+    branch.eq true true to end_otherwise_0_21;
+    position end_then_0_20;
+    position end_otherwise_0_21;
 
 constructor:
     gt edition 0u16 into r0;
-    branch.eq r0 false to end_then_0_10;
+    branch.eq r0 false to end_then_0_22;
     cast checksum edition into r1 as ChecksumEdition;
     hash.bhp256 r1 into r2 as field;
     cast compliant_token_template.aleo r2 into r3 as multisig_core.aleo/WalletSigningOpId;
     hash.bhp256 r3 into r4 as field;
     contains multisig_core.aleo/completed_signing_ops[r4] into r5;
     assert.eq r5 true;
-    branch.eq true true to end_otherwise_0_11;
-    position end_then_0_10;
-    position end_otherwise_0_11;
+    branch.eq true true to end_otherwise_0_23;
+    position end_then_0_22;
+    position end_otherwise_0_23;

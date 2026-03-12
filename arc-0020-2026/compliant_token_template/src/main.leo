@@ -1,6 +1,11 @@
 import freezelist.aleo;
 import multisig_core.aleo;
 
+struct MerkleProof {
+  siblings: [field; 16],
+  leaf_index: u32
+}
+
 // Merkle proof helpers (outside program scope; callable from program fns).
 const MAX_TREE_DEPTH: u32 = 15u32;
 
@@ -60,14 +65,42 @@ interface ARC20Compliant {
     record ComplianceRecord;
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
+    fn approve_public(public spender: address, public amount: u128) -> Final;
+    fn unapprove_public(public spender: address, public amount: u128) -> Final;
+    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
+
+    // Transfers private tokens from the record owner to a recipient.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
+    // The sender must not be frozen in the freeze list.
+    // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
     fn transfer_private(recipient: address, amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (ComplianceRecord, Token, Token, Final);
     fn transfer_private_to_public(public recipient: address, public amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (ComplianceRecord, Token, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
     fn transfer_from_public_to_private(public owner: address, recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
-
-    fn approve_public(public spender: address, public amount: u128) -> Final;
-    fn unapprove_public(public spender: address, public amount: u128) -> Final;
-    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
+    // Shields public tokens from the signer.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
+    // The signer must not be frozen in the freeze list.
+    fn shield(public amount: u128) -> (ComplianceRecord, Token, Final);
+    // Unshields private tokens from the signer.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
+    // A Credentials record is emitted for the sender
+    // The signer must not be frozen in the freeze list.
+    fn unshield(
+        public recipient: address,
+        public amount: u128,
+        input_record: Token,
+        sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32],
+    ) -> (ComplianceRecord, Token, Final);
+    // Transfers private tokens from the record owner to a recipient.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
+    // The sender must not be frozen in the freeze list.
+    // The sender's privacy is preserved by using a Credentials record.
+    fn transfer_private_with_creds(
+        recipient: address,
+        amount: u128,
+        input_record: Token,
+        credentials: Credentials,
+    ) -> (ComplianceRecord, Token, Token, Credentials, Final);
 }
 
 // DEPLOYER_ADDRESS: must match test account (AleoUtils.addresses[0]) for tests.
@@ -478,6 +511,31 @@ program compliant_token_template.aleo: ARC20Compliant {
         );
     }
 
+ // Shields public tokens from the signer into a private Token.
+    fn shield(public amount: u128) -> (ComplianceRecord, Token, Final) {
+        let recipient = self.signer;
+        let token: Token = Token { owner: recipient, amount: amount };
+        let compliance_record: ComplianceRecord = ComplianceRecord {
+            owner: INVESTIGATOR_ADDRESS,
+            amount: amount,
+            sender: self.caller,
+            recipient: recipient,
+        };
+        let sender = self.caller;
+        return (
+            compliance_record,
+            token,
+            final {
+                let is_sender_frozen: bool = freezelist.aleo/freeze_list.get_or_use(sender, false);
+                assert_eq(is_sender_frozen, false);
+                let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
+                assert_eq(is_paused, false);
+                let sender_balance = balances.get(sender);
+                balances.set(sender, sender_balance - amount);
+            },
+        );
+    }
+
  // Transfers public tokens from an owner to a recipient as a private token.
  // Can be called by any spender with sufficient allowance from the owner.
  // Decreases the spender’s allowance by the transferred amount.
@@ -559,6 +617,46 @@ program compliant_token_template.aleo: ARC20Compliant {
  // Both sender and recipient must not be frozen in the freeze list.
  // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
     fn transfer_private_to_public(
+        public recipient: address,
+        public amount: u128,
+        input_record: Token,
+        sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32],
+    ) -> (ComplianceRecord, Token, Final) {
+        let root: field = verify_non_inclusion(input_record.owner, sender_merkle_proofs);
+        let updated_record: Token = Token {
+            owner: input_record.owner,
+            amount: input_record.amount - amount,
+        };
+        let compliance_record: ComplianceRecord = ComplianceRecord {
+            owner: INVESTIGATOR_ADDRESS,
+            amount: amount,
+            sender: input_record.owner,
+            recipient: recipient,
+        };
+        return (
+            compliance_record,
+            updated_record,
+            final {
+                let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
+                assert_eq(is_paused, false);
+                let current_root: field = freezelist.aleo/freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
+                let window: u32 = freezelist.aleo/block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
+                if (current_root != root) {
+                    let previous_root: field = freezelist.aleo/freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
+                    assert_eq(root, previous_root);
+                    let updated_height: u32 = freezelist.aleo/root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
+                    assert(updated_height + window > block.height);
+                }
+                let is_recipient_frozen: bool = freezelist.aleo/freeze_list.get_or_use(recipient, false);
+                assert_eq(is_recipient_frozen, false);
+                let recipient_balance = balances.get_or_use(recipient, 0u128);
+                balances.set(recipient, recipient_balance + amount);
+            },
+        );
+    }
+
+    // Unshields private tokens to a public recipient.
+    fn unshield(
         public recipient: address,
         public amount: u128,
         input_record: Token,

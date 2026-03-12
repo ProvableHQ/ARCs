@@ -20,7 +20,7 @@
     {
       "name": "freezelist.aleo",
       "location": "local",
-      "path": "./build/imports/freezelist.aleo",
+      "path": "../freezelist",
       "edition": null
     }
   ],

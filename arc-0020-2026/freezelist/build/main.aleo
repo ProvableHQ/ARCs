@@ -6,10 +6,6 @@ struct ChecksumEdition:
     checksum as [u8; 32u32];
     edition as u16;
 
-struct MerkleProof:
-    siblings as [field; 16u32];
-    leaf_index as u32;
-
 mapping address_to_role:
     key as address.public;
     value as u16.public;
