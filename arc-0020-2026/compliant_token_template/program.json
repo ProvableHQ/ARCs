@@ -1,0 +1,28 @@
+{
+  "program": "compliant_token_template.aleo",
+  "version": "0.1.0",
+  "description": "ARC20Compliant token template with freeze-list compliance",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": [
+    {
+      "name": "merkle_tree.aleo",
+      "location": "local",
+      "path": "./build/imports/merkle_tree.aleo",
+      "edition": null
+    },
+    {
+      "name": "multisig_core.aleo",
+      "location": "local",
+      "path": "./build/imports/multisig_core.aleo",
+      "edition": null
+    },
+    {
+      "name": "freezelist.aleo",
+      "location": "local",
+      "path": "./build/imports/freezelist.aleo",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}
