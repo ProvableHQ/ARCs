@@ -7,6 +7,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test-skip-checks": "SKIP_LEO_CHECKS=1 node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:filter-example": "SKIP_LEO_CHECKS=1 node --experimental-vm-modules node_modules/jest/bin/jest.js wrapped-credits.test.js -t \"transfer_private\" > test-output.txt 2>&1",
+    "clear": "rm -rf logs && rm -f test-output.txt *.log",
     "fmt": "../fmt-leo.sh"
   },
   "dependencies": {
