@@ -29,35 +29,22 @@ describe("token_registry.aleo", () => {
     await AleoUtils.waitForTransactionConfirmedFromLeoExecution(execResult);
   }
 
-  let wrappedTokenRegistryDeployed = false;
-
   beforeAll(async () => {
     const start = Date.now();
-    try {
-      await AleoUtils.startDevnode({ suiteName: "token_registry.aleo", port: 3031 });
+    await AleoUtils.startDevnode({ suiteName: "token_registry.aleo", port: 3031 });
 
-      await AleoUtils.deployProgramFromFile({
-        programId: TokenRegistry.PROGRAM_ID,
-        programPath,
-      });
+    await AleoUtils.deployProgramFromFile({
+      programId: TokenRegistry.PROGRAM_ID,
+      programPath,
+    });
 
-      try {
-        const prevEndpoint = process.env.ENDPOINT;
-        process.env.ENDPOINT = AleoUtils.getNetworkUrl();
-        await AleoUtils.deployProgramFromFile({
-          programId: WrappedTokenRegistry.PROGRAM_ID,
-          programPath: wrappedProgramPath,
-        });
-        process.env.ENDPOINT = prevEndpoint;
-        wrappedTokenRegistryDeployed = true;
-      } catch (e) {
-        process.env.ENDPOINT = undefined;
-        wrappedTokenRegistryDeployed = false;
-      }
-    } catch (e) {
-      await AleoUtils.stopDevnode();
-      throw e;
-    }
+    // const prevEndpoint = process.env.ENDPOINT;
+    // process.env.ENDPOINT = AleoUtils.getNetworkUrl();
+    await AleoUtils.deployProgramFromFile({
+      programId: WrappedTokenRegistry.PROGRAM_ID,
+      programPath: wrappedProgramPath,
+    });
+    // process.env.ENDPOINT = prevEndpoint;
     process.stdout.write(`wrapped-token-registry.test.js beforeAll: ${Date.now() - start}ms\n`);
   });
 
@@ -201,7 +188,6 @@ describe("token_registry.aleo", () => {
   }
 
   test("wrapped_token_registry: deposit_token_public increases balance", async () => {
-    if (!wrappedTokenRegistryDeployed) return;
     await setupWrappedToken();
 
     const before = await WrappedTokenRegistry.getPublicBalance(addr0);
@@ -212,7 +198,6 @@ describe("token_registry.aleo", () => {
   });
 
   test("wrapped_token_registry: withdraw_token_public decreases balance", async () => {
-    if (!wrappedTokenRegistryDeployed) return;
     await setupWrappedToken();
     await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "400u128");
 

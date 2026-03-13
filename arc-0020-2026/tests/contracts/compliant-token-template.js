@@ -125,3 +125,81 @@ export async function shield(account, amountU128, opts = {}) {
     ...opts,
   });
 }
+
+export async function transferPrivate(
+  account,
+  inputRecord,
+  recipient,
+  amountU128,
+  merkleProofs,
+  opts = {},
+) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(
+    PROGRAM_PATH,
+    "transfer_private",
+    [recipient, amountU128, inputRecord, merkleProofs],
+    { privateKey, ...opts },
+  );
+}
+
+export async function transferPrivateToPublic(
+  account,
+  inputRecord,
+  recipient,
+  amountU128,
+  merkleProofs,
+  opts = {},
+) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(
+    PROGRAM_PATH,
+    "transfer_private_to_public",
+    [recipient, amountU128, inputRecord, merkleProofs],
+    { privateKey, ...opts },
+  );
+}
+
+export async function unshield(
+  account,
+  inputRecord,
+  recipient,
+  amountU128,
+  merkleProofs,
+  opts = {},
+) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(
+    PROGRAM_PATH,
+    "unshield",
+    [recipient, amountU128, inputRecord, merkleProofs],
+    { privateKey, ...opts },
+  );
+}
+
+export async function getCredentials(account, merkleProofs, opts = {}) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(
+    PROGRAM_PATH,
+    "get_credentials",
+    [merkleProofs],
+    { privateKey, ...opts },
+  );
+}
+
+export async function transferPrivateWithCreds(
+  account,
+  inputRecord,
+  recipient,
+  amountU128,
+  credentials,
+  opts = {},
+) {
+  const privateKey = account.privateKey().to_string();
+  return await AleoUtils.leoExecute(
+    PROGRAM_PATH,
+    "transfer_private_with_creds",
+    [recipient, amountU128, inputRecord, credentials],
+    { privateKey, ...opts },
+  );
+}
