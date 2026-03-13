@@ -186,20 +186,3 @@ export async function getCredentials(account, merkleProofs, opts = {}) {
     { privateKey, ...opts },
   );
 }
-
-export async function transferPrivateWithCreds(
-  account,
-  inputRecord,
-  recipient,
-  amountU128,
-  credentials,
-  opts = {},
-) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(
-    PROGRAM_PATH,
-    "transfer_private_with_creds",
-    [recipient, amountU128, inputRecord, credentials],
-    { privateKey, ...opts },
-  );
-}

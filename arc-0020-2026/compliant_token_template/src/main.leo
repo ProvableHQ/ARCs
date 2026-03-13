@@ -83,7 +83,6 @@ interface ARC20Compliant {
     fn shield(public amount: u128) -> (ComplianceRecord, Token, Final);
     // Unshields private tokens from the signer.
     // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
-    // A Credentials record is emitted for the sender
     // The signer must not be frozen in the freeze list.
     fn unshield(
         public recipient: address,
@@ -91,16 +90,6 @@ interface ARC20Compliant {
         input_record: Token,
         sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32],
     ) -> (ComplianceRecord, Token, Final);
-    // Transfers private tokens from the record owner to a recipient.
-    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
-    // The sender must not be frozen in the freeze list.
-    // The sender's privacy is preserved by using a Credentials record.
-    fn transfer_private_with_creds(
-        recipient: address,
-        amount: u128,
-        input_record: Token,
-        credentials: Credentials,
-    ) -> (ComplianceRecord, Token, Token, Credentials, Final);
 }
 
 // DEPLOYER_ADDRESS: must match test account (AleoUtils.addresses[0]) for tests.
@@ -132,11 +121,6 @@ program compliant_token_template.aleo: ARC20Compliant {
  amount: u128,
  sender: address,
  recipient: address
- }
-
- record Credentials {
- owner: address,
- freeze_list_root: field,
  }
 
  struct ChecksumEdition {
@@ -234,30 +218,6 @@ program compliant_token_template.aleo: ARC20Compliant {
             token_info.set(TOKEN_INFO_INDEX, token);
             pause.set(PAUSE_STATUS_INDEX, false);
         };
-    }
-
- // Generates a Credential record for the signer.
- // Allows future private transfers without needing to re-prove non-inclusion in the freeze list.
- // The signer's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
-    fn get_credentials(sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (Credentials, Final) {
-        let root: field = verify_non_inclusion(self.signer, sender_merkle_proofs);
-        let credentials_record: Credentials = Credentials {
-            owner: self.signer,
-            freeze_list_root: root,
-        };
-        return (
-            credentials_record,
-            final {
-                let current_root: field = freezelist.aleo/freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
-                let window: u32 = freezelist.aleo/block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
-                if (current_root != root) {
-                    let previous_root: field = freezelist.aleo/freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
-                    assert_eq(root, previous_root);
-                    let updated_height: u32 = freezelist.aleo/root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
-                    assert(updated_height + window > block.height);
-                }
-            },
-        );
     }
 
  // Mints new public tokens to the specified recipient’s balance.
@@ -613,7 +573,6 @@ program compliant_token_template.aleo: ARC20Compliant {
 
  // Transfers private tokens from the record owner to a recipient as a public tokens.
  // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
- // A Credentials record is emitted for the sender
  // Both sender and recipient must not be frozen in the freeze list.
  // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
     fn transfer_private_to_public(
@@ -722,51 +681,4 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
         return (new_token_1, new_token_2);
     }
-
- // Transfers private tokens from the record owner to a recipient.
- // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
- // The sender must not be frozen in the freeze list.
- // The sender's privacy is preserved by using a Credentials record.
-    fn transfer_private_with_creds(
-        recipient: address,
-        amount: u128,
-        input_record: Token,
-        credentials: Credentials,
-    ) -> (ComplianceRecord, Token, Token, Credentials, Final) {
-        let updated_record: Token = Token {
-            owner: input_record.owner,
-            amount: input_record.amount - amount,
-        };
-        let transfer_record: Token = Token { owner: recipient, amount: amount };
-        let compliance_record: ComplianceRecord = ComplianceRecord {
-            owner: INVESTIGATOR_ADDRESS,
-            amount: amount,
-            sender: input_record.owner,
-            recipient: recipient,
-        };
-        let credentials_record: Credentials = Credentials {
-            owner: credentials.owner,
-            freeze_list_root: credentials.freeze_list_root,
-        };
-        let root: field = credentials.freeze_list_root;
-        return (
-            compliance_record,
-            updated_record,
-            transfer_record,
-            credentials_record,
-            final {
-                let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
-                assert_eq(is_paused, false);
-                let current_root: field = freezelist.aleo/freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
-                let window: u32 = freezelist.aleo/block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
-                if (current_root != root) {
-                    let previous_root: field = freezelist.aleo/freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
-                    assert_eq(root, previous_root);
-                    let updated_height: u32 = freezelist.aleo/root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
-                    assert(updated_height + window > block.height);
-                }
-            },
-        );
-    }
-
 }

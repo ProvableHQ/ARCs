@@ -274,32 +274,4 @@ describe("compliant_token_template.aleo", () => {
     expect(records.length).toBeGreaterThanOrEqual(1);
     expect(records.some((r) => r.includes("freeze_list_root"))).toBe(true);
   });
-
-  test("transfer_private_with_creds (positive): debits Token using Credentials, no MerkleProof", async () => {
-    const credsExec = await CompliantToken.getCredentials(
-      AleoUtils.accounts[0],
-      generateNonInclusionProof(addr0, []),
-    );
-    await expectConfirmed(credsExec);
-    const credsRecords = extractRecordPlaintexts(credsExec.stdout);
-    const credsRecord = credsRecords.find((r) => r.includes("freeze_list_root:"));
-    expect(credsRecord).toBeDefined();
-
-    const shieldExec = await CompliantToken.shield(AleoUtils.accounts[0], "60u128");
-    await expectConfirmed(shieldExec);
-    const records = extractRecordPlaintexts(shieldExec.stdout);
-    const tokenRecord = findTokenRecord(records);
-    expect(tokenRecord).toBeDefined();
-
-    const exec = await CompliantToken.transferPrivateWithCreds(
-      AleoUtils.accounts[0],
-      tokenRecord,
-      addr1,
-      "25u128",
-      credsRecord,
-    );
-    await expectConfirmed(exec);
-    const outRecords = extractRecordPlaintexts(exec.stdout);
-    expect(outRecords.length).toBeGreaterThanOrEqual(2);
-  });
 });

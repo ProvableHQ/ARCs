@@ -109,27 +109,6 @@
           "mode": "None"
         }
       ]
-    },
-    {
-      "path": [
-        "Credentials"
-      ],
-      "fields": [
-        {
-          "name": "owner",
-          "ty": {
-            "Primitive": "Address"
-          },
-          "mode": "None"
-        },
-        {
-          "name": "freeze_list_root",
-          "ty": {
-            "Primitive": "Field"
-          },
-          "mode": "None"
-        }
-      ]
     }
   ],
   "mappings": [
@@ -326,48 +305,6 @@
         }
       ],
       "outputs": [
-        {
-          "ty": "Future",
-          "mode": "None"
-        }
-      ]
-    },
-    {
-      "name": "get_credentials",
-      "is_async": true,
-      "inputs": [
-        {
-          "name": "sender_merkle_proofs",
-          "ty": {
-            "Plaintext": {
-              "Array": {
-                "element": {
-                  "Struct": {
-                    "path": [
-                      "MerkleProof"
-                    ],
-                    "program": "freezelist"
-                  }
-                },
-                "length": 2
-              }
-            }
-          },
-          "mode": "None"
-        }
-      ],
-      "outputs": [
-        {
-          "ty": {
-            "Record": {
-              "path": [
-                "Credentials"
-              ],
-              "program": "compliant_token_template"
-            }
-          },
-          "mode": "None"
-        },
         {
           "ty": "Future",
           "mode": "None"
@@ -1259,106 +1196,6 @@
               "program": "compliant_token_template"
             }
           },
-          "mode": "None"
-        }
-      ]
-    },
-    {
-      "name": "transfer_private_with_creds",
-      "is_async": true,
-      "inputs": [
-        {
-          "name": "recipient",
-          "ty": {
-            "Plaintext": {
-              "Primitive": "Address"
-            }
-          },
-          "mode": "None"
-        },
-        {
-          "name": "amount",
-          "ty": {
-            "Plaintext": {
-              "Primitive": {
-                "UInt": "U128"
-              }
-            }
-          },
-          "mode": "None"
-        },
-        {
-          "name": "input_record",
-          "ty": {
-            "Record": {
-              "path": [
-                "Token"
-              ],
-              "program": "compliant_token_template"
-            }
-          },
-          "mode": "None"
-        },
-        {
-          "name": "credentials",
-          "ty": {
-            "Record": {
-              "path": [
-                "Credentials"
-              ],
-              "program": "compliant_token_template"
-            }
-          },
-          "mode": "None"
-        }
-      ],
-      "outputs": [
-        {
-          "ty": {
-            "Record": {
-              "path": [
-                "ComplianceRecord"
-              ],
-              "program": "compliant_token_template"
-            }
-          },
-          "mode": "None"
-        },
-        {
-          "ty": {
-            "Record": {
-              "path": [
-                "Token"
-              ],
-              "program": "compliant_token_template"
-            }
-          },
-          "mode": "None"
-        },
-        {
-          "ty": {
-            "Record": {
-              "path": [
-                "Token"
-              ],
-              "program": "compliant_token_template"
-            }
-          },
-          "mode": "None"
-        },
-        {
-          "ty": {
-            "Record": {
-              "path": [
-                "Credentials"
-              ],
-              "program": "compliant_token_template"
-            }
-          },
-          "mode": "None"
-        },
-        {
-          "ty": "Future",
           "mode": "None"
         }
       ]
