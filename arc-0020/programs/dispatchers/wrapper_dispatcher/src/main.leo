@@ -1,7 +1,7 @@
 // wrapper_dispatcher.aleo — ARC-0020 dispatcher for DeFi protocols needing a unified
 // token API across multiple tokens (DEXs, multisigs, vaults).
 //
-// Callers supply token_id + program_id; network_id is hardcoded to NETWORK_ALEO.
+// Callers supply token_id + program_id; network_id is hardcoded to 'aleo'.
 // token_routes validates that program_id is a registered wrapper for token_id.
 // Route validation runs in finalize for all public-state calls, including unshield
 // (which writes balances). Pure record-only ops (join, split, transfer_private) are
@@ -9,10 +9,11 @@
 
 program wrapper_dispatcher.aleo {
 
-  const NETWORK_ALEO: field = 1868917857field;
-
   // token_id → approved wrapper program_id. Validated on every public-state call.
   mapping token_routes: field => field;
+
+  @noupgrade
+  constructor() {}
 
   // In production this should be access-controlled.
   fn register_route(
@@ -23,20 +24,6 @@ program wrapper_dispatcher.aleo {
       token_routes.set(token_id, program_id);
     };
   }
-
-  // Function name field encodings: ASCII bytes, little-endian (byte[0] + byte[1]*256 + ...).
-  const FUNC_TRANSFER_PUBLIC: field = 516175629116388850284097790795674228field;           // "transfer_public"
-  const FUNC_TRANSFER_PUBLIC_AS_SIGNER: field = 718076685225955844079766916816982442103848756111050079826548field; // "transfer_public_as_signer"
-  const FUNC_JOIN: field = 1852403562field;                                                // "join"
-  const FUNC_SPLIT: field = 499984920691field;                                             // "split"
-  const FUNC_SHIELD: field = 110416720652403field;                                         // "shield"
-  const FUNC_UNSHIELD: field = 7236270204675911285field;                                   // "unshield"
-  const FUNC_TRANSFER_PRIVATE: field = 134856310785155548303824185267685782132field;        // "transfer_private"
-  const FUNC_DEPOSIT: field = 32767041810228580field;                                      // "deposit"
-  const FUNC_WITHDRAW: field = 8602282538829113719field;                                   // "withdraw"
-  const FUNC_WITHDRAW_AS_SIGNER: field = 9965315867304589459992989204666584527038839field; // "withdraw_as_signer"
-  const FUNC_MINT_PUBLIC: field = 120181503965609904944605549field;                        // "mint_public"
-  const FUNC_MINT_PRIVATE: field = 31398681640894047055386667373field;                     // "mint_private"
 
   // Public-state functions — route-validated in finalize.
 
@@ -50,7 +37,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> Final {
-    let f: Final = _dynamic_call::[Final](program_id, NETWORK_ALEO, FUNC_TRANSFER_PUBLIC, token_id, recipient, amount);
+    let f: Final = _dynamic_call::[Final](program_id, 'aleo', 'transfer_public', token_id, recipient, amount);
     return final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -64,7 +51,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> Final {
-    let f: Final = _dynamic_call::[Final](program_id, NETWORK_ALEO, FUNC_TRANSFER_PUBLIC_AS_SIGNER, token_id, recipient, amount);
+    let f: Final = _dynamic_call::[Final](program_id, 'aleo', 'transfer_public_as_signer', token_id, recipient, amount);
     return final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -79,7 +66,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> Final {
-    let f: Final = _dynamic_call::[Final](program_id, NETWORK_ALEO, FUNC_DEPOSIT, token_id, amount);
+    let f: Final = _dynamic_call::[Final](program_id, 'aleo', 'deposit', token_id, amount);
     return final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -94,7 +81,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> (dyn record, Final) {
-    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_DEPOSIT, token_id, amount);
+    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, 'aleo', 'deposit', token_id, amount);
     return (r, final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -109,7 +96,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> Final {
-    let f: Final = _dynamic_call::[Final](program_id, NETWORK_ALEO, FUNC_WITHDRAW, token_id, amount);
+    let f: Final = _dynamic_call::[Final](program_id, 'aleo', 'withdraw', token_id, amount);
     return final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -124,7 +111,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> (dyn record, Final) {
-    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_WITHDRAW, token_id, amount);
+    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, 'aleo', 'withdraw', token_id, amount);
     return (r, final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -139,7 +126,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> Final {
-    let f: Final = _dynamic_call::[Final](program_id, NETWORK_ALEO, FUNC_WITHDRAW_AS_SIGNER, token_id, amount);
+    let f: Final = _dynamic_call::[Final](program_id, 'aleo', 'withdraw_as_signer', token_id, amount);
     return final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -153,7 +140,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> (dyn record, Final) {
-    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_WITHDRAW_AS_SIGNER, token_id, amount);
+    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, 'aleo', 'withdraw_as_signer', token_id, amount);
     return (r, final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -167,7 +154,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> (dyn record, Final) {
-    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_SHIELD, token_id, recipient, amount);
+    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, 'aleo', 'shield', token_id, recipient, amount);
     return (r, final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -184,7 +171,7 @@ program wrapper_dispatcher.aleo {
     r2: dyn record,
     public program_id: field
   ) -> dyn record {
-    let r: dyn record = _dynamic_call::[dyn record](program_id, NETWORK_ALEO, FUNC_JOIN, r1, r2);
+    let r: dyn record = _dynamic_call::[dyn record](program_id, 'aleo', 'join', r1, r2);
     return r;
   }
 
@@ -193,7 +180,7 @@ program wrapper_dispatcher.aleo {
     amount: u128,
     public program_id: field
   ) -> (dyn record, dyn record) {
-    let (r1, r2): (dyn record, dyn record) = _dynamic_call::[dyn record, dyn record](program_id, NETWORK_ALEO, FUNC_SPLIT, r, amount);
+    let (r1, r2): (dyn record, dyn record) = _dynamic_call::[dyn record, dyn record](program_id, 'aleo', 'split', r, amount);
     return (r1, r2);
   }
 
@@ -206,7 +193,7 @@ program wrapper_dispatcher.aleo {
     r: dyn record,
     public program_id: field
   ) -> (dyn record, Final) {
-    let (r_out, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_UNSHIELD, recipient, amount, r);
+    let (r_out, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, 'aleo', 'unshield', recipient, amount, r);
     return (r_out, final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -220,7 +207,7 @@ program wrapper_dispatcher.aleo {
     r: dyn record,
     public program_id: field
   ) -> (dyn record, dyn record, Final) {
-    let (r1, r2, f): (dyn record, dyn record, Final) = _dynamic_call::[dyn record, dyn record, Final](program_id, NETWORK_ALEO, FUNC_TRANSFER_PRIVATE, recipient, amount, r);
+    let (r1, r2, f): (dyn record, dyn record, Final) = _dynamic_call::[dyn record, dyn record, Final](program_id, 'aleo', 'transfer_private', recipient, amount, r);
     return (r1, r2, final { f.run(); });
   }
 
@@ -233,7 +220,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> Final {
-    let f: Final = _dynamic_call::[Final](program_id, NETWORK_ALEO, FUNC_MINT_PUBLIC, token_id, recipient, amount);
+    let f: Final = _dynamic_call::[Final](program_id, 'aleo', 'mint_public', token_id, recipient, amount);
     return final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);
@@ -247,7 +234,7 @@ program wrapper_dispatcher.aleo {
     public amount: u128,
     public program_id: field
   ) -> (dyn record, Final) {
-    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, NETWORK_ALEO, FUNC_MINT_PRIVATE, token_id, recipient, amount);
+    let (r, f): (dyn record, Final) = _dynamic_call::[dyn record, Final](program_id, 'aleo', 'mint_private', token_id, recipient, amount);
     return (r, final {
       let registered: field = token_routes.get(token_id);
       assert_eq(registered, program_id);

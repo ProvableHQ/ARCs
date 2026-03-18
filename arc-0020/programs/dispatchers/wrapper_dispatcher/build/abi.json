@@ -146,7 +146,265 @@
       ]
     },
     {
-      "name": "transfer_public_to_private",
+      "name": "deposit",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "deposit_compliant",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "DynamicRecord",
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_compliant",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "DynamicRecord",
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_as_signer",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_as_signer_compliant",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "DynamicRecord",
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "shield",
       "is_async": true,
       "inputs": [
         {
@@ -272,9 +530,18 @@
       ]
     },
     {
-      "name": "transfer_private_to_public",
+      "name": "unshield",
       "is_async": true,
       "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
         {
           "name": "recipient",
           "ty": {
@@ -365,6 +632,110 @@
           "ty": "DynamicRecord",
           "mode": "None"
         },
+        {
+          "ty": "DynamicRecord",
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "mint_public",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "recipient",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "mint_private",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "recipient",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
         {
           "ty": "DynamicRecord",
           "mode": "None"

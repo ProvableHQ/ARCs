@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "test": "node test.js",
-    "devnode": "leo devnode start --home /tmp/arc0020_devnode --manual-block-creation --private-key APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH",
+    "devnode": "leo devnode start --manual-block-creation --private-key APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH --consensus-heights 0,1,2,3,4,5,6,7,8,9,10,11,12,13",
     "devnode:clean": "rm -rf /tmp/arc0020_devnode"
   },
   "dependencies": {
-    "@provablehq/sdk": "^0.9.16"
+    "@provablehq/sdk": "file:/Users/pranav/work/Aleo/sdk/sdk",
+    "@provablehq/wasm": "file:../../../sdk/wasm"
   }
 }

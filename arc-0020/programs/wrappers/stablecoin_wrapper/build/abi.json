@@ -165,6 +165,49 @@
       ]
     },
     {
+      "name": "withdraw_as_signer",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Record": {
+              "path": [
+                "ComplianceRecord"
+              ],
+              "program": "stablecoin_wrapper"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
       "name": "transfer_public",
       "is_async": true,
       "inputs": [

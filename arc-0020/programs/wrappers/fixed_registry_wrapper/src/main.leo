@@ -17,6 +17,9 @@ import token_interface.aleo;
 
 program fixed_registry_wrapper.aleo : token_interface.aleo/ARC20 + token_interface.aleo/MintPublic + token_interface.aleo/MintPrivate + token_interface.aleo/Bridge {
 
+    @noupgrade
+    constructor() {}
+
     // Replace with the actual registered token_id at deploy time.
     const HARDCODED_TOKEN_ID: field = 1field;
 

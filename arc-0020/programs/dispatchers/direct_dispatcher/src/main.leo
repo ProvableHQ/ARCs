@@ -9,9 +9,6 @@
 // Functions are organized by SIGNATURE SHAPE — each function handles a distinct
 // combination of input types and output types.
 //
-// Callers encode the target function name as a field value using ASCII byte packing:
-//   field = byte[0] + byte[1]*256 + byte[2]*256^2 + ...
-//
 // on-chain token routes are stored in the token_routes mapping, keyed by token_id.
 //
 // Phase 1: → Final                          (functions 1–9)
@@ -21,7 +18,7 @@
 // Phase 5: → (dyn record, dyn record, Final)(functions 20–23)
 // Phase 6: → (r, r, r, Final)               (functions 24–26)
 // Phase 7: → (r, r, r, r, Final)            (functions 27–28)
-// Phase 8: → (r, r, r, r, r, Final)         (functions 29–31)
+// Phase 8: utility shapes                    (functions 29–31)
 
 program direct_dispatcher.aleo {
 
@@ -55,6 +52,9 @@ program direct_dispatcher.aleo {
   // token_id → routing info. Set by token admins via register_route.
   mapping token_routes: field => TokenRoute;
 
+  @noupgrade
+  constructor() {}
+
   fn register_route(
     public token_id: field,
     public program_id: field,
@@ -70,11 +70,6 @@ program direct_dispatcher.aleo {
       token_routes.set(token_id, route);
     };
   }
-
-  // ---------------------------------------------------------------------------
-  // Network ID
-  // ---------------------------------------------------------------------------
-  const NETWORK_ALEO: field = 1868917857field;
 
   // ===========================================================================
   // Phase 1: → Final
@@ -495,26 +490,11 @@ program direct_dispatcher.aleo {
   }
 
   // ===========================================================================
-  // Phase 8: → (r, r, r, r, r, Final) and utility shapes
-  // Covers: transfer_private_with_creds; plus two mismatched-type helpers placed here by shape
+  // Phase 8: utility shapes
+  // Covers: proof-based dispatch helpers
   // ===========================================================================
 
-  // 29. (address, u128, record, record) → (record, record, record, record, record, Final)
-  //     e.g. transfer_private_with_creds → (Compliance, change, transfer, Credentials, Final)
-  fn dispatch_a_u_r_r_to_rrrrr_f(
-    public program_id: field,
-    public network_id: field,
-    public func_id: field,
-    arg0: address,
-    public arg1: u128,
-    r0: dyn record,
-    r1: dyn record
-  ) -> (dyn record, dyn record, dyn record, dyn record, dyn record, Final) {
-    let (ra, rb, rc, rd, re, f): (dyn record, dyn record, dyn record, dyn record, dyn record, Final) = _dynamic_call::[dyn record, dyn record, dyn record, dyn record, dyn record, Final](program_id, network_id, func_id, arg0, arg1, r0, r1);
-    return (ra, rb, rc, rd, re, final { f.run(); });
-  }
-
-  // 30. (record, [MerkleProof; 2]) → (record, record, Final)
+  // 29. (record, [MerkleProof; 2]) → (record, record, Final)
   //     e.g. get_credentials(merkle_proofs) → (Credentials, Final) via shape
   fn dispatch_r_proofs_to_rr_f(
     r0: dyn record,

@@ -45,6 +45,22 @@ finalize withdraw:
     sub r3 r2 into r4;
     set r4 into balances[r1];
 
+function withdraw_as_signer:
+    input r0 as field.public;
+    input r1 as u128.public;
+    call token_registry.aleo/transfer_public 1field self.signer r1 into r2;
+    async withdraw_as_signer r2 self.signer r1 into r3;
+    output r3 as fixed_registry_wrapper.aleo/withdraw_as_signer.future;
+
+finalize withdraw_as_signer:
+    input r0 as token_registry.aleo/transfer_public.future;
+    input r1 as address.public;
+    input r2 as u128.public;
+    await r0;
+    get balances[r1] into r3;
+    sub r3 r2 into r4;
+    set r4 into balances[r1];
+
 function transfer_public:
     input r0 as field.public;
     input r1 as address.public;
@@ -82,11 +98,12 @@ finalize transfer_public_as_signer:
     set r6 into balances[r2];
 
 function mint_public:
-    input r0 as address.public;
-    input r1 as u128.public;
-    call token_registry.aleo/mint_public 1field r0 r1 0u32 into r2;
-    async mint_public r2 into r3;
-    output r3 as fixed_registry_wrapper.aleo/mint_public.future;
+    input r0 as field.public;
+    input r1 as address.public;
+    input r2 as u128.public;
+    call token_registry.aleo/mint_public 1field r1 r2 0u32 into r3;
+    async mint_public r3 into r4;
+    output r4 as fixed_registry_wrapper.aleo/mint_public.future;
 
 finalize mint_public:
     input r0 as token_registry.aleo/mint_public.future;
@@ -113,7 +130,7 @@ function shield:
     input r0 as field.public;
     input r1 as address.private;
     input r2 as u128.public;
-    cast r1 r2 r0 into r3 as Token.record;
+    cast r1 r2 1field into r3 as Token.record;
     async shield self.signer r2 into r4;
     output r3 as Token.record;
     output r4 as fixed_registry_wrapper.aleo/shield.future;
@@ -158,14 +175,18 @@ finalize transfer_private:
     assert.eq true true;
 
 function mint_private:
-    input r0 as address.private;
-    input r1 as u128.public;
-    cast r0 r1 1field into r2 as Token.record;
-    call token_registry.aleo/mint_public 1field fixed_registry_wrapper.aleo r1 0u32 into r3;
-    async mint_private r3 into r4;
-    output r2 as Token.record;
-    output r4 as fixed_registry_wrapper.aleo/mint_private.future;
+    input r0 as field.public;
+    input r1 as address.private;
+    input r2 as u128.public;
+    cast r1 r2 1field into r3 as Token.record;
+    call token_registry.aleo/mint_public 1field fixed_registry_wrapper.aleo r2 0u32 into r4;
+    async mint_private r4 into r5;
+    output r3 as Token.record;
+    output r5 as fixed_registry_wrapper.aleo/mint_private.future;
 
 finalize mint_private:
     input r0 as token_registry.aleo/mint_public.future;
     await r0;
+
+constructor:
+    assert.eq edition 0u16;

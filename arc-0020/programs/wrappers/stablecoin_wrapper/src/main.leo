@@ -14,6 +14,9 @@ import token_interface.aleo;
 
 program stablecoin_wrapper.aleo : token_interface.aleo/ARC20 {
 
+    @noupgrade
+    constructor() {}
+
     // Must match stablecoin_program.aleo/INVESTIGATOR_ADDRESS.
     const INVESTIGATOR_ADDRESS: address = aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px;
 

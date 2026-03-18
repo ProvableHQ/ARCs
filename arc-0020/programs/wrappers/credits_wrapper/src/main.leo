@@ -13,6 +13,9 @@ import token_interface.aleo;
 
 program credits_wrapper.aleo : token_interface.aleo/ARC20 + token_interface.aleo/Bridge {
 
+    @noupgrade
+    constructor() {}
+
     // amount stored as u128 for interface uniformity; cast to u64 on every credits_clone call.
     record Token {
         owner: address,

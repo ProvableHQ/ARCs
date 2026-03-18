@@ -15,6 +15,9 @@ import token_interface.aleo;
 
 program registry_wrapper.aleo : token_interface.aleo/ARC20 + token_interface.aleo/Bridge {
 
+    @noupgrade
+    constructor() {}
+
     // Composite key for the multi-token balances mapping.
     struct BalanceKey {
         account: address,

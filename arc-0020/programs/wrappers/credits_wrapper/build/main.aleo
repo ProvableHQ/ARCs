@@ -45,6 +45,23 @@ finalize withdraw:
     sub r3 r2 into r4;
     set r4 into balances[r1];
 
+function withdraw_as_signer:
+    input r0 as field.public;
+    input r1 as u128.public;
+    cast r1 into r2 as u64;
+    call credits_clone.aleo/transfer_public self.signer r2 into r3;
+    async withdraw_as_signer r3 self.signer r1 into r4;
+    output r4 as credits_wrapper.aleo/withdraw_as_signer.future;
+
+finalize withdraw_as_signer:
+    input r0 as credits_clone.aleo/transfer_public.future;
+    input r1 as address.public;
+    input r2 as u128.public;
+    await r0;
+    get balances[r1] into r3;
+    sub r3 r2 into r4;
+    set r4 into balances[r1];
+
 function transfer_public:
     input r0 as field.public;
     input r1 as address.public;
@@ -144,3 +161,6 @@ function transfer_private:
 
 finalize transfer_private:
     assert.eq true true;
+
+constructor:
+    assert.eq edition 0u16;

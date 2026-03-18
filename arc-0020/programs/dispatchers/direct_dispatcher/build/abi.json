@@ -552,6 +552,65 @@
       ]
     },
     {
+      "name": "dispatch_f_u",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "network_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "func_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "arg0",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "arg1",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
       "name": "dispatch_a_u16",
       "is_async": true,
       "inputs": [
@@ -817,6 +876,69 @@
         },
         {
           "ty": "DynamicRecord",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "dispatch_f_u_to_r_f",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "program_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "network_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "func_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "arg0",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "arg1",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "DynamicRecord",
+          "mode": "None"
+        },
+        {
+          "ty": "Future",
           "mode": "None"
         }
       ]
@@ -1862,95 +1984,6 @@
         }
       ],
       "outputs": [
-        {
-          "ty": "DynamicRecord",
-          "mode": "None"
-        },
-        {
-          "ty": "DynamicRecord",
-          "mode": "None"
-        },
-        {
-          "ty": "DynamicRecord",
-          "mode": "None"
-        },
-        {
-          "ty": "DynamicRecord",
-          "mode": "None"
-        },
-        {
-          "ty": "Future",
-          "mode": "None"
-        }
-      ]
-    },
-    {
-      "name": "dispatch_a_u_r_r_to_rrrrr_f",
-      "is_async": true,
-      "inputs": [
-        {
-          "name": "program_id",
-          "ty": {
-            "Plaintext": {
-              "Primitive": "Field"
-            }
-          },
-          "mode": "Public"
-        },
-        {
-          "name": "network_id",
-          "ty": {
-            "Plaintext": {
-              "Primitive": "Field"
-            }
-          },
-          "mode": "Public"
-        },
-        {
-          "name": "func_id",
-          "ty": {
-            "Plaintext": {
-              "Primitive": "Field"
-            }
-          },
-          "mode": "Public"
-        },
-        {
-          "name": "arg0",
-          "ty": {
-            "Plaintext": {
-              "Primitive": "Address"
-            }
-          },
-          "mode": "None"
-        },
-        {
-          "name": "arg1",
-          "ty": {
-            "Plaintext": {
-              "Primitive": {
-                "UInt": "U128"
-              }
-            }
-          },
-          "mode": "Public"
-        },
-        {
-          "name": "r0",
-          "ty": "DynamicRecord",
-          "mode": "None"
-        },
-        {
-          "name": "r1",
-          "ty": "DynamicRecord",
-          "mode": "None"
-        }
-      ],
-      "outputs": [
-        {
-          "ty": "DynamicRecord",
-          "mode": "None"
-        },
         {
           "ty": "DynamicRecord",
           "mode": "None"

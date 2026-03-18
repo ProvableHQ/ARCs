@@ -86,5 +86,8 @@ interface Allowance {
 
 // Marker program — interfaces above are the payload.
 program token_interface.aleo {
+    @noupgrade
+    constructor() {}
+
     fn noop() {}
 }

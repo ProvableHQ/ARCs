@@ -1,0 +1,292 @@
+{
+  "program": "freezelist.aleo",
+  "structs": [],
+  "records": [],
+  "mappings": [
+    {
+      "name": "address_to_role",
+      "key": {
+        "Primitive": "Address"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U16"
+        }
+      }
+    },
+    {
+      "name": "freeze_list",
+      "key": {
+        "Primitive": "Address"
+      },
+      "value": {
+        "Primitive": "Boolean"
+      }
+    },
+    {
+      "name": "freeze_list_index",
+      "key": {
+        "Primitive": {
+          "UInt": "U32"
+        }
+      },
+      "value": {
+        "Primitive": "Address"
+      }
+    },
+    {
+      "name": "freeze_list_last_index",
+      "key": {
+        "Primitive": "Boolean"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U32"
+        }
+      }
+    },
+    {
+      "name": "freeze_list_root",
+      "key": {
+        "Primitive": {
+          "UInt": "U8"
+        }
+      },
+      "value": {
+        "Primitive": "Field"
+      }
+    },
+    {
+      "name": "root_updated_height",
+      "key": {
+        "Primitive": "Boolean"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U32"
+        }
+      }
+    },
+    {
+      "name": "block_height_window",
+      "key": {
+        "Primitive": "Boolean"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U32"
+        }
+      }
+    }
+  ],
+  "storage_variables": [],
+  "transitions": [
+    {
+      "name": "initialize",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "admin",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "blocks",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U32"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "update_role",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "new_address",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "role",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U16"
+              }
+            }
+          },
+          "mode": "None"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "update_block_height_window",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "blocks",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U32"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "update_freeze_list",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "account",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "is_frozen",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Boolean"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "frozen_index",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U32"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "previous_root",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "new_root",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "verify_non_inclusion_pub",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "account",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "verify_non_inclusion_priv",
+      "is_async": true,
+      "inputs": [
+        {
+          "name": "account",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "name": "merkle_proof",
+          "ty": {
+            "Plaintext": {
+              "Array": {
+                "element": {
+                  "Struct": {
+                    "path": [
+                      "MerkleProof"
+                    ],
+                    "program": "merkle_tree"
+                  }
+                },
+                "length": 2
+              }
+            }
+          },
+          "mode": "None"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Future",
+          "mode": "None"
+        }
+      ]
+    }
+  ]
+}

@@ -129,6 +129,20 @@ finalize dispatch_f_a_a_u:
     input r0 as dynamic.future;
     await r0;
 
+function dispatch_f_u:
+    input r0 as field.public;
+    input r1 as field.public;
+    input r2 as field.public;
+    input r3 as field.public;
+    input r4 as u128.public;
+    call.dynamic r0 r1 r2 with r3 r4 (as field.private u128.private) into r5 (as dynamic.future);
+    async dispatch_f_u r5 into r6;
+    output r6 as direct_dispatcher.aleo/dispatch_f_u.future;
+
+finalize dispatch_f_u:
+    input r0 as dynamic.future;
+    await r0;
+
 function dispatch_a_u16:
     input r0 as field.public;
     input r1 as field.public;
@@ -179,6 +193,21 @@ function dispatch_r_u64_to_rr:
     call.dynamic r2 r3 r4 with r0 r1 (as dynamic.record u64.private) into r5 r6 (as dynamic.record dynamic.record);
     output r5 as dynamic.record;
     output r6 as dynamic.record;
+
+function dispatch_f_u_to_r_f:
+    input r0 as field.public;
+    input r1 as field.public;
+    input r2 as field.public;
+    input r3 as field.public;
+    input r4 as u128.public;
+    call.dynamic r0 r1 r2 with r3 r4 (as field.private u128.private) into r5 r6 (as dynamic.record dynamic.future);
+    async dispatch_f_u_to_r_f r6 into r7;
+    output r5 as dynamic.record;
+    output r7 as direct_dispatcher.aleo/dispatch_f_u_to_r_f.future;
+
+finalize dispatch_f_u_to_r_f:
+    input r0 as dynamic.future;
+    await r0;
 
 function dispatch_f_a_u_to_r_f:
     input r0 as field.public;
@@ -418,27 +447,6 @@ function dispatch_a_u_r_proofs_to_rrrr_f:
     output r12 as direct_dispatcher.aleo/dispatch_a_u_r_proofs_to_rrrr_f.future;
 
 finalize dispatch_a_u_r_proofs_to_rrrr_f:
-    input r0 as dynamic.future;
-    await r0;
-
-function dispatch_a_u_r_r_to_rrrrr_f:
-    input r0 as field.public;
-    input r1 as field.public;
-    input r2 as field.public;
-    input r3 as address.private;
-    input r4 as u128.public;
-    input r5 as dynamic.record;
-    input r6 as dynamic.record;
-    call.dynamic r0 r1 r2 with r3 r4 r5 r6 (as address.private u128.private dynamic.record dynamic.record) into r7 r8 r9 r10 r11 r12 (as dynamic.record dynamic.record dynamic.record dynamic.record dynamic.record dynamic.future);
-    async dispatch_a_u_r_r_to_rrrrr_f r12 into r13;
-    output r7 as dynamic.record;
-    output r8 as dynamic.record;
-    output r9 as dynamic.record;
-    output r10 as dynamic.record;
-    output r11 as dynamic.record;
-    output r13 as direct_dispatcher.aleo/dispatch_a_u_r_r_to_rrrrr_f.future;
-
-finalize dispatch_a_u_r_r_to_rrrrr_f:
     input r0 as dynamic.future;
     await r0;
 
