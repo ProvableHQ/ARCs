@@ -16,10 +16,15 @@ struct TokenAllowance {
 // ARC20 interface.
 interface ARC20 {
     record Token;
+    record Metadata {
+        owner: address,
+        sender: address,
+        ..
+    }
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
-    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Final);
+    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Metadata, Final);
     fn shield(public amount: u128) -> (Token, Final);
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
 
@@ -45,6 +50,11 @@ program wrapped_credits.aleo: MintableToken {
     record Token {
         owner: address,
         amount: u128,
+    }
+
+    record Metadata {
+        owner: address,
+        sender: address,
     }
 
     mapping balances: address => u128;
@@ -167,11 +177,13 @@ program wrapped_credits.aleo: MintableToken {
         return (change_token, new_token);
     }
 
-    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Final) {
+    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Metadata, Final) {
         assert(input.owner == self.signer);
         let change_token = Token { owner: input.owner, amount: input.amount - amount };
+        let metadata = Metadata { owner: input.owner, sender: input.owner };
         return (
             change_token,
+            metadata,
             final {
                 let previous_balance_receiver = balances.get(to);
                 balances.set(to, previous_balance_receiver + amount);

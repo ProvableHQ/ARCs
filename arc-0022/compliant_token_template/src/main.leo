@@ -62,8 +62,18 @@ fn verify_non_inclusion(addr: address, merkle_proofs: [freezelist.aleo/MerklePro
 // ARC20Compliant: like ARC20 but transfer_private* require Merkle proofs for freeze-list compliance.
 interface ARC20Compliant {
     record Token;
-    record ComplianceRecord;
-    record Metadata;
+    record ComplianceRecord {
+        owner: address,
+        amount: u128,
+        sender: address,
+        recipient: address,
+        ..
+    }
+    record Metadata {
+        owner: address,
+        sender: address,
+        ..
+    }
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn approve_public(public spender: address, public amount: u128) -> Final;
@@ -78,7 +88,7 @@ interface ARC20Compliant {
     // Transfers private tokens to a public recipient balance.
     // A Metadata record (owner, sender) is emitted instead of ComplianceRecord because
     // the amount and recipient are already public inputs visible on-chain.
-    fn transfer_private_to_public(public recipient: address, public amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (Metadata, Token, Final);
+    fn transfer_private_to_public(public recipient: address, public amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (Token, Metadata, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
     fn transfer_from_public_to_private(public owner: address, recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
     // Shields public tokens from the signer.
@@ -591,7 +601,7 @@ program compliant_token_template.aleo: ARC20Compliant {
         public amount: u128,
         input_record: Token,
         sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32],
-    ) -> (Metadata, Token, Final) {
+    ) -> (Token, Metadata, Final) {
         let root: field = verify_non_inclusion(input_record.owner, sender_merkle_proofs);
         let updated_record: Token = Token {
             owner: input_record.owner,
@@ -604,8 +614,8 @@ program compliant_token_template.aleo: ARC20Compliant {
             sender: input_record.owner,
         };
         return (
-            metadata,
             updated_record,
+            metadata,
             final {
                 let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
                 assert_eq(is_paused, false);

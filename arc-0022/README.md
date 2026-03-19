@@ -31,8 +31,18 @@ The compliant token interface adds freeze-list enforcement and compliance report
 ```leo
 interface ARC20Compliant {
     record Token;
-    record ComplianceRecord;
-    record Metadata;
+    record ComplianceRecord {
+        owner: address,     // investigator address
+        amount: u128,
+        sender: address,
+        recipient: address,
+        ..
+    }
+    record Metadata {
+        owner: address,     // investigator address
+        sender: address,
+        ..
+    }
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn approve_public(public spender: address, public amount: u128) -> Final;
@@ -44,7 +54,7 @@ interface ARC20Compliant {
         -> (ComplianceRecord, Token, Token, Final);
     fn transfer_private_to_public(public recipient: address, public amount: u128,
         input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32])
-        -> (Metadata, Token, Final);
+        -> (Token, Metadata, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128)
         -> (ComplianceRecord, Token, Final);
     fn transfer_from_public_to_private(public owner: address, recipient: address,

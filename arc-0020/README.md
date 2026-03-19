@@ -33,10 +33,15 @@ The minimal fungible token interface. Every ARC-20 token must implement these fu
 ```leo
 interface ARC20 {
     record Token;
+    record Metadata {
+        owner: address,
+        sender: address,
+        ..
+    }
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
-    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Final);
+    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Metadata, Final);
     fn shield(public amount: u128) -> (Token, Final);
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
 
@@ -67,6 +72,14 @@ interface MintableToken: ARC20 {
 record Token {
     owner: address,
     amount: u128,
+}
+```
+
+**Metadata** -- Emitted by `transfer_private_to_public`. The sender's identity is private (consumed from a Token record), but the recipient and amount are public inputs. The Metadata record gives the sender a private receipt linking them to the transfer:
+```leo
+record Metadata {
+    owner: address,     // the sender (record owner = sender, so only they can decrypt)
+    sender: address,
 }
 ```
 
@@ -164,6 +177,7 @@ A program declares interface conformance with `: InterfaceName`:
 ```leo
 interface ARC20 {
     record Token;
+    record Metadata { owner: address, sender: address, .. }
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     // ... other required functions
 }
@@ -204,7 +218,7 @@ Tests use Jest with a local devnode and Leo CLI execution.
 
 **u128 amounts**: Future-proofs the standard for high-supply tokens and avoids truncation issues. u64 would limit maximum supply to ~18.4 quintillion base units, which is insufficient for some token designs.
 
-**`shield`/`unshield` naming**: `shield` converts the signer's public balance to a private Token record. `unshield` converts a private Token back. The interface also includes `transfer_private_to_public`, which differs from `unshield` in that it allows specifying a recipient and returns a single change record.
+**`shield`/`unshield` naming**: `shield` converts the signer's public balance to a private Token record. `unshield` converts a private Token back. The interface also includes `transfer_private_to_public`, which differs from `unshield` in that it allows specifying a recipient and emits a `Metadata` record linking the private sender to the public transfer.
 
 ## Reference Implementations
 

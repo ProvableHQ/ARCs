@@ -11,10 +11,11 @@ Two standards. ARC-20 is the base fungible token. ARC-22 adds compliance (freeze
 ```leo
 interface ARC20 {
     record Token;
+    record Metadata { owner: address, sender: address, .. }
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
-    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Final);
+    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Metadata, Final);
     fn shield(public amount: u128) -> (Token, Final);
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
 
@@ -38,6 +39,7 @@ interface MintableToken: ARC20 {
 ```leo
 program my_token.aleo: MintableToken {
     record Token { owner: address, amount: u128 }
+    record Metadata { owner: address, sender: address }
     mapping balances: address => u128;
     mapping allowances: TokenAllowance => u128;
 
@@ -130,8 +132,8 @@ Extends ARC-20 for regulated tokens. Same transfer functions, but private transf
 ```leo
 interface ARC20Compliant {
     record Token;
-    record ComplianceRecord;
-    record Metadata;
+    record ComplianceRecord { owner: address, amount: u128, sender: address, recipient: address, .. }
+    record Metadata { owner: address, sender: address, .. }
 
     // Public -- freeze list checked in finalize
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
@@ -143,7 +145,7 @@ interface ARC20Compliant {
     fn transfer_private(recipient: address, amount: u128, input_record: Token,
         proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (ComplianceRecord, Token, Token, Final);
     fn transfer_private_to_public(public recipient: address, public amount: u128,
-        input_record: Token, proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (Metadata, Token, Final);
+        input_record: Token, proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (Token, Metadata, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128)
         -> (ComplianceRecord, Token, Final);
     fn transfer_from_public_to_private(public owner: address, recipient: address,
