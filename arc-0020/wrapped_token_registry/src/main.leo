@@ -25,6 +25,7 @@ interface ARC20 {
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
     fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (Token, Metadata, Final);
+    fn transfer_public_to_private(recipient: address, public amount: u128) -> (Token, Final);
     fn shield(public amount: u128) -> (Token, Final);
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
 
@@ -126,6 +127,18 @@ program wrapped_token_registry.aleo: MintableToken {
             let prev_recv = balances.get_or_use(recipient, 0u128);
             balances.set(recipient, prev_recv + amount);
         };
+    }
+
+    fn transfer_public_to_private(recipient: address, public amount: u128) -> (Token, Final) {
+        let token = Token { owner: recipient, amount };
+        let caller = self.caller;
+        return (
+            token,
+            final {
+                let prev = balances.get(caller);
+                balances.set(caller, prev - amount);
+            },
+        );
     }
 
     fn shield(public amount: u128) -> (Token, Final) {
