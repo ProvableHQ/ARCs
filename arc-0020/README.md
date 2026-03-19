@@ -10,15 +10,15 @@ created: 2026-03-18
 
 ## Abstract
 
-ARC-20 defines a fungible token standard for Aleo, supporting both public and private balances through Aleo's dynamic dispatch (interface) system. Tokens implementing the ARC-20 interface can be called by any program at runtime without compile-time knowledge of the specific token implementation.
+ARC-20 defines a fungible token standard for Aleo, supporting both public and private balances. Programs declare conformance to the ARC20 interface, and any other program can call them at runtime via dynamic dispatch -- without compile-time knowledge of the specific token implementation.
 
 The standard defines **ARC20**, a minimal interface for public transfers, private transfers, shielding/unshielding, and approvals. An optional **MintableToken** extension adds mint and burn operations. Reference implementations: `wrapped_credits.aleo`, `wrapped_token_registry.aleo`.
 
-For regulated tokens requiring freeze lists, compliance records, and pause functionality, see [ARC-22](../arc-0022/).
+For regulated tokens requiring freeze lists and compliance records, see [ARC-22](../arc-0022/).
 
 ## Motivation
 
-Without a standard interface, every DeFi program must import each token at compile time, making it impossible to build token-agnostic protocols. ARC-20 solves this through Leo's dynamic dispatch: a single AMM, lending protocol, or exchange can interact with any conforming token by program ID at runtime, with no recompilation or redeployment required.
+Without a standard interface, every DeFi program must import each token at compile time, making it impossible to build token-agnostic protocols. ARC-20 solves this through Leo's dynamic dispatch: a single AMM, lending protocol, or exchange can interact with any conforming token by name at runtime, with no recompilation or redeployment required.
 
 ARC-20 supersedes the previous ARC-20 draft (2023), which was written in Aleo instructions without interface support.
 
@@ -75,10 +75,10 @@ record Token {
 }
 ```
 
-**Metadata** -- Emitted by `transfer_private_to_public`. The sender's identity is private (consumed from a Token record), but the recipient and amount are public inputs. The Metadata record gives the sender a private receipt linking them to the transfer:
+**Metadata** -- Emitted by `transfer_private_to_public`. The recipient and amount are already visible as public inputs, but the sender's identity is hidden. The Metadata record is owned by the sender, giving them a private receipt of the transfer that only they can decrypt:
 ```leo
 record Metadata {
-    owner: address,     // the sender (record owner = sender, so only they can decrypt)
+    owner: address,     // set to the sender's address
     sender: address,
 }
 ```
@@ -94,7 +94,7 @@ record Metadata {
 
 ### Dynamic Dispatch
 
-ARC-20 interfaces are consumed via dynamic dispatch, which resolves the target program at runtime. This allows a single program (e.g. an AMM or lending protocol) to interact with *any* ARC20-implementing token without importing it at compile time.
+ARC-20 tokens are called via dynamic dispatch, which resolves the target program at runtime. This allows a single program (e.g. an AMM or lending protocol) to interact with *any* ARC20-implementing token without importing it at compile time.
 
 Leo provides two ways to make dynamic calls:
 
@@ -120,7 +120,7 @@ ARC20@('my_token')/transfer_public(recipient, amount);
 ARC20@('my_token', 'aleo')/transfer_public(recipient, amount);
 ```
 
-The compiler resolves function names and validates argument types against the interface definition. No manual function selector encoding is needed. `Final` values returned by dynamic calls are run as `dynamic.future`s.
+The compiler resolves function names and validates argument types against the interface definition. No manual function selector encoding is needed.
 
 #### Example: Swap
 
@@ -152,7 +152,7 @@ program my_exchange.aleo {
 
 #### Example: Private Transfer with `dyn record`
 
-For private token operations, `dyn record` provides type-erased records that work with any ARC20 token:
+For private token operations, `dyn record` provides dynamic records that work with any ARC20 token:
 
 ```leo
 fn deposit_private(
@@ -214,7 +214,7 @@ Tests use Jest with a local devnode and Leo CLI execution.
 
 ## Rationale
 
-**Additive approvals**: `approve_public` increases the existing allowance rather than replacing it. This matches Aleo's finalize model where concurrent transactions can both succeed -- two `approve_public` calls in the same block will both add to the allowance rather than one overwriting the other.
+**Additive approvals**: `approve_public` increases the existing allowance rather than replacing it. This avoids race conditions -- two `approve_public` calls in the same block will both succeed and add to the allowance, rather than one silently overwriting the other.
 
 **u128 amounts**: Future-proofs the standard for high-supply tokens and avoids truncation issues. u64 would limit maximum supply to ~18.4 quintillion base units, which is insufficient for some token designs.
 
@@ -323,7 +323,7 @@ For developers familiar with Ethereum's ERC-20 standard:
 
 ## Security Considerations
 
-**Approval model**: ARC-20 uses additive approvals -- `approve_public` increases the allowance, and `unapprove_public` decreases it. This differs from ERC-20's replace semantics. Front-running `approve_public` can increase exposure; users should `unapprove_public` before setting a new allowance if needed.
+**Approval model**: ARC-20 uses additive approvals -- `approve_public` increases the allowance, and `unapprove_public` decreases it. This differs from ERC-20's replace semantics. To change an allowance from 100 to 50, call `unapprove_public(50)` rather than setting a new value. Calling `approve_public` without first reducing the existing allowance will add to it.
 
 **Arithmetic overflow/underflow**: Leo's `u128` arithmetic aborts the transaction on underflow/overflow (enforced by the Aleo VM). No explicit checks are needed in implementations.
 

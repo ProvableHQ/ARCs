@@ -1,6 +1,6 @@
 # ARC-20 & ARC-22: Executive Summary
 
-Two standards. ARC-20 is the base fungible token. ARC-22 adds compliance (freeze lists, audit records, roles, pause).
+Two standards. ARC-20 is the base fungible token. ARC-22 adds compliance (freeze lists, audit records).
 
 ---
 
@@ -89,7 +89,7 @@ program my_exchange.aleo {
 }
 ```
 
-### Private transfer with type-erased records
+### Private transfer with dynamic records
 
 ```leo
 fn deposit_private(
@@ -141,7 +141,7 @@ interface ARC20Compliant {
     fn unapprove_public(public spender: address, public amount: u128) -> Final;
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
 
-    // Private -- sender must prove non-inclusion in freeze list
+    // Private -- sender must prove non-inclusion in freeze list; emits ComplianceRecord to investigator
     fn transfer_private(recipient: address, amount: u128, input_record: Token,
         proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (ComplianceRecord, Token, Token, Final);
     fn transfer_private_to_public(public recipient: address, public amount: u128,
@@ -170,22 +170,6 @@ record Metadata { owner: address, sender: address }
 
 `owner` is always `INVESTIGATOR_ADDRESS` (hardcoded, changeable only via multisig-gated upgrade).
 
-### Roles (bitmask)
-
-```
-MINTER_ROLE  = 1u16    BURNER_ROLE  = 2u16
-PAUSE_ROLE   = 4u16    MANAGER_ROLE = 8u16
-```
-
-```leo
-// Check role
-let role: u16 = address_to_role.get(caller);
-assert(role & MINTER_ROLE == MINTER_ROLE);
-
-// Assign combined role (MINTER + MANAGER)
-address_to_role.set(addr, 9u16);
-```
-
 ### Freeze list
 
 Sender proves non-inclusion via two adjacent Merkle leaf proofs showing a gap. Windowed root updates keep previous proofs valid for `BLOCK_HEIGHT_WINDOW` blocks.
@@ -202,7 +186,8 @@ let root: field = verify_non_inclusion(input_record.owner, sender_merkle_proofs)
 // Public functions work dynamically
 ARC20Compliant@(token_id)/transfer_public(recipient, amount);
 
-// Private functions need Merkle proofs -- call directly or via static import
+// Private functions also work -- caller must pass Merkle proofs
+ARC20Compliant@(token_id)/transfer_private(recipient, amount, token, merkle_proofs);
 ```
 
 ### On-chain dependencies
@@ -213,7 +198,7 @@ ARC20Compliant@(token_id)/transfer_public(recipient, amount);
 
 | Program | What it does |
 |---------|-------------|
-| `compliant_token_template.aleo` | Full ARC20Compliant: roles, freeze list, pause, multisig upgrades |
+| `compliant_token_template.aleo` | Full ARC20Compliant: freeze list, multisig upgrades |
 | `freezelist.aleo` | Sorted Merkle tree of frozen addresses with windowed root updates |
 
 ---
