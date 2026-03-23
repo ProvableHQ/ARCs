@@ -1,7 +1,0 @@
-{
-  "name": "arc-0020-2026",
-  "private": true,
-  "scripts": {
-    "fmt": "./fmt-leo.sh"
-  }
-}

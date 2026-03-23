@@ -35,7 +35,6 @@ interface ARC20 {
     record Token;
     record Metadata {
         owner: address,
-        sender: address,
         ..
     }
 
@@ -80,7 +79,6 @@ record Token {
 ```leo
 record Metadata {
     owner: address,     // set to the sender's address
-    sender: address,
 }
 ```
 
@@ -178,7 +176,7 @@ A program declares interface conformance with `: InterfaceName`:
 ```leo
 interface ARC20 {
     record Token;
-    record Metadata { owner: address, sender: address, .. }
+    record Metadata { owner: address, .. }
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     // ... other required functions
 }
@@ -207,7 +205,7 @@ See `wrapped_credits.aleo` and `wrapped_token_registry.aleo` for complete implem
 Tests use Jest with a local devnode and Leo CLI execution.
 
 **ARC20 shared interface tests** (`arc20-wrapper-tests.js`), run for both `wrapped_credits` and `wrapped_token_registry`:
-- All transfer variants (public, private, private-to-public)
+- All transfer variants (public, private, private-to-public, public-to-private)
 - Shield/unshield round-trips
 - Approve/unapprove/transfer_from/transfer_from_public_to_private allowance management
 - Mint/burn (public and private) via MintableToken extension

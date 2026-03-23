@@ -39,7 +39,6 @@ interface ARC20Compliant {
     }
     record Metadata {
         owner: address,     // investigator address
-        sender: address,
         ..
     }
 
@@ -85,11 +84,10 @@ record ComplianceRecord {
 }
 ```
 
-**Metadata** -- Emitted by `transfer_private_to_public` instead of `ComplianceRecord`. Since `amount` and `recipient` are already public inputs visible on-chain, only the sender identity is recorded privately:
+**Metadata** -- Emitted by `transfer_private_to_public` instead of `ComplianceRecord`. Since `amount` and `recipient` are already public inputs visible on-chain, a lighter record is used:
 ```leo
 record Metadata {
     owner: address,     // investigator address
-    sender: address,
 }
 ```
 
@@ -128,7 +126,7 @@ When the freeze list is updated, the Merkle root changes. A `BLOCK_HEIGHT_WINDOW
 
 All private transfers emit a `ComplianceRecord` with `owner` set to `INVESTIGATOR_ADDRESS`. This means only the investigator can decrypt the record and view the transfer details (sender, recipient, amount).
 
-For `transfer_private_to_public`, a lighter `Metadata` record is emitted instead, since the amount and recipient are already visible as public inputs on-chain. The `Metadata` record's `owner` is also set to `INVESTIGATOR_ADDRESS`, allowing the investigator to learn the sender's identity.
+For `transfer_private_to_public`, a lighter `Metadata` record is emitted instead, since the amount and recipient are already visible as public inputs on-chain. The `Metadata` record's `owner` is set to `INVESTIGATOR_ADDRESS`.
 
 ### Investigator Address
 
@@ -160,7 +158,7 @@ Tests use Jest with a local devnode and Leo CLI execution.
 - `transfer_public_to_private` / `transfer_from_public_to_private`: Public-to-private conversions with ComplianceRecord emission
 - `shield` / `unshield`: Shield and unshield with Merkle proof verification
 - `transfer_private`: Private transfer with freeze-list proof and ComplianceRecord
-- `transfer_private_to_public`: Returns `Metadata` record (not `ComplianceRecord`) with investigator as owner; validates sender address
+- `transfer_private_to_public`: Returns `Metadata` record (not `ComplianceRecord`) with investigator as owner; validates no sender field
 - `shield`: ComplianceRecord contains correct investigator owner and sender
 - `mint_public`: Minter increases recipient balance; non-minter is rejected
 - `mint_private`: Minter creates private Token with ComplianceRecord
@@ -190,7 +188,7 @@ ARC-22 is a new standard and has no backwards compatibility concerns. Programs i
 
 **Compliance records**: Private transfers emit a `ComplianceRecord` to the designated investigator address, allowing authorized parties to audit private token movements while preserving sender privacy from the public. The investigator address is hardcoded and can only be changed via multisig-gated program upgrade.
 
-**Metadata records**: `transfer_private_to_public` emits a lighter `Metadata` record instead of `ComplianceRecord`, since the amount and recipient are already visible as public inputs. The `Metadata` record owner is set to the investigator address so the investigator can identify the sender.
+**Metadata records**: `transfer_private_to_public` emits a lighter `Metadata` record instead of `ComplianceRecord`, since the amount and recipient are already visible as public inputs.
 
 **Upgradability**: `compliant_token_template.aleo` and `freezelist.aleo` gate program upgrades behind `multisig_core.aleo` signing operations, ensuring that code changes require multi-party approval.
 

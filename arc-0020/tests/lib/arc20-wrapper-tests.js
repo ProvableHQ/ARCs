@@ -52,6 +52,25 @@ export function registerArc20WrapperTests(config) {
       expect(after1).toBe(before1);
     });
 
+    test("transfer_public_to_private (positive): debits caller, outputs Token for recipient", async () => {
+      const before0 = await bal(addr0);
+      const exec = await Wrapper.transferPublicToPrivate(accounts[0], addr1, "60u128");
+      await expectConfirmed(exec);
+      const records = extractRecordPlaintexts(exec.stdout);
+      expect(records.length).toBeGreaterThanOrEqual(1);
+      const after0 = await bal(addr0);
+      expect(before0 - after0).toBe(60n);
+    });
+
+    test("transfer_public_to_private (negative): insufficient balance rejects", async () => {
+      const before0 = await bal(addr0);
+      await Wrapper.transferPublicToPrivate(accounts[0], addr1, "999999999999999999999999u128", {
+        expectRejection: true,
+      });
+      const after0 = await bal(addr0);
+      expect(after0).toBe(before0);
+    });
+
     test("shield (positive): outputs a Token and debits caller", async () => {
       const before0 = await bal(addr0);
       const exec = await Wrapper.shield(accounts[0], "400u128");

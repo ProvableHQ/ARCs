@@ -71,7 +71,6 @@ interface ARC20Compliant {
     }
     record Metadata {
         owner: address,
-        sender: address,
         ..
     }
 
@@ -86,7 +85,7 @@ interface ARC20Compliant {
     // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
     fn transfer_private(recipient: address, amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (ComplianceRecord, Token, Token, Final);
     // Transfers private tokens to a public recipient balance.
-    // A Metadata record (owner, sender) is emitted instead of ComplianceRecord because
+    // A Metadata record is emitted instead of ComplianceRecord because
     // the amount and recipient are already public inputs visible on-chain.
     fn transfer_private_to_public(public recipient: address, public amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (Token, Metadata, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
@@ -137,11 +136,9 @@ program compliant_token_template.aleo: ARC20Compliant {
  recipient: address
  }
 
- // Metadata record for transfer_private_to_public: reveals owner and sender
- // without exposing the full compliance details (amount, recipient are public).
+ // Metadata record for transfer_private_to_public.
  record Metadata {
  owner: address,
- sender: address,
  }
 
  struct ChecksumEdition {
@@ -607,11 +604,9 @@ program compliant_token_template.aleo: ARC20Compliant {
             owner: input_record.owner,
             amount: input_record.amount - amount,
         };
-        // Use Metadata instead of ComplianceRecord: amount and recipient are already
-        // public inputs, so only owner/sender identity needs to be recorded privately.
+        // Use Metadata instead of ComplianceRecord: amount and recipient are already public inputs.
         let metadata: Metadata = Metadata {
             owner: INVESTIGATOR_ADDRESS,
-            sender: input_record.owner,
         };
         return (
             updated_record,

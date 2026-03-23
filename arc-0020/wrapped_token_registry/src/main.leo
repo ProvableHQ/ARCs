@@ -18,7 +18,6 @@ interface ARC20 {
     record Token;
     record Metadata {
         owner: address,
-        sender: address,
         ..
     }
 
@@ -58,7 +57,6 @@ program wrapped_token_registry.aleo: MintableToken {
 
     record Metadata {
         owner: address,
-        sender: address,
     }
 
     mapping balances: address => u128;
@@ -186,7 +184,7 @@ program wrapped_token_registry.aleo: MintableToken {
         assert(input.owner == self.signer);
         assert(input.amount >= amount);
         let change_token = Token { owner: input.owner, amount: input.amount - amount };
-        let metadata = Metadata { owner: input.owner, sender: input.owner };
+        let metadata = Metadata { owner: input.owner };
         return (
             change_token,
             metadata,

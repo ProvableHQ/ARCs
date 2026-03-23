@@ -16,7 +16,7 @@ import * as CompliantToken from "./contracts/compliant-token-template.js";
 import { extractRecordPlaintexts } from "./lib/arc20-wrapper-tests.js";
 import { generateNonInclusionProof } from "./lib/merkle-proof-utils.js";
 
-/** Token has owner, amount; ComplianceRecord has sender, recipient; Metadata has owner, sender. */
+/** Token has owner, amount; ComplianceRecord has sender, recipient; Metadata has owner only. */
 function findTokenRecord(records) {
   return records.find(
     (r) => r.includes("owner:") && r.includes("amount:") && !r.includes("sender:") && !r.includes("freeze_list_root:"),
@@ -266,7 +266,7 @@ describe("compliant_token_template.aleo", () => {
     expect(after0 - before0).toBe(40n);
   });
 
-  test("transfer_private_to_public: returns Metadata record with owner/sender", async () => {
+  test("transfer_private_to_public: returns Metadata record with investigator as owner", async () => {
     const shieldExec = await CompliantToken.shield(AleoUtils.accounts[0], "100u128");
     await expectConfirmed(shieldExec);
     const records = extractRecordPlaintexts(shieldExec.stdout);
@@ -283,14 +283,13 @@ describe("compliant_token_template.aleo", () => {
     );
     await expectConfirmed(exec);
     const outRecords = extractRecordPlaintexts(exec.stdout);
-    // Metadata record has owner + sender but no amount or recipient fields
+    // Metadata record has owner but no amount, sender, or recipient fields
     const metadataRecord = outRecords.find(
-      (r) => r.includes("sender:") && !r.includes("amount:") && !r.includes("recipient:"),
+      (r) => r.includes("owner:") && !r.includes("amount:") && !r.includes("sender:") && !r.includes("recipient:") && !r.includes("freeze_list_root:"),
     );
     expect(metadataRecord).toBeDefined();
-    // Metadata owner should be the investigator address (not the sender)
+    // Metadata owner should be the investigator address
     expect(metadataRecord).toContain("aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px");
-    expect(metadataRecord).toContain("sender:");
   });
 
   // --- Step 6a: Role-based access control negative tests ---
@@ -334,7 +333,7 @@ describe("compliant_token_template.aleo", () => {
     expect(complianceRecord).toContain(addr0);
   });
 
-  test("transfer_private_to_public: Metadata contains sender address", async () => {
+  test("transfer_private_to_public: Metadata record has no sender field", async () => {
     const shieldExec = await CompliantToken.shield(AleoUtils.accounts[0], "50u128");
     await expectConfirmed(shieldExec);
     const records = extractRecordPlaintexts(shieldExec.stdout);
@@ -352,13 +351,12 @@ describe("compliant_token_template.aleo", () => {
     await expectConfirmed(exec);
     const outRecords = extractRecordPlaintexts(exec.stdout);
 
-    // Metadata record has owner + sender but no amount or recipient
+    // Metadata record has owner only -- no sender, amount, or recipient
     const metadataRecord = outRecords.find(
-      (r) => r.includes("sender:") && !r.includes("amount:") && !r.includes("recipient:"),
+      (r) => r.includes("owner:") && !r.includes("amount:") && !r.includes("sender:") && !r.includes("recipient:") && !r.includes("freeze_list_root:"),
     );
     expect(metadataRecord).toBeDefined();
-    // Sender field should contain addr0
-    expect(metadataRecord).toContain(addr0);
+    expect(metadataRecord).toContain("aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px");
   });
 
   // --- Mint/burn tests ---
