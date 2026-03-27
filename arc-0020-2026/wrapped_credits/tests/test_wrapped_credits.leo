@@ -7,7 +7,7 @@ program test_wrapped_credits.aleo {
     // Note: May fail at runtime without deployed state (insufficient balance)
     @test
     fn test_transfer_public_compiles() -> Final {
-        let f = wrapped_credits.aleo/transfer_public(
+        let f = wrapped_credits.aleo::transfer_public(
             aleo1s3ws5tra87fjycnjrwsjcrnw2qxr8jfqqdugnf0xzqqw29q9m5pqem2u4t,
             100u128,
         );

@@ -71,10 +71,10 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("deposit_credits_private (positive): accepts a credits record and returns a Token", async () => {
-    // Create a credits.aleo/credits record for addr0.
+    // Create a credits.aleo::credits record for addr0.
     const creditsExec = await AleoUtils.leoExecute(
       programPath,
-      "credits.aleo/transfer_public_to_private",
+      "credits.aleo::transfer_public_to_private",
       [addr0, "500u64"],
       { privateKey: pk0 },
     );
@@ -102,7 +102,7 @@ describe("wrapped_credits.aleo", () => {
   test("deposit_credits_private (negative): rejects when amount exceeds record value", async () => {
     const creditsExec = await AleoUtils.leoExecute(
       programPath,
-      "credits.aleo/transfer_public_to_private",
+      "credits.aleo::transfer_public_to_private",
       [addr0, "50u64"],
       { privateKey: pk0 },
     );

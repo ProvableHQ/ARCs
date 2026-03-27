@@ -61,7 +61,7 @@ describe("compliant_token_template.aleo", () => {
     // Initialize freezelist first (compliant_token_template reads from it).
     const freezelistInit = await AleoUtils.leoExecute(
       programPath,
-      "freezelist.aleo/initialize",
+      "freezelist.aleo::initialize",
       [addr0, BLOCK_HEIGHT_WINDOW],
       { privateKey: pk0 },
     );

@@ -52,7 +52,7 @@ program wrapped_credits.aleo: MintableToken {
     mapping allowances: TokenAllowance => u128;
 
     fn deposit_credits_public(public amount: u64) -> Final {
-        let credits_finalization = credits.aleo/transfer_public_as_signer(self.address, amount);
+        let credits_finalization = credits.aleo::transfer_public_as_signer(self.address, amount);
         // Mint wrapped credits to the depositor (the signer), while the underlying
         // Aleo credits are held by this program's address.
         let depositor = self.signer;
@@ -64,10 +64,10 @@ program wrapped_credits.aleo: MintableToken {
     }
 
     fn deposit_credits_private(
-        input_record: credits.aleo/credits,
+        input_record: credits.aleo::credits,
         amount: u64,
-    ) -> (credits.aleo/credits, Token, Final) {
-        let (change, credits_finalization) = credits.aleo/transfer_private_to_public(
+    ) -> (credits.aleo::credits, Token, Final) {
+        let (change, credits_finalization) = credits.aleo::transfer_private_to_public(
             input_record,
             self.address,
             amount,
@@ -79,7 +79,7 @@ program wrapped_credits.aleo: MintableToken {
     }
 
     fn withdraw_credits_public(amount: u64) -> Final {
-        let credits_finalization = credits.aleo/transfer_public(self.caller, amount);
+        let credits_finalization = credits.aleo::transfer_public(self.caller, amount);
         let withdrawer = self.caller;
         return final {
             let previous_balance = balances.get(withdrawer);
@@ -89,7 +89,7 @@ program wrapped_credits.aleo: MintableToken {
     }
 
     fn withdraw_credits_public_signer(amount: u64) -> Final {
-        let credits_finalization = credits.aleo/transfer_public(self.signer, amount);
+        let credits_finalization = credits.aleo::transfer_public(self.signer, amount);
         let withdrawer = self.signer;
         return final {
             let previous_balance = balances.get(withdrawer);
@@ -101,8 +101,8 @@ program wrapped_credits.aleo: MintableToken {
     fn withdraw_credits_private(
         input_token: Token,
         amount: u64,
-    ) -> (credits.aleo/credits, Token, Final) {
-        let (output, credits_finalization) = credits.aleo/transfer_public_to_private(
+    ) -> (credits.aleo::credits, Token, Final) {
+        let (output, credits_finalization) = credits.aleo::transfer_public_to_private(
             input_token.owner,
             amount,
         );
@@ -139,11 +139,11 @@ program wrapped_credits.aleo: MintableToken {
 
     fn unshield(input: Token, amount: u128) -> (Token, Token, Final) {
         assert(input.amount >= amount);
-        let (credits_record, credits_finalization) = credits.aleo/transfer_public_to_private(
+        let (credits_record, credits_finalization) = credits.aleo::transfer_public_to_private(
             input.owner,
             amount as u64,
         );
-        let (_, conv_final) = credits.aleo/transfer_private_to_public(
+        let (_, conv_final) = credits.aleo::transfer_private_to_public(
             credits_record,
             input.owner,
             amount as u64,
@@ -243,7 +243,7 @@ program wrapped_credits.aleo: MintableToken {
 
     // MintableToken interface
     fn mint_public(public recipient: address, public amount: u128) -> Final {
-        let credits_finalization = credits.aleo/transfer_public_as_signer(self.address, amount as u64);
+        let credits_finalization = credits.aleo::transfer_public_as_signer(self.address, amount as u64);
         let depositor = self.signer;
         return final {
             credits_finalization.run();
@@ -265,7 +265,7 @@ program wrapped_credits.aleo: MintableToken {
     }
 
     fn burn_public(public amount: u128) -> Final {
-        let credits_finalization = credits.aleo/transfer_public(self.caller, amount as u64);
+        let credits_finalization = credits.aleo::transfer_public(self.caller, amount as u64);
         let burner = self.caller;
         return final {
             let previous_balance = balances.get(burner);
@@ -276,7 +276,7 @@ program wrapped_credits.aleo: MintableToken {
 
     fn burn_private(input: Token) -> Final {
         assert(input.owner == self.signer);
-        let (_, credits_finalization) = credits.aleo/transfer_public_to_private(
+        let (_, credits_finalization) = credits.aleo::transfer_public_to_private(
             input.owner,
             input.amount as u64,
         );

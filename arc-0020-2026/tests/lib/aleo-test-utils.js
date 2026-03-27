@@ -108,7 +108,24 @@ export async function waitForTransactionConfirmedFromLeoExecution(execResult, op
 
 const LEO_BIN = "leo";
 
+/** When false, Leo subprocess output is still captured for return values but not echoed to the terminal. */
+function leoEchoEnabled() {
+  return process.env.LEO_TEST_SILENT !== "1";
+}
+
+/**
+ * Mirror subprocess streams to the terminal (stdout/stderr) so Leo output is visible during tests.
+ * Only `leo` is echoed by default; set opts.echo true to force, false to suppress.
+ */
+function shouldEchoRun(cmd, opts) {
+  if (!leoEchoEnabled()) return false;
+  if (opts.echo === false) return false;
+  if (opts.echo === true) return true;
+  return cmd === LEO_BIN;
+}
+
 async function run(cmd, args, opts = {}) {
+  const echo = shouldEchoRun(cmd, opts);
   return await new Promise((resolve, reject) => {
     const p = spawn(cmd, args, {
       cwd: opts.cwd,
@@ -121,10 +138,12 @@ async function run(cmd, args, opts = {}) {
     p.stdout?.on("data", (d) => {
       const chunk = d.toString();
       stdout += chunk;
+      if (echo) process.stdout.write(chunk);
     });
     p.stderr?.on("data", (d) => {
       const chunk = d.toString();
       stderr += chunk;
+      if (echo) process.stderr.write(chunk);
     });
 
     // Some Leo commands (notably `deploy`) prompt for confirmation.
@@ -244,6 +263,7 @@ export async function startDevnode(opts = {}) {
     { stdio: ["ignore", "pipe", "pipe"] },
   );
 
+  // Devnode output goes only to the log file (not stdout/stderr) to keep test runs readable.
   devnetProc.stdout?.pipe(devnetLogStream, { end: false });
   devnetProc.stderr?.pipe(devnetLogStream, { end: false });
 

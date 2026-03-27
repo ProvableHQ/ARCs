@@ -11,7 +11,7 @@ program dummy_exchange.aleo {
         public recipient: address,
         public amount: u128,
     ) -> Final {
-        let f = wrapped_credits.aleo/transfer_from_public(owner, recipient, amount);
+        let f = wrapped_credits.aleo::transfer_from_public(owner, recipient, amount);
         return final {
             f.run();
         };

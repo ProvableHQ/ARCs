@@ -56,7 +56,7 @@ program wrapped_token_registry.aleo: MintableToken {
     mapping allowances: TokenAllowance => u128;
 
     fn deposit_token_public(public amount: u128) -> Final {
-        let tr_final = token_registry.aleo/transfer_public_as_signer(
+        let tr_final = token_registry.aleo::transfer_public_as_signer(
             WRAPPED_TOKEN_ID,
             self.address,
             amount,
@@ -73,7 +73,7 @@ program wrapped_token_registry.aleo: MintableToken {
 
     fn withdraw_token_public(amount: u128) -> Final {
         let withdrawer = self.caller;
-        let tr_final = token_registry.aleo/transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
+        let tr_final = token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
         return final {
             let prev = balances.get(withdrawer);
             balances.set(withdrawer, prev - amount);
@@ -83,7 +83,7 @@ program wrapped_token_registry.aleo: MintableToken {
 
     fn withdraw_token_public_signer(amount: u128) -> Final {
         let withdrawer = self.signer;
-        let tr_final = token_registry.aleo/transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
+        let tr_final = token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
         return final {
             let prev = balances.get(withdrawer);
             balances.set(withdrawer, prev - amount);
@@ -91,9 +91,9 @@ program wrapped_token_registry.aleo: MintableToken {
         };
     }
 
-    fn withdraw_token_private(amount: u128) -> (token_registry.aleo/Token, Final) {
+    fn withdraw_token_private(amount: u128) -> (token_registry.aleo::Token, Final) {
         let withdrawer = self.signer;
-        let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(
+        let (token_out, tr_final) = token_registry.aleo::transfer_public_to_private(
             WRAPPED_TOKEN_ID,
             withdrawer,
             amount,
@@ -121,7 +121,7 @@ program wrapped_token_registry.aleo: MintableToken {
 
     fn shield(public amount: u128) -> (Token, Final) {
         let signer = self.signer;
-        let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(
+        let (token_out, tr_final) = token_registry.aleo::transfer_public_to_private(
             WRAPPED_TOKEN_ID,
             signer,
             amount,
@@ -179,7 +179,7 @@ program wrapped_token_registry.aleo: MintableToken {
     ) -> (Token, Final) {
         let spender = self.caller;
         let key = TokenAllowance { account: owner, spender: spender };
-        let (token_out, tr_final) = token_registry.aleo/transfer_public_to_private(
+        let (token_out, tr_final) = token_registry.aleo::transfer_public_to_private(
             WRAPPED_TOKEN_ID,
             spender,
             amount,
@@ -234,7 +234,7 @@ program wrapped_token_registry.aleo: MintableToken {
 
     // MintableToken interface
     fn mint_public(public recipient: address, public amount: u128) -> Final {
-        let tr_final = token_registry.aleo/transfer_public_as_signer(
+        let tr_final = token_registry.aleo::transfer_public_as_signer(
             WRAPPED_TOKEN_ID,
             self.address,
             amount,
@@ -261,7 +261,7 @@ program wrapped_token_registry.aleo: MintableToken {
 
     fn burn_public(public amount: u128) -> Final {
         let withdrawer = self.caller;
-        let tr_final = token_registry.aleo/transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
+        let tr_final = token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
         return final {
             let prev = balances.get(withdrawer);
             balances.set(withdrawer, prev - amount);
