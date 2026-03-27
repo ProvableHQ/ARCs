@@ -273,7 +273,7 @@ Teams that have already deployed tokens to `token_registry.aleo` can make them A
 
 `token_registry.aleo` functions take an extra `token_id: field` parameter:
 ```
-token_registry.aleo/transfer_public(token_id, recipient, amount)  // 3 params
+token_registry.aleo::transfer_public(token_id, recipient, amount)  // 3 params
 ARC20/transfer_public(recipient, amount)                          // 2 params
 ```
 This signature mismatch means `token_registry.aleo` cannot directly implement the ARC20 interface.
@@ -284,8 +284,8 @@ This signature mismatch means `token_registry.aleo` cannot directly implement th
 2. Set a `WRAPPED_TOKEN_ID` constant for your token's ID in the registry
 3. Maintain local `balances: address => u128` and `allowances` mappings
 4. Implement deposit/withdraw to bridge between the wrapper and the registry:
-   - `deposit_token_public(amount)`: calls `token_registry.aleo/transfer_public_as_signer(TOKEN_ID, self.address, amount)`, increments local balance
-   - `withdraw_token_public(amount)`: decrements local balance, calls `token_registry.aleo/transfer_public(TOKEN_ID, withdrawer, amount)`
+   - `deposit_token_public(amount)`: calls `token_registry.aleo::transfer_public_as_signer(TOKEN_ID, self.address, amount)`, increments local balance
+   - `withdraw_token_public(amount)`: decrements local balance, calls `token_registry.aleo::transfer_public(TOKEN_ID, withdrawer, amount)`
 5. Implement all ARC20 functions (`transfer_public`, `shield`, `approve_public`, etc.) operating on local balances
 
 ### Deposit/Withdraw Flow

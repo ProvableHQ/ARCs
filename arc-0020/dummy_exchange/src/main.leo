@@ -22,8 +22,12 @@ program dummy_exchange.aleo {
         public amount: u128,
     ) -> Final {
         let f: Final = _dynamic_call::[Final](
-            token_id, NETWORK_ALEO, TRANSFER_FROM_PUBLIC_ID,
-            owner, recipient, amount
+            token_id,
+            NETWORK_ALEO,
+            TRANSFER_FROM_PUBLIC_ID,
+            owner,
+            recipient,
+            amount,
         );
         return final {
             f.run();
@@ -41,13 +45,20 @@ program dummy_exchange.aleo {
     ) -> Final {
         // Pull token_in from signer via allowance
         let pull: Final = _dynamic_call::[Final](
-            token_in, NETWORK_ALEO, TRANSFER_FROM_PUBLIC_ID,
-            self.signer, self.address, amount_in
+            token_in,
+            NETWORK_ALEO,
+            TRANSFER_FROM_PUBLIC_ID,
+            self.signer,
+            self.address,
+            amount_in,
         );
         // Send token_out to signer from this program's balance
         let push: Final = _dynamic_call::[Final](
-            token_out, NETWORK_ALEO, TRANSFER_PUBLIC_ID,
-            self.signer, amount_out
+            token_out,
+            NETWORK_ALEO,
+            TRANSFER_PUBLIC_ID,
+            self.signer,
+            amount_out,
         );
         return final {
             pull.run();

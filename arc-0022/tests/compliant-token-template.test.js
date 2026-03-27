@@ -61,7 +61,7 @@ describe("compliant_token_template.aleo", () => {
     // Initialize freezelist first (compliant_token_template reads from it).
     const freezelistInit = await AleoUtils.leoExecute(
       programPath,
-      "freezelist.aleo/initialize",
+      "freezelist.aleo::initialize",
       [addr0, BLOCK_HEIGHT_WINDOW],
       { privateKey: pk0 },
     );
@@ -402,7 +402,7 @@ describe("compliant_token_template.aleo", () => {
 
   // --- Freeze list enforcement ---
   // TODO: Freeze list tests require computing Merkle root transitions for
-  // freezelist.aleo/update_freeze_list, which involves building Merkle trees
+  // freezelist.aleo::update_freeze_list, which involves building Merkle trees
   // with specific leaf insertion order. Deferred to a follow-up.
 
   test("pause/unpause: set_pause_status blocks and unblocks transfers", async () => {

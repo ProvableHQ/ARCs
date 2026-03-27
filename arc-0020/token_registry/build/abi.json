@@ -186,7 +186,7 @@
           "path": [
             "TokenMetadata"
           ],
-          "program": "token_registry"
+          "program": "token_registry.aleo"
         }
       }
     },
@@ -200,7 +200,7 @@
           "path": [
             "Balance"
           ],
-          "program": "token_registry"
+          "program": "token_registry.aleo"
         }
       }
     },
@@ -214,7 +214,7 @@
           "path": [
             "Balance"
           ],
-          "program": "token_registry"
+          "program": "token_registry.aleo"
         }
       }
     },
@@ -242,21 +242,21 @@
     }
   ],
   "storage_variables": [],
-  "transitions": [
+  "functions": [
     {
       "name": "initialize",
-      "is_async": true,
+      "is_final": true,
       "inputs": [],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "register_token",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -332,14 +332,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "update_token_management",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -371,14 +371,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "set_role",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -412,14 +412,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "remove_role",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -442,14 +442,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "mint_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -494,14 +494,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "mint_private",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -560,20 +560,20 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "burn_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -607,14 +607,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "prehook_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "owner",
@@ -624,7 +624,7 @@
                 "path": [
                   "TokenOwner"
                 ],
-                "program": "token_registry"
+                "program": "token_registry.aleo"
               }
             }
           },
@@ -655,14 +655,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -696,14 +696,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_public_as_signer",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -737,14 +737,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "approve_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -778,14 +778,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "unapprove_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -819,14 +819,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_public_to_private",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -874,20 +874,20 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_pub_to_priv_as_signer",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -935,20 +935,20 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_from_public_to_private",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -1005,20 +1005,20 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_from_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "token_id",
@@ -1061,14 +1061,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "join",
-      "is_async": false,
+      "is_final": false,
       "inputs": [
         {
           "name": "token_1",
@@ -1077,7 +1077,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "Private"
@@ -1089,7 +1089,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "Private"
@@ -1102,7 +1102,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"
@@ -1111,7 +1111,7 @@
     },
     {
       "name": "transfer_private",
-      "is_async": false,
+      "is_final": false,
       "inputs": [
         {
           "name": "token",
@@ -1120,7 +1120,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "Private"
@@ -1153,7 +1153,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"
@@ -1164,7 +1164,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"
@@ -1173,7 +1173,7 @@
     },
     {
       "name": "split",
-      "is_async": false,
+      "is_final": false,
       "inputs": [
         {
           "name": "token",
@@ -1182,7 +1182,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "Private"
@@ -1206,7 +1206,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"
@@ -1217,7 +1217,7 @@
               "path": [
                 "Token"
               ],
-              "program": "token_registry"
+              "program": "token_registry.aleo"
             }
           },
           "mode": "None"

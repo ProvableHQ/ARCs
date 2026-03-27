@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Freeze list registry for compliant tokens",
   "license": "Apache-2.0",
-  "leo": "3.4.0",
+  "leo": "3.5.0",
   "dependencies": [
     {
       "name": "merkle_tree.aleo",

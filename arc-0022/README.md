@@ -48,10 +48,10 @@ interface ARC20Compliant {
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
 
     fn transfer_private(recipient: address, amount: u128, input_record: Token,
-        sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32])
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32])
         -> (ComplianceRecord, Token, Token, Final);
     fn transfer_private_to_public(public recipient: address, public amount: u128,
-        input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32])
+        input_record: Token, sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32])
         -> (Token, Metadata, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128)
         -> (ComplianceRecord, Token, Final);
@@ -59,7 +59,7 @@ interface ARC20Compliant {
         public amount: u128) -> (ComplianceRecord, Token, Final);
     fn shield(public amount: u128) -> (ComplianceRecord, Token, Final);
     fn unshield(public recipient: address, public amount: u128, input_record: Token,
-        sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32])
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32])
         -> (ComplianceRecord, Token, Final);
 }
 ```

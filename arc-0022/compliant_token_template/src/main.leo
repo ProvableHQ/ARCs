@@ -19,7 +19,7 @@ fn calculate_hash_for_leaves(sibling1: field, sibling2: field, indexbit: u32) ->
     return Poseidon4::hash_to_field(poseidon_params);
 }
 
-fn calculate_root_depth_siblings(merkle_proof: freezelist.aleo/MerkleProof) -> (field, u32) {
+fn calculate_root_depth_siblings(merkle_proof: freezelist.aleo::MerkleProof) -> (field, u32) {
     let poseidon0: [field; 3] = merkle_proof.leaf_index % 2u32 == 0u32
         ? [1field, merkle_proof.siblings[0u32], merkle_proof.siblings[1u32]]
         : [1field, merkle_proof.siblings[1u32], merkle_proof.siblings[0u32]];
@@ -35,7 +35,7 @@ fn calculate_root_depth_siblings(merkle_proof: freezelist.aleo/MerkleProof) -> (
     return (root, depth);
 }
 
-fn verify_non_inclusion(addr: address, merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> field {
+fn verify_non_inclusion(addr: address, merkle_proofs: [freezelist.aleo::MerkleProof; 2u32]) -> field {
     let (root1, depth1) = calculate_root_depth_siblings(merkle_proofs[0u32]);
     let (root2, depth2) = calculate_root_depth_siblings(merkle_proofs[1u32]);
     assert_eq(root1, root2);
@@ -83,11 +83,11 @@ interface ARC20Compliant {
     // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
     // The sender must not be frozen in the freeze list.
     // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
-    fn transfer_private(recipient: address, amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (ComplianceRecord, Token, Token, Final);
+    fn transfer_private(recipient: address, amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32]) -> (ComplianceRecord, Token, Token, Final);
     // Transfers private tokens to a public recipient balance.
     // A Metadata record is emitted instead of ComplianceRecord because
     // the amount and recipient are already public inputs visible on-chain.
-    fn transfer_private_to_public(public recipient: address, public amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32]) -> (Token, Metadata, Final);
+    fn transfer_private_to_public(public recipient: address, public amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32]) -> (Token, Metadata, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
     fn transfer_from_public_to_private(public owner: address, recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
     // Shields public tokens from the signer.
@@ -101,7 +101,7 @@ interface ARC20Compliant {
         public recipient: address,
         public amount: u128,
         input_record: Token,
-        sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32],
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
     ) -> (ComplianceRecord, Token, Final);
 }
 
@@ -112,8 +112,8 @@ program compliant_token_template.aleo: ARC20Compliant {
         // Only require multisig for upgrades - initial deployment has no checks.
         if self.edition > 0u16 {
             let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
-            let wallet_signing_op_id_hash = BHP256::hash_to_field(multisig_core.aleo/WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(multisig_core.aleo::WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_complete = multisig_core.aleo::completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
     }
@@ -372,9 +372,9 @@ program compliant_token_template.aleo: ARC20Compliant {
     fn transfer_public(public recipient: address, public amount: u128) -> Final {
         let sender = self.caller;
         return final {
-            let is_sender_frozen: bool = freezelist.aleo/freeze_list.get_or_use(sender, false);
+            let is_sender_frozen: bool = freezelist.aleo::freeze_list.get_or_use(sender, false);
             assert_eq(is_sender_frozen, false);
-            let is_recipient_frozen: bool = freezelist.aleo/freeze_list.get_or_use(recipient, false);
+            let is_recipient_frozen: bool = freezelist.aleo::freeze_list.get_or_use(recipient, false);
             assert_eq(is_recipient_frozen, false);
             let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
             assert_eq(is_paused, false);
@@ -390,9 +390,9 @@ program compliant_token_template.aleo: ARC20Compliant {
     fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final {
         let sender = self.signer;
         return final {
-            let is_sender_frozen: bool = freezelist.aleo/freeze_list.get_or_use(sender, false);
+            let is_sender_frozen: bool = freezelist.aleo::freeze_list.get_or_use(sender, false);
             assert_eq(is_sender_frozen, false);
-            let is_recipient_frozen: bool = freezelist.aleo/freeze_list.get_or_use(recipient, false);
+            let is_recipient_frozen: bool = freezelist.aleo::freeze_list.get_or_use(recipient, false);
             assert_eq(is_recipient_frozen, false);
             let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
             assert_eq(is_paused, false);
@@ -448,9 +448,9 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
         let allowance_key: field = BHP256::hash_to_field(allowance);
         return final {
-            let is_sender_frozen: bool = freezelist.aleo/freeze_list.get_or_use(owner, false);
+            let is_sender_frozen: bool = freezelist.aleo::freeze_list.get_or_use(owner, false);
             assert_eq(is_sender_frozen, false);
-            let is_recipient_frozen: bool = freezelist.aleo/freeze_list.get_or_use(recipient, false);
+            let is_recipient_frozen: bool = freezelist.aleo::freeze_list.get_or_use(recipient, false);
             assert_eq(is_recipient_frozen, false);
             let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
             assert_eq(is_paused, false);
@@ -479,7 +479,7 @@ program compliant_token_template.aleo: ARC20Compliant {
             compliance_record,
             token,
             final {
-                let is_sender_frozen: bool = freezelist.aleo/freeze_list.get_or_use(sender, false);
+                let is_sender_frozen: bool = freezelist.aleo::freeze_list.get_or_use(sender, false);
                 assert_eq(is_sender_frozen, false);
                 let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
                 assert_eq(is_paused, false);
@@ -504,7 +504,7 @@ program compliant_token_template.aleo: ARC20Compliant {
             compliance_record,
             token,
             final {
-                let is_sender_frozen: bool = freezelist.aleo/freeze_list.get_or_use(sender, false);
+                let is_sender_frozen: bool = freezelist.aleo::freeze_list.get_or_use(sender, false);
                 assert_eq(is_sender_frozen, false);
                 let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
                 assert_eq(is_paused, false);
@@ -536,7 +536,7 @@ program compliant_token_template.aleo: ARC20Compliant {
             compliance_record,
             token,
             final {
-                let is_sender_frozen: bool = freezelist.aleo/freeze_list.get_or_use(owner, false);
+                let is_sender_frozen: bool = freezelist.aleo::freeze_list.get_or_use(owner, false);
                 assert_eq(is_sender_frozen, false);
                 let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
                 assert_eq(is_paused, false);
@@ -556,7 +556,7 @@ program compliant_token_template.aleo: ARC20Compliant {
         recipient: address,
         amount: u128,
         input_record: Token,
-        sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32],
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
     ) -> (ComplianceRecord, Token, Token, Final) {
         let sender_root: field = verify_non_inclusion(input_record.owner, sender_merkle_proofs);
         let updated_record: Token = Token {
@@ -577,12 +577,12 @@ program compliant_token_template.aleo: ARC20Compliant {
             final {
                 let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
                 assert_eq(is_paused, false);
-                let current_root: field = freezelist.aleo/freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
-                let window: u32 = freezelist.aleo/block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
+                let current_root: field = freezelist.aleo::freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
+                let window: u32 = freezelist.aleo::block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
                 if (current_root != sender_root) {
-                    let previous_root: field = freezelist.aleo/freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
+                    let previous_root: field = freezelist.aleo::freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
                     assert_eq(sender_root, previous_root);
-                    let updated_height: u32 = freezelist.aleo/root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
+                    let updated_height: u32 = freezelist.aleo::root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
                     assert(updated_height + window > block.height);
                 }
             },
@@ -597,7 +597,7 @@ program compliant_token_template.aleo: ARC20Compliant {
         public recipient: address,
         public amount: u128,
         input_record: Token,
-        sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32],
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
     ) -> (Token, Metadata, Final) {
         let root: field = verify_non_inclusion(input_record.owner, sender_merkle_proofs);
         let updated_record: Token = Token {
@@ -614,15 +614,15 @@ program compliant_token_template.aleo: ARC20Compliant {
             final {
                 let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
                 assert_eq(is_paused, false);
-                let current_root: field = freezelist.aleo/freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
-                let window: u32 = freezelist.aleo/block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
+                let current_root: field = freezelist.aleo::freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
+                let window: u32 = freezelist.aleo::block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
                 if (current_root != root) {
-                    let previous_root: field = freezelist.aleo/freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
+                    let previous_root: field = freezelist.aleo::freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
                     assert_eq(root, previous_root);
-                    let updated_height: u32 = freezelist.aleo/root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
+                    let updated_height: u32 = freezelist.aleo::root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
                     assert(updated_height + window > block.height);
                 }
-                let is_recipient_frozen: bool = freezelist.aleo/freeze_list.get_or_use(recipient, false);
+                let is_recipient_frozen: bool = freezelist.aleo::freeze_list.get_or_use(recipient, false);
                 assert_eq(is_recipient_frozen, false);
                 let recipient_balance = balances.get_or_use(recipient, 0u128);
                 balances.set(recipient, recipient_balance + amount);
@@ -635,7 +635,7 @@ program compliant_token_template.aleo: ARC20Compliant {
         public recipient: address,
         public amount: u128,
         input_record: Token,
-        sender_merkle_proofs: [freezelist.aleo/MerkleProof; 2u32],
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
     ) -> (ComplianceRecord, Token, Final) {
         let root: field = verify_non_inclusion(input_record.owner, sender_merkle_proofs);
         let updated_record: Token = Token {
@@ -654,15 +654,15 @@ program compliant_token_template.aleo: ARC20Compliant {
             final {
                 let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
                 assert_eq(is_paused, false);
-                let current_root: field = freezelist.aleo/freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
-                let window: u32 = freezelist.aleo/block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
+                let current_root: field = freezelist.aleo::freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);
+                let window: u32 = freezelist.aleo::block_height_window.get(BLOCK_HEIGHT_WINDOW_INDEX);
                 if (current_root != root) {
-                    let previous_root: field = freezelist.aleo/freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
+                    let previous_root: field = freezelist.aleo::freeze_list_root.get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
                     assert_eq(root, previous_root);
-                    let updated_height: u32 = freezelist.aleo/root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
+                    let updated_height: u32 = freezelist.aleo::root_updated_height.get(ROOT_UPDATED_HEIGHT_INDEX);
                     assert(updated_height + window > block.height);
                 }
-                let is_recipient_frozen: bool = freezelist.aleo/freeze_list.get_or_use(recipient, false);
+                let is_recipient_frozen: bool = freezelist.aleo::freeze_list.get_or_use(recipient, false);
                 assert_eq(is_recipient_frozen, false);
                 let recipient_balance = balances.get_or_use(recipient, 0u128);
                 balances.set(recipient, recipient_balance + amount);
