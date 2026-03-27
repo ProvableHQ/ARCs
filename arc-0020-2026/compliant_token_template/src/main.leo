@@ -2,40 +2,55 @@ import freezelist.aleo;
 import multisig_core.aleo;
 
 struct MerkleProof {
-  siblings: [field; 16],
-  leaf_index: u32
+    siblings: [field; 16],
+    leaf_index: u32,
 }
 
 // Merkle proof helpers (outside program scope; callable from program fns).
 const MAX_TREE_DEPTH: u32 = 15u32;
 
 fn calculate_hash_for_nodes(sibling1: field, sibling2: field, indexbit: u32) -> field {
-    let poseidon_params: [field; 3] = indexbit == 0u32 ? [0field, sibling1, sibling2] : [0field, sibling2, sibling1];
+    let poseidon_params: [field; 3] = indexbit == 0u32 ? [0field, sibling1, sibling2] : [
+        0field,
+        sibling2,
+        sibling1,
+    ];
     return Poseidon4::hash_to_field(poseidon_params);
 }
 
 fn calculate_hash_for_leaves(sibling1: field, sibling2: field, indexbit: u32) -> field {
-    let poseidon_params: [field; 3] = indexbit == 0u32 ? [1field, sibling1, sibling2] : [1field, sibling2, sibling1];
+    let poseidon_params: [field; 3] = indexbit == 0u32 ? [1field, sibling1, sibling2] : [
+        1field,
+        sibling2,
+        sibling1,
+    ];
     return Poseidon4::hash_to_field(poseidon_params);
 }
 
 fn calculate_root_depth_siblings(merkle_proof: freezelist.aleo::MerkleProof) -> (field, u32) {
-    let poseidon0: [field; 3] = merkle_proof.leaf_index % 2u32 == 0u32
-        ? [1field, merkle_proof.siblings[0u32], merkle_proof.siblings[1u32]]
-        : [1field, merkle_proof.siblings[1u32], merkle_proof.siblings[0u32]];
+    let poseidon0: [field; 3] = merkle_proof.leaf_index % 2u32 == 0u32 ? [
+        1field,
+        merkle_proof.siblings[0u32],
+        merkle_proof.siblings[1u32],
+    ] : [1field, merkle_proof.siblings[1u32], merkle_proof.siblings[0u32]];
     let root: field = Poseidon4::hash_to_field(poseidon0);
     let depth: u32 = MAX_TREE_DEPTH;
     for i: u32 in 2u32..MAX_TREE_DEPTH + 1u32 {
         depth = (merkle_proof.siblings[i] == 0field && depth == MAX_TREE_DEPTH) ? (i - 1u32) : depth;
-        let poseidon_n: [field; 3] = (merkle_proof.leaf_index / (2u32 ** (i - 1u32))) % 2u32 == 0u32
-            ? [0field, root, merkle_proof.siblings[i]]
-            : [0field, merkle_proof.siblings[i], root];
+        let poseidon_n: [field; 3] = (merkle_proof.leaf_index / (2u32 ** (i - 1u32))) % 2u32 == 0u32 ? [
+            0field,
+            root,
+            merkle_proof.siblings[i],
+        ] : [0field, merkle_proof.siblings[i], root];
         root = (merkle_proof.siblings[i] == 0field) ? root : Poseidon4::hash_to_field(poseidon_n);
     }
     return (root, depth);
 }
 
-fn verify_non_inclusion(addr: address, merkle_proofs: [freezelist.aleo::MerkleProof; 2u32]) -> field {
+fn verify_non_inclusion(
+    addr: address,
+    merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
+) -> field {
     let (root1, depth1) = calculate_root_depth_siblings(merkle_proofs[0u32]);
     let (root2, depth2) = calculate_root_depth_siblings(merkle_proofs[1u32]);
     assert_eq(root1, root2);
@@ -60,23 +75,40 @@ fn verify_non_inclusion(addr: address, merkle_proofs: [freezelist.aleo::MerklePr
 }
 
 // ARC20Compliant: like ARC20 but transfer_private* require Merkle proofs for freeze-list compliance.
+
 interface ARC20Compliant {
     record Token;
     record ComplianceRecord;
-
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn approve_public(public spender: address, public amount: u128) -> Final;
     fn unapprove_public(public spender: address, public amount: u128) -> Final;
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
-
     // Transfers private tokens from the record owner to a recipient.
     // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
     // The sender must not be frozen in the freeze list.
     // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
-    fn transfer_private(recipient: address, amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32]) -> (ComplianceRecord, Token, Token, Final);
-    fn transfer_private_to_public(public recipient: address, public amount: u128, input_record: Token, sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32]) -> (ComplianceRecord, Token, Final);
-    fn transfer_public_to_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
-    fn transfer_from_public_to_private(public owner: address, recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
+    fn transfer_private(
+        recipient: address,
+        amount: u128,
+        input_record: Token,
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
+    ) -> (ComplianceRecord, Token, Token, Final);
+    fn transfer_private_to_public(
+        public recipient: address,
+        public amount: u128,
+        input_record: Token,
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
+    ) -> (ComplianceRecord, Token, Final);
+    fn transfer_public_to_private(recipient: address, public amount: u128) -> (
+        ComplianceRecord,
+        Token,
+        Final,
+    );
+    fn transfer_from_public_to_private(
+        public owner: address,
+        recipient: address,
+        public amount: u128,
+    ) -> (ComplianceRecord, Token, Final);
     // Shields public tokens from the signer.
     // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
     // The signer must not be frozen in the freeze list.
@@ -98,8 +130,14 @@ program compliant_token_template.aleo: ARC20Compliant {
     constructor() {
         // Only require multisig for upgrades - initial deployment has no checks.
         if self.edition > 0u16 {
-            let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
-            let wallet_signing_op_id_hash = BHP256::hash_to_field(multisig_core.aleo::WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_op_id = BHP256::hash_to_field(
+                ChecksumEdition { checksum: self.checksum, edition: self.edition },
+            );
+            let wallet_signing_op =  multisig_core.aleo::WalletSigningOpId {
+                wallet_id: self.address,
+                signing_op_id: signing_op_id,
+            };
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(wallet_signing_op);
             let signing_complete = multisig_core.aleo::completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
@@ -110,74 +148,75 @@ program compliant_token_template.aleo: ARC20Compliant {
         return BHP256::hash_to_field(ChecksumEdition { checksum: checksum, edition: edition });
     }
 
- record Token {
- owner: address,
- amount: u128
- }
+    record Token {
+        owner: address,
+        amount: u128,
+    }
 
- // Compliance record used for the investigator
- record ComplianceRecord {
- owner: address,
- amount: u128,
- sender: address,
- recipient: address
- }
+    // Compliance record used for the investigator
+    record ComplianceRecord {
+        owner: address,
+        amount: u128,
+        sender: address,
+        recipient: address,
+    }
 
- struct ChecksumEdition {
- checksum: [u8; 32],
- edition: u16,
- }
+    struct ChecksumEdition {
+        checksum: [u8; 32],
+        edition: u16,
+    }
 
- struct TokenInfo {
- name: u128, // ASCII text represented in bits, and the u128 value of the bitstring
- symbol: u128, // ASCII text represented in bits, and the u128 value of the bitstring
- decimals: u8,
- supply: u128,
- max_supply: u128,
- }
+    struct TokenInfo {
+        name: u128,
+        // ASCII text represented in bits, and the u128 value of the bitstring
+        symbol: u128,
+        // ASCII text represented in bits, and the u128 value of the bitstring
+        decimals: u8,
+        supply: u128,
+        max_supply: u128,
+    }
 
- struct TokenAllowance {
- account: address,
- spender: address,
- }
- 
- const TOKEN_INFO_INDEX: bool = true;
- // token specs
- mapping token_info: bool => TokenInfo;
+    struct TokenAllowance {
+        account: address,
+        spender: address,
+    }
 
- mapping balances: address => u128;
- mapping allowances: field => u128; // hash(account, spender) => TokenAllowance
+    const TOKEN_INFO_INDEX: bool = true;
 
- // Roles can be assigned using bitmasking to allow multiple roles per address
- const NONE_ROLE: u16 = 0u16;
- const MINTER_ROLE: u16 = 1u16;
- const BURNER_ROLE: u16 = 2u16;
- const PAUSE_ROLE: u16 = 4u16; // can pause/unpause transfers
- const MANAGER_ROLE: u16 = 8u16; // can only assign roles
- mapping address_to_role: address => u16;
+    // token specs
+    mapping token_info: bool => TokenInfo;
 
- // Only this address can deploy and initialize the program
- const DEPLOYER_ADDRESS: address = aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px;
+    mapping balances: address => u128;
+    mapping allowances: field => u128; // hash(account, spender) => TokenAllowance
 
- // This address receives compliance records (can be updated with the contract upgrade)
- const INVESTIGATOR_ADDRESS: address = aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px;
+    // Roles can be assigned using bitmasking to allow multiple roles per address
+    const NONE_ROLE: u16 = 0u16;
+    const MINTER_ROLE: u16 = 1u16;
+    const BURNER_ROLE: u16 = 2u16;
+    const PAUSE_ROLE: u16 = 4u16; // can pause/unpause transfers
+    const MANAGER_ROLE: u16 = 8u16; // can only assign roles
+    mapping address_to_role: address => u16;
 
- const PAUSE_STATUS_INDEX: bool = true;
- mapping pause: bool => bool;
+    // Only this address can deploy and initialize the program
+    const DEPLOYER_ADDRESS: address = aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px;
 
- const ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc; // ZERO_ADDRESS as field equals to 0field
- const CURRENT_FREEZE_LIST_ROOT_INDEX: u8 = 1u8;
- const PREVIOUS_FREEZE_LIST_ROOT_INDEX: u8 = 2u8;
- const BLOCK_HEIGHT_WINDOW_INDEX: bool = true;
- const ROOT_UPDATED_HEIGHT_INDEX: bool = true;
+    // This address receives compliance records (can be updated with the contract upgrade)
+    const INVESTIGATOR_ADDRESS: address = aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px;
 
- // -------------------------
- // Called by token admins
- // -------------------------
+    const PAUSE_STATUS_INDEX: bool = true;
+    mapping pause: bool => bool;
 
+    const ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc; // ZERO_ADDRESS as field equals to 0field
+    const CURRENT_FREEZE_LIST_ROOT_INDEX: u8 = 1u8;
+    const PREVIOUS_FREEZE_LIST_ROOT_INDEX: u8 = 2u8;
+    const BLOCK_HEIGHT_WINDOW_INDEX: bool = true;
+    const ROOT_UPDATED_HEIGHT_INDEX: bool = true;
 
- // Updates the address assigned to a given role.
- // Can only be called by the current role manager.
+    // -------------------------
+    // Called by token admins
+    // -------------------------
+    // Updates the address assigned to a given role.
+    // Can only be called by the current role manager.
     fn update_role(public new_address: address, role: u16) -> Final {
         let caller = self.caller;
         return final {
@@ -190,11 +229,11 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Initializes the freeze list, token specifications, the admin and the investigator.
- // Can be called only once and only by the INITIAL_ADMIN 
- // Sets the token metadata (name, symbol, decimals, max supply).
- // Sets the block height window, the initial empty Merkle root,
- // and initialize the freeze_list_last_index, freeze_list, and freeze_list_index with a ZERO_ADDRESS placeholder.
+    // Initializes the freeze list, token specifications, the admin and the investigator.
+    // Can be called only once and only by the INITIAL_ADMIN
+    // Sets the token metadata (name, symbol, decimals, max supply).
+    // Sets the block height window, the initial empty Merkle root,
+    // and initialize the freeze_list_last_index, freeze_list, and freeze_list_index with a ZERO_ADDRESS placeholder.
     fn initialize(
         public name: u128,
         public symbol: u128,
@@ -220,10 +259,10 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Mints new public tokens to the specified recipient’s balance.
- // Can only be called by a minter.
- // Ensures that the new total supply does not exceed the maximum supply.
- // Updates the recipient’s balance and the total token supply in the token metadata.
+    // Mints new public tokens to the specified recipient’s balance.
+    // Can only be called by a minter.
+    // Ensures that the new total supply does not exceed the maximum supply.
+    // Updates the recipient’s balance and the total token supply in the token metadata.
     fn mint_public(public recipient: address, public amount: u128) -> Final {
         let caller = self.caller;
         return final {
@@ -248,10 +287,10 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Mints new private tokens to the specified recipient.
- // Can only be called by a minter.
- // Ensures that the new total supply does not exceed the maximum supply.
- // Updates the total token supply in the token metadata.
+    // Mints new private tokens to the specified recipient.
+    // Can only be called by a minter.
+    // Ensures that the new total supply does not exceed the maximum supply.
+    // Updates the total token supply in the token metadata.
     fn mint_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final) {
         let token: Token = Token { owner: recipient, amount: amount };
         let compliance_record: ComplianceRecord = ComplianceRecord {
@@ -284,9 +323,9 @@ program compliant_token_template.aleo: ARC20Compliant {
         );
     }
 
- // Burns public tokens from the specified owner’s balance.
- // Can only be called by a burner.
- // Decreases the owner’s balance and reduces the total token supply in the token metadata.
+    // Burns public tokens from the specified owner’s balance.
+    // Can only be called by a burner.
+    // Decreases the owner’s balance and reduces the total token supply in the token metadata.
     fn burn_public(public owner: address, public amount: u128) -> Final {
         let caller = self.caller;
         return final {
@@ -309,9 +348,9 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Burns tokens from a private record (non-public asset).
- // Can only be called by a burner.
- // Reduces the amount in the provided private record and decreases the total token supply in the token metadata.
+    // Burns tokens from a private record (non-public asset).
+    // Can only be called by a burner.
+    // Reduces the amount in the provided private record and decreases the total token supply in the token metadata.
     fn burn_private(input_record: Token, public amount: u128) -> (ComplianceRecord, Token, Final) {
         let output_record: Token = Token {
             owner: input_record.owner,
@@ -345,12 +384,11 @@ program compliant_token_template.aleo: ARC20Compliant {
         );
     }
 
- // -------------------------
- // Called by token owners/DeFi contracts
- // -------------------------
-
- // Transfers public tokens from the caller to the recipient.
- // Both sender and recipient must not be frozen in the freeze list.
+    // -------------------------
+    // Called by token owners/DeFi contracts
+    // -------------------------
+    // Transfers public tokens from the caller to the recipient.
+    // Both sender and recipient must not be frozen in the freeze list.
     fn transfer_public(public recipient: address, public amount: u128) -> Final {
         let sender = self.caller;
         return final {
@@ -367,8 +405,8 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Transfers public tokens from the signer to the recipient.
- // Both sender and recipient must not be frozen in the freeze list.
+    // Transfers public tokens from the signer to the recipient.
+    // Both sender and recipient must not be frozen in the freeze list.
     fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final {
         let sender = self.signer;
         return final {
@@ -385,14 +423,11 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Approves a spender to transfer the caller’s public assets up to a specified amount.
- // Increases the existing allowance if one is already set, otherwise creates a new allowance.
- // The allowance is stored using a hash of the owner–spender pair as the key.
+    // Approves a spender to transfer the caller’s public assets up to a specified amount.
+    // Increases the existing allowance if one is already set, otherwise creates a new allowance.
+    // The allowance is stored using a hash of the owner–spender pair as the key.
     fn approve_public(public spender: address, public amount: u128) -> Final {
-        let allowance: TokenAllowance = TokenAllowance {
-            account: self.caller,
-            spender: spender,
-        };
+        let allowance: TokenAllowance = TokenAllowance { account: self.caller, spender: spender };
         let allowance_key: field = BHP256::hash_to_field(allowance);
         return final {
             let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
@@ -402,14 +437,11 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Reduces a spender’s allowance to transfer the caller’s public assets by a specified amount.
- // Decreases the existing allowance stored under the hash of the owner–spender pair.
- // If the reduction exceeds the current allowance, the VM will catch the underflow.
+    // Reduces a spender’s allowance to transfer the caller’s public assets by a specified amount.
+    // Decreases the existing allowance stored under the hash of the owner–spender pair.
+    // If the reduction exceeds the current allowance, the VM will catch the underflow.
     fn unapprove_public(public spender: address, public amount: u128) -> Final {
-        let allowance: TokenAllowance = TokenAllowance {
-            account: self.caller,
-            spender: spender,
-        };
+        let allowance: TokenAllowance = TokenAllowance { account: self.caller, spender: spender };
         let allowance_key: field = BHP256::hash_to_field(allowance);
         return final {
             let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
@@ -419,15 +451,16 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Transfers public tokens from the owner to the recipient.
- // Can be called by any spender with sufficient allowance from the owner.
- // Decreases the spender’s allowance by the transferred amount.
- // Both sender and recipient must not be frozen in the freeze list.
-    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final {
-        let allowance: TokenAllowance = TokenAllowance {
-            account: owner,
-            spender: self.caller,
-        };
+    // Transfers public tokens from the owner to the recipient.
+    // Can be called by any spender with sufficient allowance from the owner.
+    // Decreases the spender’s allowance by the transferred amount.
+    // Both sender and recipient must not be frozen in the freeze list.
+    fn transfer_from_public(
+        public owner: address,
+        public recipient: address,
+        public amount: u128,
+    ) -> Final {
+        let allowance: TokenAllowance = TokenAllowance { account: owner, spender: self.caller };
         let allowance_key: field = BHP256::hash_to_field(allowance);
         return final {
             let is_sender_frozen: bool = freezelist.aleo::freeze_list.get_or_use(owner, false);
@@ -445,10 +478,13 @@ program compliant_token_template.aleo: ARC20Compliant {
         };
     }
 
- // Transfers public tokens from the caller to a recipient as a private token.
- // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
- // The sender must not be frozen in the freeze list.
-    fn transfer_public_to_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final) {
+    // Transfers public tokens from the caller to a recipient as a private token.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
+    // The sender must not be frozen in the freeze list.
+    fn transfer_public_to_private(
+        recipient: address,
+        public amount: u128,
+    ) -> (ComplianceRecord, Token, Final) {
         let token: Token = Token { owner: recipient, amount: amount };
         let compliance_record: ComplianceRecord = ComplianceRecord {
             owner: INVESTIGATOR_ADDRESS,
@@ -471,7 +507,7 @@ program compliant_token_template.aleo: ARC20Compliant {
         );
     }
 
- // Shields public tokens from the signer into a private Token.
+    // Shields public tokens from the signer into a private Token.
     fn shield(public amount: u128) -> (ComplianceRecord, Token, Final) {
         let recipient = self.signer;
         let token: Token = Token { owner: recipient, amount: amount };
@@ -496,17 +532,18 @@ program compliant_token_template.aleo: ARC20Compliant {
         );
     }
 
- // Transfers public tokens from an owner to a recipient as a private token.
- // Can be called by any spender with sufficient allowance from the owner.
- // Decreases the spender’s allowance by the transferred amount.
- // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
- // The sender must not be frozen in the freeze list.
-    fn transfer_from_public_to_private(public owner: address, recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final) {
+    // Transfers public tokens from an owner to a recipient as a private token.
+    // Can be called by any spender with sufficient allowance from the owner.
+    // Decreases the spender’s allowance by the transferred amount.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
+    // The sender must not be frozen in the freeze list.
+    fn transfer_from_public_to_private(
+        public owner: address,
+        recipient: address,
+        public amount: u128,
+    ) -> (ComplianceRecord, Token, Final) {
         let token: Token = Token { owner: recipient, amount: amount };
-        let allowance: TokenAllowance = TokenAllowance {
-            account: owner,
-            spender: self.caller,
-        };
+        let allowance: TokenAllowance = TokenAllowance { account: owner, spender: self.caller };
         let allowance_key: field = BHP256::hash_to_field(allowance);
         let compliance_record: ComplianceRecord = ComplianceRecord {
             owner: INVESTIGATOR_ADDRESS,
@@ -530,10 +567,10 @@ program compliant_token_template.aleo: ARC20Compliant {
         );
     }
 
- // Transfers private tokens from the record owner to a recipient.
- // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
- // The sender must not be frozen in the freeze list.
- // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
+    // Transfers private tokens from the record owner to a recipient.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
+    // The sender must not be frozen in the freeze list.
+    // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
     fn transfer_private(
         recipient: address,
         amount: u128,
@@ -571,10 +608,10 @@ program compliant_token_template.aleo: ARC20Compliant {
         );
     }
 
- // Transfers private tokens from the record owner to a recipient as a public tokens.
- // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
- // Both sender and recipient must not be frozen in the freeze list.
- // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
+    // Transfers private tokens from the record owner to a recipient as a public tokens.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
+    // Both sender and recipient must not be frozen in the freeze list.
+    // The sender's privacy is preserved by proving non-inclusion in the freeze list Merkle tree.
     fn transfer_private_to_public(
         public recipient: address,
         public amount: u128,
@@ -654,8 +691,8 @@ program compliant_token_template.aleo: ARC20Compliant {
         );
     }
 
- // Stops or resumes all token transfers.
- // Can only be called by an address with the PAUSE_ROLE.
+    // Stops or resumes all token transfers.
+    // Can only be called by an address with the PAUSE_ROLE.
     fn set_pause_status(pause_status: bool) -> Final {
         let caller = self.caller;
         return final {
@@ -675,10 +712,7 @@ program compliant_token_template.aleo: ARC20Compliant {
 
     fn split(private token: Token, private amount: u128) -> (Token, Token) {
         let new_token_1: Token = Token { owner: token.owner, amount: amount };
-        let new_token_2: Token = Token {
-            owner: token.owner,
-            amount: token.amount - amount,
-        };
+        let new_token_2: Token = Token { owner: token.owner, amount: token.amount - amount };
         return (new_token_1, new_token_2);
     }
 }

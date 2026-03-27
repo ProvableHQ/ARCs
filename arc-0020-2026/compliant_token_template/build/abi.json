@@ -122,7 +122,7 @@
           "path": [
             "TokenInfo"
           ],
-          "program": "compliant_token_template"
+          "program": "compliant_token_template.aleo"
         }
       }
     },
@@ -170,10 +170,10 @@
     }
   ],
   "storage_variables": [],
-  "transitions": [
+  "functions": [
     {
       "name": "get_signing_op_id_for_deploy",
-      "is_async": false,
+      "is_final": false,
       "inputs": [
         {
           "name": "checksum",
@@ -216,7 +216,7 @@
     },
     {
       "name": "update_role",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "new_address",
@@ -241,14 +241,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "initialize",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "name",
@@ -306,14 +306,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "mint_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "recipient",
@@ -338,14 +338,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "mint_private",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "recipient",
@@ -375,7 +375,7 @@
               "path": [
                 "ComplianceRecord"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -386,20 +386,20 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "burn_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "owner",
@@ -424,14 +424,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "burn_private",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "input_record",
@@ -440,7 +440,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -464,7 +464,7 @@
               "path": [
                 "ComplianceRecord"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -475,20 +475,20 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "recipient",
@@ -513,14 +513,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_public_as_signer",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "recipient",
@@ -545,14 +545,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "approve_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "spender",
@@ -577,14 +577,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "unapprove_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "spender",
@@ -609,14 +609,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_from_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "owner",
@@ -650,14 +650,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_public_to_private",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "recipient",
@@ -687,7 +687,7 @@
               "path": [
                 "ComplianceRecord"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -698,20 +698,20 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "shield",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "amount",
@@ -732,7 +732,7 @@
               "path": [
                 "ComplianceRecord"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -743,20 +743,20 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_from_public_to_private",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "owner",
@@ -795,7 +795,7 @@
               "path": [
                 "ComplianceRecord"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -806,20 +806,20 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_private",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "recipient",
@@ -848,7 +848,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -863,7 +863,7 @@
                     "path": [
                       "MerkleProof"
                     ],
-                    "program": "freezelist"
+                    "program": "freezelist.aleo"
                   }
                 },
                 "length": 2
@@ -880,7 +880,7 @@
               "path": [
                 "ComplianceRecord"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -891,7 +891,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -902,20 +902,20 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "transfer_private_to_public",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "recipient",
@@ -944,7 +944,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -959,7 +959,7 @@
                     "path": [
                       "MerkleProof"
                     ],
-                    "program": "freezelist"
+                    "program": "freezelist.aleo"
                   }
                 },
                 "length": 2
@@ -976,7 +976,7 @@
               "path": [
                 "ComplianceRecord"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -987,20 +987,20 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "unshield",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "recipient",
@@ -1029,7 +1029,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -1044,7 +1044,7 @@
                     "path": [
                       "MerkleProof"
                     ],
-                    "program": "freezelist"
+                    "program": "freezelist.aleo"
                   }
                 },
                 "length": 2
@@ -1061,7 +1061,7 @@
               "path": [
                 "ComplianceRecord"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -1072,20 +1072,20 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
         },
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "set_pause_status",
-      "is_async": true,
+      "is_final": true,
       "inputs": [
         {
           "name": "pause_status",
@@ -1099,14 +1099,14 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
           "mode": "None"
         }
       ]
     },
     {
       "name": "join",
-      "is_async": false,
+      "is_final": false,
       "inputs": [
         {
           "name": "token_1",
@@ -1115,7 +1115,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "Private"
@@ -1127,7 +1127,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "Private"
@@ -1140,7 +1140,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -1149,7 +1149,7 @@
     },
     {
       "name": "split",
-      "is_async": false,
+      "is_final": false,
       "inputs": [
         {
           "name": "token",
@@ -1158,7 +1158,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "Private"
@@ -1182,7 +1182,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"
@@ -1193,7 +1193,7 @@
               "path": [
                 "Token"
               ],
-              "program": "compliant_token_template"
+              "program": "compliant_token_template.aleo"
             }
           },
           "mode": "None"

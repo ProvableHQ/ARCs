@@ -1,6 +1,6 @@
+import freezelist.aleo;
 import merkle_tree.aleo;
 import multisig_core.aleo;
-import freezelist.aleo;
 program compliant_token_template.aleo;
 
 record Token:

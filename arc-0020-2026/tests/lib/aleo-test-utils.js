@@ -130,32 +130,22 @@ async function run(cmd, args, opts = {}) {
     const p = spawn(cmd, args, {
       cwd: opts.cwd,
       env: opts.env,
-      stdio: [opts.stdin != null ? "pipe" : "ignore", "pipe", "pipe"],
     });
 
     let stdout = "";
     let stderr = "";
+    // Leo stdout output is piped to the terminal.
     p.stdout?.on("data", (d) => {
       const chunk = d.toString();
       stdout += chunk;
       if (echo) process.stdout.write(chunk);
     });
+    // Leo stderr output is piped to the terminal.
     p.stderr?.on("data", (d) => {
       const chunk = d.toString();
       stderr += chunk;
       if (echo) process.stderr.write(chunk);
     });
-
-    // Some Leo commands (notably `deploy`) prompt for confirmation.
-    // Allow callers to provide stdin to make these commands non-interactive.
-    if (opts.stdin != null) {
-      try {
-        p.stdin?.write(String(opts.stdin));
-        p.stdin?.end();
-      } catch {
-        // ignore
-      }
-    }
 
     p.on("error", reject);
     p.on("exit", (code) => {

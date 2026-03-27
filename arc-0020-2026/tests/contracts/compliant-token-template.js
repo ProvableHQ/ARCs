@@ -176,13 +176,3 @@ export async function unshield(
     { privateKey, ...opts },
   );
 }
-
-export async function getCredentials(account, merkleProofs, opts = {}) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(
-    PROGRAM_PATH,
-    "get_credentials",
-    [merkleProofs],
-    { privateKey, ...opts },
-  );
-}

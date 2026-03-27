@@ -265,13 +265,4 @@ describe("compliant_token_template.aleo", () => {
     const after0 = await bal(addr0);
     expect(after0 - before0).toBe(40n);
   });
-
-  test("get_credentials (positive): outputs Credentials record", async () => {
-    const merkleProofs = generateNonInclusionProof(addr0, []);
-    const exec = await CompliantToken.getCredentials(AleoUtils.accounts[0], merkleProofs);
-    await expectConfirmed(exec);
-    const records = extractRecordPlaintexts(exec.stdout);
-    expect(records.length).toBeGreaterThanOrEqual(1);
-    expect(records.some((r) => r.includes("freeze_list_root"))).toBe(true);
-  });
 });
