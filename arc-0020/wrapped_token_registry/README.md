@@ -16,11 +16,11 @@ The wrapper maintains its own mappings rather than forwarding reads to the regis
 
 ## Deposit / Withdraw Flows
 
-**`deposit_token_public(amount)`** — calls `token_registry.aleo/transfer_public_as_signer(WRAPPED_TOKEN_ID, self.address, amount)`, then increments the depositor's (signer's) local balance.
+**`deposit_token_public(amount)`** — calls `token_registry.aleo::transfer_public_as_signer(WRAPPED_TOKEN_ID, self.address, amount)`, then increments the depositor's (signer's) local balance.
 
-**`withdraw_token_public(amount)`** — decrements caller's local balance, then calls `token_registry.aleo/transfer_public(WRAPPED_TOKEN_ID, caller, amount)`.
+**`withdraw_token_public(amount)`** — decrements caller's local balance, then calls `token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, caller, amount)`.
 
-**`withdraw_token_private(amount)`** — decrements caller's local balance, then calls `token_registry.aleo/transfer_public_to_private(WRAPPED_TOKEN_ID, caller, amount)`.
+**`withdraw_token_private(amount)`** — decrements caller's local balance, then calls `token_registry.aleo::transfer_public_to_private(WRAPPED_TOKEN_ID, caller, amount)`.
 
 ## MintableToken Extension
 
