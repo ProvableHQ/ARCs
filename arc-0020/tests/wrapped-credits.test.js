@@ -162,12 +162,7 @@ describe("wrapped_credits.aleo", () => {
 
   test("withdraw_credits_private (positive): converts Token amount into private credits record", async () => {
     // Shield to create token owned by signer.
-    const mint = await AleoUtils.leoExecute(
-      programPath,
-      "shield",
-      ["70u128"],
-      { privateKey: pk0 },
-    );
+    const mint = await WrappedCredits.shield(AleoUtils.accounts[0], "70u128");
     await expectConfirmed(mint);
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
@@ -192,8 +187,8 @@ describe("wrapped_credits.aleo", () => {
     expect(after1).toBe(before1);
   });
 
-  test("unshield (positive): converts Token amount into private credits record", async () => {
-    const mint = await AleoUtils.leoExecute(programPath, "shield", ["50u128"], { privateKey: pk0 });
+  test("unshield (positive): converts a private Token back to the owner's public balance", async () => {
+    const mint = await WrappedCredits.shield(AleoUtils.accounts[0], "50u128");
     await expectConfirmed(mint);
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
@@ -202,18 +197,14 @@ describe("wrapped_credits.aleo", () => {
     const res = await WrappedCredits.unshield(AleoUtils.accounts[0], tokenRecords[0], "20u128");
     await expectConfirmed(res);
     const out = extractRecordPlaintexts(res.stdout);
-    expect(out.length).toBeGreaterThanOrEqual(2);
+    // unshield now returns a single change Token (the unused "zero token" was removed).
+    expect(out.length).toBe(1);
     const after0 = await bal(addr0);
-    expect(after0).toBe(before0);
+    expect(after0 - before0).toBe(20n);
   });
 
   test("withdraw_credits_private (negative): rejects when amount exceeds Token amount", async () => {
-    const mint = await AleoUtils.leoExecute(
-      programPath,
-      "shield",
-      ["10u128"],
-      { privateKey: pk0 },
-    );
+    const mint = await WrappedCredits.shield(AleoUtils.accounts[0], "10u128");
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
     expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 

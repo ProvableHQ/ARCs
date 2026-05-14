@@ -1,5 +1,6 @@
 {
   "program": "token_registry.aleo",
+  "implements": [],
   "structs": [
     {
       "path": [
@@ -246,6 +247,7 @@
     {
       "name": "initialize",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [],
       "outputs": [
         {
@@ -257,6 +259,7 @@
     {
       "name": "register_token",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -340,6 +343,7 @@
     {
       "name": "update_token_management",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -379,6 +383,7 @@
     {
       "name": "set_role",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -420,6 +425,7 @@
     {
       "name": "remove_role",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -450,6 +456,7 @@
     {
       "name": "mint_public",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -502,6 +509,7 @@
     {
       "name": "mint_private",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -574,6 +582,7 @@
     {
       "name": "burn_public",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -615,6 +624,7 @@
     {
       "name": "prehook_public",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "owner",
@@ -663,6 +673,7 @@
     {
       "name": "transfer_public",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -704,6 +715,7 @@
     {
       "name": "transfer_public_as_signer",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -745,6 +757,7 @@
     {
       "name": "approve_public",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -786,6 +799,7 @@
     {
       "name": "unapprove_public",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -827,6 +841,7 @@
     {
       "name": "transfer_public_to_private",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -888,6 +903,7 @@
     {
       "name": "transfer_pub_to_priv_as_signer",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -949,6 +965,7 @@
     {
       "name": "transfer_from_public_to_private",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -1019,6 +1036,7 @@
     {
       "name": "transfer_from_public",
       "is_final": true,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_id",
@@ -1069,6 +1087,7 @@
     {
       "name": "join",
       "is_final": false,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token_1",
@@ -1112,6 +1131,7 @@
     {
       "name": "transfer_private",
       "is_final": false,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token",
@@ -1174,6 +1194,7 @@
     {
       "name": "split",
       "is_final": false,
+      "const_parameters": [],
       "inputs": [
         {
           "name": "token",

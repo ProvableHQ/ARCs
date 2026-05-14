@@ -8,6 +8,9 @@
 // version in git history (prior to this commit).
 
 program dummy_exchange.aleo {
+    @noupgrade
+    constructor() {}
+
     // ARC20 function selectors for dynamic dispatch.
     const NETWORK_ALEO: field = 1868917857field;
     const TRANSFER_FROM_PUBLIC_ID: field = 567541106188061564941814004975800285532843504244field;
@@ -29,9 +32,7 @@ program dummy_exchange.aleo {
             recipient,
             amount,
         );
-        return final {
-            f.run();
-        };
+        return final { f.run(); };
     }
 
     // Example: swap token_in for token_out.

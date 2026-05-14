@@ -5,9 +5,17 @@ program freezelist.aleo {
     @custom
     constructor() {
         if self.edition > 0u16 {
-            let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
-            let wallet_signing_op_id_hash = BHP256::hash_to_field(multisig_core.aleo::WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = multisig_core.aleo::completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let signing_op_id = BHP256::hash_to_field(
+                ChecksumEdition { checksum: self.checksum, edition: self.edition },
+            );
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(
+                multisig_core.aleo::WalletSigningOpId {
+                    wallet_id: self.address,
+                    signing_op_id: signing_op_id,
+                },
+            );
+            let signing_complete = multisig_core.aleo::completed_signing_ops
+                .contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
     }
@@ -47,7 +55,8 @@ program freezelist.aleo {
     fn initialize(public admin: address, public blocks: u32) -> Final {
         let caller = self.caller;
         return final {
-            let is_already_initialized: bool = freeze_list_root.contains(CURRENT_FREEZE_LIST_ROOT_INDEX);
+            let is_already_initialized: bool = freeze_list_root
+                .contains(CURRENT_FREEZE_LIST_ROOT_INDEX);
             assert_eq(is_already_initialized, false);
             assert_eq(caller, DEPLOYER_ADDRESS);
             address_to_role.set(admin, MANAGER_ROLE);
@@ -98,7 +107,8 @@ program freezelist.aleo {
             let stored_is_frozen = freeze_list.get_or_use(account, false);
             assert_neq(is_frozen, stored_is_frozen);
             freeze_list.set(account, is_frozen);
-            let current_address_at_index: address = freeze_list_index.get_or_use(frozen_index, ZERO_ADDRESS);
+            let current_address_at_index: address = freeze_list_index
+                .get_or_use(frozen_index,ZERO_ADDRESS);
             if (is_frozen) {
                 assert_eq(current_address_at_index, ZERO_ADDRESS);
                 let last_index: u32 = freeze_list_last_index.get(FREEZE_LIST_LAST_INDEX);
@@ -122,7 +132,10 @@ program freezelist.aleo {
         };
     }
 
-    fn verify_non_inclusion_priv(account: address, merkle_proof: [merkle_tree.aleo::MerkleProof; 2u32]) -> Final {
+    fn verify_non_inclusion_priv(
+        account: address,
+        merkle_proof: [merkle_tree.aleo::MerkleProof; 2u32],
+    ) -> Final {
         let root: field = merkle_tree.aleo::verify_non_inclusion(account, merkle_proof);
         return final {
             let current_root: field = freeze_list_root.get(CURRENT_FREEZE_LIST_ROOT_INDEX);

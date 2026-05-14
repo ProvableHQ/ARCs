@@ -47,6 +47,8 @@ function normalizeDepositWithdraw(s) {
     .replace(/withdraw_token_private/g, "withdraw_private")
     .replace(/credits\.aleo\/credits/g, "ExternalRecord")
     .replace(/token_registry\.aleo\/Token/g, "Token")
+    .replace(/credits\.aleo::/g, "external::")
+    .replace(/token_registry\.aleo::/g, "external::")
     .replace(/credits\.aleo\//g, "external::")
     .replace(/token_registry\.aleo\//g, "external::")
     .replace(/WRAPPED_TOKEN_ID/g, "TOKEN_ID")
@@ -70,6 +72,7 @@ function normalizeDepositWithdraw(s) {
     )
     .replace(/\s*\(\s*/g, " (")
     .replace(/\s*\)/g, ")")
+    .replace(/,\s*\)/g, ")")
     .replace(/\s+/g, " ")
     .trim();
 }

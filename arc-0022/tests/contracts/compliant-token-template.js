@@ -118,12 +118,11 @@ export async function transferFromPublicToPrivate(
   );
 }
 
+// Program no longer defines `shield`; equivalent path is `transfer_public_to_private`
+// (ComplianceRecord + Token, debits caller).
 export async function shield(account, amountU128, opts = {}) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(PROGRAM_PATH, "shield", [amountU128], {
-    privateKey,
-    ...opts,
-  });
+  const recipient = account.address().to_string();
+  return await transferPublicToPrivate(account, recipient, amountU128, opts);
 }
 
 export async function transferPrivate(
@@ -160,6 +159,7 @@ export async function transferPrivateToPublic(
   );
 }
 
+// Program no longer defines `unshield`; use `transfer_private_to_public` with proofs.
 export async function unshield(
   account,
   inputRecord,
@@ -168,13 +168,7 @@ export async function unshield(
   merkleProofs,
   opts = {},
 ) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(
-    PROGRAM_PATH,
-    "unshield",
-    [recipient, amountU128, inputRecord, merkleProofs],
-    { privateKey, ...opts },
-  );
+  return await transferPrivateToPublic(account, inputRecord, recipient, amountU128, merkleProofs, opts);
 }
 
 export async function burnPublic(account, owner, amountU128, opts = {}) {

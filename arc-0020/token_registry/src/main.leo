@@ -176,7 +176,9 @@ program token_registry.aleo {
                 authorized_until: authorized_until,
             };
             let authorization_required: bool = token.external_authorization_required;
-            let balance: Balance = authorization_required ? balances.get_or_use(balance_key, default_balance) : authorized_balances.get_or_use(balance_key, default_balance);
+            let balance: Balance = authorization_required ? balances
+                .get_or_use(balance_key,default_balance) : authorized_balances
+                .get_or_use(balance_key,default_balance);
             let new_balance: Balance = Balance {
                 token_id: token_id,
                 account: recipient,
@@ -280,7 +282,8 @@ program token_registry.aleo {
                 balance: 0u128,
                 authorized_until: 0u32,
             };
-            let authorized_balance: Balance = authorized_balances.get_or_use(balance_key, default_balance);
+            let authorized_balance: Balance = authorized_balances
+                .get_or_use(balance_key,default_balance);
             if (authorized_balance.balance >= 0u128) {
                 if (authorized_balance.balance > amount) {
                     let new_authorized_balance: Balance = Balance {
@@ -342,12 +345,14 @@ program token_registry.aleo {
                 authorized_until: 0u32,
             };
             let locked_balance: Balance = balances.get_or_use(balance_key, default_balance);
-            let authorized_balance: Balance = authorized_balances.get_or_use(balance_key, default_balance);
+            let authorized_balance: Balance = authorized_balances
+                .get_or_use(balance_key,default_balance);
             let authorized_balance_expired: bool = authorized_balance.authorized_until
                 < block.height;
             let actual_locked_balance: u128 = authorized_balance_expired ? locked_balance.balance
                 + authorized_balance.balance : locked_balance.balance;
-            let actual_authorized_balance: u128 = authorized_balance_expired ? 0u128 : authorized_balance.balance;
+            let actual_authorized_balance: u128 = authorized_balance_expired ? 0u128 : authorized_balance
+                .balance;
             let new_locked_balance: u128 = actual_locked_balance - amount;
             let new_authorized_balance: u128 = actual_authorized_balance + amount;
             let new_authorized_balance_struct: Balance = Balance {
@@ -390,7 +395,9 @@ program token_registry.aleo {
                 authorized_until: balance.authorized_until,
             };
             authorized_balances.set(sender_key_hash, new_balance);
-            let authorization_required: bool = registered_tokens.get(token_id).external_authorization_required;
+            let authorization_required: bool = registered_tokens
+                .get(token_id)
+                .external_authorization_required;
             let default_expiration: u32 = authorization_required ? 0u32 : 4294967295u32;
             let default_balance: Balance = Balance {
                 token_id: token_id,
@@ -398,7 +405,9 @@ program token_registry.aleo {
                 balance: 0u128,
                 authorized_until: default_expiration,
             };
-            let recipient_balance: Balance = authorization_required ? balances.get_or_use(recipient_balance_key, default_balance) : authorized_balances.get_or_use(recipient_balance_key, default_balance);
+            let recipient_balance: Balance = authorization_required ? balances
+                .get_or_use(recipient_balance_key,default_balance) : authorized_balances
+                .get_or_use(recipient_balance_key,default_balance);
             let new_recipient_balance: Balance = Balance {
                 token_id: token_id,
                 account: recipient,
@@ -436,7 +445,9 @@ program token_registry.aleo {
                 authorized_until: balance.authorized_until,
             };
             authorized_balances.set(sender_key_hash, new_balance);
-            let authorization_required: bool = registered_tokens.get(token_id).external_authorization_required;
+            let authorization_required: bool = registered_tokens
+                .get(token_id)
+                .external_authorization_required;
             let default_expiration: u32 = authorization_required ? 0u32 : 4294967295u32;
             let default_balance: Balance = Balance {
                 token_id: token_id,
@@ -444,7 +455,9 @@ program token_registry.aleo {
                 balance: 0u128,
                 authorized_until: default_expiration,
             };
-            let recipient_balance: Balance = authorization_required ? balances.get_or_use(recipient_balance_key, default_balance) : authorized_balances.get_or_use(recipient_balance_key, default_balance);
+            let recipient_balance: Balance = authorization_required ? balances
+                .get_or_use(recipient_balance_key,default_balance) : authorized_balances
+                .get_or_use(recipient_balance_key,default_balance);
             let new_recipient_balance: Balance = Balance {
                 token_id: token_id,
                 account: recipient,
@@ -646,7 +659,9 @@ program token_registry.aleo {
                 authorized_until: balance.authorized_until,
             };
             authorized_balances.set(owner_key_hash, new_balance);
-            let authorization_required: bool = registered_tokens.get(token_id).external_authorization_required;
+            let authorization_required: bool = registered_tokens
+                .get(token_id)
+                .external_authorization_required;
             let default_expiration: u32 = authorization_required ? 0u32 : 4294967295u32;
             let default_balance: Balance = Balance {
                 token_id: token_id,
@@ -654,7 +669,9 @@ program token_registry.aleo {
                 balance: 0u128,
                 authorized_until: default_expiration,
             };
-            let recipient_balance: Balance = authorization_required ? balances.get_or_use(recipient_balance_key, default_balance) : authorized_balances.get_or_use(recipient_balance_key, default_balance);
+            let recipient_balance: Balance = authorization_required ? balances
+                .get_or_use(recipient_balance_key,default_balance) : authorized_balances
+                .get_or_use(recipient_balance_key,default_balance);
             let new_recipient_balance: Balance = Balance {
                 token_id: token_id,
                 account: recipient,
@@ -672,7 +689,8 @@ program token_registry.aleo {
     fn join(private token_1: Token, private token_2: Token) -> Token {
         assert(token_1.token_id == token_2.token_id);
         let new_amount: u128 = token_1.amount + token_2.amount;
-        let authorized_until: u32 = token_1.authorized_until < token_2.authorized_until ? token_1.authorized_until : token_2.authorized_until;
+        let authorized_until: u32 = token_1.authorized_until < token_2.authorized_until ? token_1
+            .authorized_until : token_2.authorized_until;
         return Token {
             owner: token_1.owner,
             amount: new_amount,

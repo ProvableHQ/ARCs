@@ -13,41 +13,78 @@ struct TokenAllowance {
     spender: address,
 }
 
-// ARC20 interface.
-
-interface ARC20 {
-    record Token;
-    record Metadata;
+interface IARC20 {
+    record Token {
+        owner: address,
+        amount: u128,
+        ..
+    }
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
-    fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token);
-    fn transfer_private_to_public(input: Token, to: address, amount: u128) -> (
-        Token,
-        Metadata,
-        Final,
-    );
-    fn transfer_public_to_private(recipient: address, public amount: u128) -> (Token, Final);
-    fn shield(public amount: u128) -> (Token, Final);
-    fn unshield(input: Token, amount: u128) -> (Token, Token, Final);
-    // Interoperability
+    fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final;
     fn approve_public(public spender: address, public amount: u128) -> Final;
     fn unapprove_public(public spender: address, public amount: u128) -> Final;
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
-    fn transfer_from_public_to_private(public owner: address, public amount: u128) -> (Token, Final);
+    fn transfer_from_public_to_private(
+        public owner: address,
+        recipient: address,
+        public amount: u128,
+    ) -> (Token, Final);
+    fn transfer_private(input: Token, recipient: address, amount: u128) -> (Token, Token);
+    fn transfer_private_to_public(input: Token, recipient: address, amount: u128) -> (Token, Final);
+    fn transfer_public_to_private(recipient: address, public amount: u128) -> (Token, Final);
+    fn join(input_1: Token, input_2: Token) -> Token;
+    fn split(input: Token, amount: u128) -> (Token, Token);
+    view fn balance_of(account: address) -> u128;
+    view fn allowance(owner: address, spender: address) -> u128;
+    view fn decimals() -> u8;
+    view fn name() -> identifier;
+    view fn symbol() -> identifier;
 }
 
-// MintableToken extends ARC20 with mint/burn operations.
-
-interface MintableToken: ARC20 {
+interface IARC20Mintable: IARC20 {
     fn mint_public(public recipient: address, public amount: u128) -> Final;
-    fn mint_private(public recipient: address, public amount: u128) -> (Token, Final);
-    fn burn_public(public amount: u128) -> Final;
-    fn burn_private(input: Token) -> Final;
+    fn mint_private(recipient: address, public amount: u128) -> (Token, Final);
+    fn burn_public(public owner: address, public amount: u128) -> Final;
+    fn burn_private(input: Token, public amount: u128) -> (Token, Final);
 }
 
-// Custom token ID wrapped by this program (distinct from CREDITS_RESERVED_TOKEN_ID)
 const WRAPPED_TOKEN_ID: field = 99999field;
 
-program wrapped_token_registry.aleo: MintableToken {
+fn default_token_info() -> TokenInfo {
+    return TokenInfo {
+        name: 18019742092562515u128, // "wTokReg"
+        symbol: 4933470u128, // "wTR"
+        decimals: 6u8,
+        supply: 0u128,
+        max_supply: 18000000000000000u128,
+    };
+}
+
+final fn add_supply(amount: u128) {
+    let info = token_info.unwrap_or(default_token_info());
+    let new_supply = info.supply + amount;
+    assert(new_supply <= info.max_supply);
+    token_info = TokenInfo {
+        name: info.name,
+        symbol: info.symbol,
+        decimals: info.decimals,
+        supply: new_supply,
+        max_supply: info.max_supply,
+    };
+}
+
+final fn sub_supply(amount: u128) {
+    let info = token_info.unwrap_or(default_token_info());
+    token_info = TokenInfo {
+        name: info.name,
+        symbol: info.symbol,
+        decimals: info.decimals,
+        supply: info.supply - amount,
+        max_supply: info.max_supply,
+    };
+}
+
+program wrapped_token_registry.aleo: IARC20Mintable {
     @noupgrade
     constructor() {}
 
@@ -56,14 +93,47 @@ program wrapped_token_registry.aleo: MintableToken {
         amount: u128,
     }
 
-    record Metadata {
-        owner: address,
+    mapping balances: address => u128;
+    mapping allowances: TokenAllowance => u128;
+    storage token_info: TokenInfo;
+
+    view fn balance_of(account: address) -> u128 {
+        return balances.get_or_use(account, 0u128);
     }
 
-    mapping balances: address => u128;
-    mapping token_info: bool => TokenInfo;
-    mapping allowances: TokenAllowance => u128;
+    view fn allowance(owner: address, spender: address) -> u128 {
+        let key = TokenAllowance { account: owner, spender: spender };
+        return allowances.get_or_use(key, 0u128);
+    }
 
+    view fn total_supply() -> u128 {
+        let info: TokenInfo = token_info.unwrap_or(default_token_info());
+        return info.supply;
+    }
+
+    view fn max_supply() -> u128 {
+        let info: TokenInfo = token_info.unwrap_or(default_token_info());
+        return info.max_supply;
+    }
+
+    view fn decimals() -> u8 {
+        let info: TokenInfo = token_info.unwrap_or(default_token_info());
+        return info.decimals;
+    }
+
+    view fn name() -> identifier {
+        let touch: TokenInfo = token_info.unwrap_or(default_token_info());
+        return 'wTokReg';
+    }
+
+    view fn symbol() -> identifier {
+        let touch: TokenInfo = token_info.unwrap_or(default_token_info());
+        return 'wTR';
+    }
+
+    // ----------------------------------------------------------------------
+    // Wrapper-specific deposit / withdraw helpers (not part of IARC20)
+    // ----------------------------------------------------------------------
     fn deposit_token_public(public amount: u128) -> Final {
         let tr_final = token_registry.aleo::transfer_public_as_signer(
             WRAPPED_TOKEN_ID,
@@ -75,31 +145,33 @@ program wrapped_token_registry.aleo: MintableToken {
             tr_final.run();
             let prev = balances.get_or_use(depositor, 0u128);
             balances.set(depositor, prev + amount);
+            add_supply(amount);
         };
     }
 
-    // deposit_token_private not possible because token_registry doesn't support transfer_private_to_public
-    fn withdraw_token_public(amount: u128) -> Final {
+    fn withdraw_token_public(public amount: u128) -> Final {
         let withdrawer = self.caller;
         let tr_final = token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
         return final {
             let prev = balances.get(withdrawer);
             balances.set(withdrawer, prev - amount);
+            sub_supply(amount);
             tr_final.run();
         };
     }
 
-    fn withdraw_token_public_signer(amount: u128) -> Final {
+    fn withdraw_token_public_signer(public amount: u128) -> Final {
         let withdrawer = self.signer;
         let tr_final = token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
         return final {
             let prev = balances.get(withdrawer);
             balances.set(withdrawer, prev - amount);
+            sub_supply(amount);
             tr_final.run();
         };
     }
 
-    fn withdraw_token_private(amount: u128) -> (token_registry.aleo::Token, Final) {
+    fn withdraw_token_private(public amount: u128) -> (token_registry.aleo::Token, Final) {
         let withdrawer = self.signer;
         let (token_out, tr_final) = token_registry.aleo::transfer_public_to_private(
             WRAPPED_TOKEN_ID,
@@ -112,16 +184,30 @@ program wrapped_token_registry.aleo: MintableToken {
             final {
                 let prev = balances.get(withdrawer);
                 balances.set(withdrawer, prev - amount);
+                sub_supply(amount);
                 tr_final.run();
             },
         );
     }
 
+    // ----------------------------------------------------------------------
+    // Transfers
+    // ----------------------------------------------------------------------
     fn transfer_public(public recipient: address, public amount: u128) -> Final {
         let caller = self.caller;
         return final {
             let prev_caller = balances.get(caller);
             balances.set(caller, prev_caller - amount);
+            let prev_recv = balances.get_or_use(recipient, 0u128);
+            balances.set(recipient, prev_recv + amount);
+        };
+    }
+
+    fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final {
+        let signer = self.signer;
+        return final {
+            let prev_signer = balances.get(signer);
+            balances.set(signer, prev_signer - amount);
             let prev_recv = balances.get_or_use(recipient, 0u128);
             balances.set(recipient, prev_recv + amount);
         };
@@ -139,87 +225,23 @@ program wrapped_token_registry.aleo: MintableToken {
         );
     }
 
-    fn shield(public amount: u128) -> (Token, Final) {
-        let signer = self.signer;
-        let (token_out, tr_final) = token_registry.aleo::transfer_public_to_private(
-            WRAPPED_TOKEN_ID,
-            signer,
-            amount,
-            false,
-        );
-        return (
-            Token { owner: token_out.owner, amount: token_out.amount },
-            final {
-                let prev = balances.get(signer);
-                balances.set(signer, prev - amount);
-                tr_final.run();
-            },
-        );
-    }
-
-    fn unshield(input: Token, amount: u128) -> (Token, Token, Final) {
-        assert(input.amount >= amount);
-        let change_token = Token { owner: input.owner, amount: input.amount - amount };
-        let zero_token = Token { owner: input.owner, amount: 0u128 };
-        let owner = input.owner;
-        return (
-            change_token,
-            zero_token,
-            final {
-                let prev = balances.get_or_use(owner, 0u128);
-                balances.set(owner, prev + amount);
-            },
-        );
-    }
-
-    fn transfer_private(input: Token, to: address, amount: u128) -> (Token, Token) {
-        assert(input.owner == self.signer);
-        assert(input.amount >= amount);
+    fn transfer_private(input: Token, recipient: address, amount: u128) -> (Token, Token) {
         let change = Token { owner: input.owner, amount: input.amount - amount };
-        let transfer = Token { owner: to, amount: amount };
+        let transfer = Token { owner: recipient, amount: amount };
         return (change, transfer);
     }
 
     fn transfer_private_to_public(
         input: Token,
-        to: address,
+        recipient: address,
         amount: u128,
-    ) -> (Token, Metadata, Final) {
-        assert(input.owner == self.signer);
-        assert(input.amount >= amount);
+    ) -> (Token, Final) {
         let change_token = Token { owner: input.owner, amount: input.amount - amount };
-        let metadata = Metadata { owner: input.owner };
         return (
             change_token,
-            metadata,
             final {
-                let prev = balances.get_or_use(to, 0u128);
-                balances.set(to, prev + amount);
-            },
-        );
-    }
-
-    fn transfer_from_public_to_private(
-        public owner: address,
-        public amount: u128,
-    ) -> (Token, Final) {
-        let spender = self.caller;
-        let key = TokenAllowance { account: owner, spender: spender };
-        let (token_out, tr_final) = token_registry.aleo::transfer_public_to_private(
-            WRAPPED_TOKEN_ID,
-            spender,
-            amount,
-            false,
-        );
-        return (
-            Token { owner: token_out.owner, amount: token_out.amount },
-            final {
-                let current = allowances.get(key);
-                assert(current >= amount);
-                allowances.set(key, current - amount);
-                let prev_owner = balances.get(owner);
-                balances.set(owner, prev_owner - amount);
-                tr_final.run();
+                let prev = balances.get_or_use(recipient, 0u128);
+                balances.set(recipient, prev + amount);
             },
         );
     }
@@ -236,7 +258,6 @@ program wrapped_token_registry.aleo: MintableToken {
         let key = TokenAllowance { account: self.caller, spender: spender };
         return final {
             let current = allowances.get(key);
-            assert(current >= amount);
             allowances.set(key, current - amount);
         };
     }
@@ -249,7 +270,6 @@ program wrapped_token_registry.aleo: MintableToken {
         let key = TokenAllowance { account: owner, spender: self.caller };
         return final {
             let current = allowances.get(key);
-            assert(current >= amount);
             allowances.set(key, current - amount);
             let prev_owner = balances.get(owner);
             balances.set(owner, prev_owner - amount);
@@ -258,47 +278,87 @@ program wrapped_token_registry.aleo: MintableToken {
         };
     }
 
-    // MintableToken interface
+    fn transfer_from_public_to_private(
+        public owner: address,
+        private recipient: address,
+        public amount: u128,
+    ) -> (Token, Final) {
+        let spender = self.caller;
+        let key = TokenAllowance { account: owner, spender: spender };
+        let token = Token { owner: recipient, amount };
+        return (
+            token,
+            final {
+                let current = allowances.get(key);
+                allowances.set(key, current - amount);
+                let prev_owner = balances.get(owner);
+                balances.set(owner, prev_owner - amount);
+            },
+        );
+    }
+
+    fn join(input_1: Token, input_2: Token) -> Token {
+        assert_eq(input_1.owner, input_2.owner);
+        return Token { owner: input_1.owner, amount: input_1.amount + input_2.amount };
+    }
+
+    fn split(input: Token, amount: u128) -> (Token, Token) {
+        let first = Token { owner: input.owner, amount: amount };
+        let second = Token { owner: input.owner, amount: input.amount - amount };
+        return (first, second);
+    }
+
+    // Mint/burn pull from or return underlying registry balances (deposit/withdraw semantics).
     fn mint_public(public recipient: address, public amount: u128) -> Final {
         let tr_final = token_registry.aleo::transfer_public_as_signer(
             WRAPPED_TOKEN_ID,
             self.address,
             amount,
         );
-        let depositor = self.signer;
         return final {
             tr_final.run();
             let prev = balances.get_or_use(recipient, 0u128);
             balances.set(recipient, prev + amount);
+            add_supply(amount);
         };
     }
 
-    fn mint_private(public recipient: address, public amount: u128) -> (Token, Final) {
-        let signer = self.signer;
+    fn mint_private(recipient: address, public amount: u128) -> (Token, Final) {
         let token = Token { owner: recipient, amount };
+        let tr_final = token_registry.aleo::transfer_public_as_signer(
+            WRAPPED_TOKEN_ID,
+            self.address,
+            amount,
+        );
         return (
             token,
             final {
-                let prev = balances.get(signer);
-                balances.set(signer, prev - amount);
+                tr_final.run();
+                add_supply(amount);
             },
         );
     }
 
-    fn burn_public(public amount: u128) -> Final {
-        let withdrawer = self.caller;
-        let tr_final = token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, withdrawer, amount);
+    fn burn_public(public owner: address, public amount: u128) -> Final {
+        let tr_final = token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, owner, amount);
         return final {
-            let prev = balances.get(withdrawer);
-            balances.set(withdrawer, prev - amount);
+            let prev = balances.get(owner);
+            balances.set(owner, prev - amount);
+            sub_supply(amount);
             tr_final.run();
         };
     }
 
-    fn burn_private(input: Token) -> Final {
-        assert(input.owner == self.signer);
-        // Consume the Token. For wrapped_token_registry, the underlying was already
-        // sent to the owner when they shielded, so we just consume the record.
-        return final {};
+    fn burn_private(input: Token, public amount: u128) -> (Token, Final) {
+        let owner = input.owner;
+        let tr_final = token_registry.aleo::transfer_public(WRAPPED_TOKEN_ID, owner, amount);
+        let change_token = Token { owner: owner, amount: input.amount - amount };
+        return (
+            change_token,
+            final {
+                tr_final.run();
+                sub_supply(amount);
+            },
+        );
     }
 }

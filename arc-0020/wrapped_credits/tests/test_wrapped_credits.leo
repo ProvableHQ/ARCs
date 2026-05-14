@@ -11,9 +11,7 @@ program test_wrapped_credits.aleo {
             aleo1s3ws5tra87fjycnjrwsjcrnw2qxr8jfqqdugnf0xzqqw29q9m5pqem2u4t,
             100u128,
         );
-        return final {
-            f.run();
-        };
+        return final { f.run(); };
     }
 
     @noupgrade

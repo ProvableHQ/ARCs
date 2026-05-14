@@ -12,6 +12,8 @@ created: 2026-03-18
 
 ARC-22 defines a compliant fungible token interface for Aleo. It extends [ARC-20](../arc-0020/) with freeze-list enforcement and compliance records for regulated token issuers (stablecoins, security tokens). ARC-22 preserves Aleo's privacy guarantees while enabling regulatory oversight through Merkle non-inclusion proofs and investigator-visible compliance records.
 
+The reference program [`compliant_token_template.aleo`](./compliant_token_template/) declares Leo interfaces **`IARC22`** (core transfers, **`view fn`** reads, and compliance-bearing transitions) and **`IARC22Mintable: IARC22`** (**`mint_*` / `burn_*`**). Earlier discussion may use the shorthand **ARC20 compliant** for this surface; the signatures below match [`compliant_token_template/src/main.leo`](./compliant_token_template/src/main.leo).
+
 ## Motivation
 
 ARC-20 provides a minimal token standard but lacks regulatory compliance features required by many real-world token deployments. Regulated tokens need:
@@ -23,46 +25,81 @@ ARC-22 adds these capabilities while preserving Aleo's privacy guarantees throug
 
 ## Specification
 
-### ARC20Compliant Interface
+### `IARC22` and `IARC22Mintable`
 
-The compliant token interface adds freeze-list enforcement and compliance reporting to ARC-20's transfer primitives:
+The compliant token surface adds freeze-list enforcement (via Merkle non-inclusion proofs on private sends) and investigator-visible **`ComplianceRecord`** outputs where specified. Mappings and storage variables are intentionally **not** part of the interface body—only function signatures and the records (**`Token`**, **`ComplianceRecord`**) form the contract.
+
+Mint and burn are isolated on **`IARC22Mintable: IARC22`** so consumers can type dynamic calls against a core compliant token vs. a mintable deployment.
 
 ```leo
-interface ARC20Compliant {
-    record Token;
+interface IARC22 {
+    record Token {
+        owner: address,
+        amount: u128,
+        ..
+    }
+
     record ComplianceRecord {
-        owner: address,     // investigator address
+        owner: address,
         amount: u128,
         sender: address,
         recipient: address,
         ..
     }
-    record Metadata {
-        owner: address,     // investigator address
-        ..
-    }
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
+    fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final;
+
     fn approve_public(public spender: address, public amount: u128) -> Final;
     fn unapprove_public(public spender: address, public amount: u128) -> Final;
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
+    fn transfer_from_public_to_private(
+        public owner: address,
+        recipient: address,
+        public amount: u128,
+    ) -> (ComplianceRecord, Token, Final);
 
-    fn transfer_private(recipient: address, amount: u128, input_record: Token,
-        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32])
-        -> (ComplianceRecord, Token, Token, Final);
-    fn transfer_private_to_public(public recipient: address, public amount: u128,
-        input_record: Token, sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32])
-        -> (Token, Metadata, Final);
-    fn transfer_public_to_private(recipient: address, public amount: u128)
-        -> (ComplianceRecord, Token, Final);
-    fn transfer_from_public_to_private(public owner: address, recipient: address,
-        public amount: u128) -> (ComplianceRecord, Token, Final);
-    fn shield(public amount: u128) -> (ComplianceRecord, Token, Final);
-    fn unshield(public recipient: address, public amount: u128, input_record: Token,
-        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32])
-        -> (ComplianceRecord, Token, Final);
+    fn transfer_private(
+        recipient: address,
+        amount: u128,
+        input_record: Token,
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
+    ) -> (ComplianceRecord, Token, Token, Final);
+
+    fn transfer_private_to_public(
+        public recipient: address,
+        public amount: u128,
+        input_record: Token,
+        sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
+    ) -> (Token, Final);
+
+    fn transfer_public_to_private(recipient: address, public amount: u128) -> (
+        ComplianceRecord, Token, Final,
+    );
+
+    fn join(input_1: Token, input_2: Token) -> Token;
+    fn split(input: Token, amount: u128) -> (Token, Token);
+
+    view fn balance_of(account: address) -> u128;
+    view fn allowance(owner: address, spender: address) -> u128;
+    view fn total_supply() -> u128;
+    view fn max_supply() -> u128;
+    view fn decimals() -> u8;
+    view fn name() -> u128;
+    view fn symbol() -> u128;
+}
+
+interface IARC22Mintable: IARC22 {
+    fn mint_public(public recipient: address, public amount: u128) -> Final;
+    fn mint_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
+    fn burn_public(public owner: address, public amount: u128) -> Final;
+    fn burn_private(input_record: Token, public amount: u128) -> (ComplianceRecord, Token, Final);
 }
 ```
+
+**Public ↔ private without dedicated `shield` / `unshield`.** The reference template does not expose separate shield or unshield transitions. Use **`transfer_public_to_private`** (caller debits public balance; mints private **`Token`** plus **`ComplianceRecord`**) and **`transfer_private_to_public`** (private **`Token`** in; credits recipient public balance; returns change **`Token`** and **`Final`**).
+
+**Private→public return type.** **`transfer_private_to_public`** returns **`(Token, Final)`** only—no investigator **`Metadata`** record type. Amount and recipient are already **`public`** inputs on the transition; auditing uses those inputs plus emitted **`ComplianceRecord`** on other paths.
 
 ### Record Types
 
@@ -74,7 +111,8 @@ record Token {
 }
 ```
 
-**ComplianceRecord** -- Emitted to the investigator address during private transfers. Contains the full transfer details for compliance auditing:
+**ComplianceRecord** -- Emitted to the investigator address during private transfers and other transitions where the interface specifies it. Contains the full transfer details for compliance auditing:
+
 ```leo
 record ComplianceRecord {
     owner: address,     // investigator address
@@ -84,12 +122,7 @@ record ComplianceRecord {
 }
 ```
 
-**Metadata** -- Emitted by `transfer_private_to_public` instead of `ComplianceRecord`. Since `amount` and `recipient` are already public inputs visible on-chain, a lighter record is used:
-```leo
-record Metadata {
-    owner: address,     // investigator address
-}
-```
+**`transfer_private_to_public`** -- Returns **`(Token, Final)`** in [`compliant_token_template`](./compliant_token_template/src/main.leo). There is no separate investigator **`Metadata`** record type; **`amount`** and **`recipient`** are **`public`** inputs on the transition (visible on-chain). Implementations that want an encrypted investigator receipt could extend this pattern with an additional output record in a future revision.
 
 ### Freeze-List Mechanism
 
@@ -124,9 +157,9 @@ When the freeze list is updated, the Merkle root changes. A `BLOCK_HEIGHT_WINDOW
 
 ### Compliance Records
 
-All private transfers emit a `ComplianceRecord` with `owner` set to `INVESTIGATOR_ADDRESS`. This means only the investigator can decrypt the record and view the transfer details (sender, recipient, amount).
+Private transfers that take Merkle proofs emit a **`ComplianceRecord`** with **`owner`** set to **`INVESTIGATOR_ADDRESS`**, so only the investigator can decrypt the record and view the transfer details (sender, recipient, amount).
 
-For `transfer_private_to_public`, a lighter `Metadata` record is emitted instead, since the amount and recipient are already visible as public inputs on-chain. The `Metadata` record's `owner` is set to `INVESTIGATOR_ADDRESS`.
+**`transfer_private_to_public`** does **not** emit a **`ComplianceRecord`** or a separate **`Metadata`** record in [`compliant_token_template`](./compliant_token_template/src/main.leo); **`amount`** and **`recipient`** are **`public`** inputs, so they are directly visible on-chain for auditing.
 
 ### Investigator Address
 
@@ -134,17 +167,17 @@ The investigator address is hardcoded as the `INVESTIGATOR_ADDRESS` constant in 
 
 ### Dynamic Dispatch
 
-ARC20Compliant is declared as a Leo `interface`, so its public functions (`transfer_public`, `approve_public`, `transfer_from_public`) can be called dynamically using Leo's interface-enforced syntax:
+**`IARC22`** / **`IARC22Mintable`** are Leo `interface`s, so transitions can be called dynamically using interface-enforced syntax (`Interface@(target)::function(args)`):
 
 ```leo
-ARC20Compliant@(token_id)/transfer_public(recipient, amount);
-ARC20Compliant@(token_id)/approve_public(spender, amount);
-ARC20Compliant@(token_id)/transfer_from_public(owner, recipient, amount);
+IARC22@(token_program)::transfer_public(recipient, amount);
+IARC22@(token_program)::approve_public(spender, amount);
+IARC22@(token_program)::transfer_from_public(owner, recipient, amount);
 ```
 
-See [ARC-20 Dynamic Dispatch](../arc-0020/#dynamic-dispatch) for the full syntax reference, `_dynamic_call` intrinsic details, and examples.
+See [ARC-20 Dynamic Dispatch](../arc-0020/#dynamic-dispatch) for the full syntax reference, the `_dynamic_call` intrinsic, and worked examples.
 
-Private functions (`transfer_private`, `unshield`, etc.) can also be called dynamically -- the caller must pass the Merkle non-inclusion proofs as additional arguments.
+Private transitions (**`transfer_private`**, **`transfer_private_to_public`**, **`mint_private`**, **`burn_private`**, **`transfer_from_public_to_private`**, **`transfer_public_to_private`**, etc.) can also be invoked dynamically—the caller supplies Merkle non-inclusion proofs where required. **`ComplianceRecord`** outputs return as dynamic records where applicable (see Leo’s dynamic records documentation).
 
 ## Test Cases
 
@@ -152,27 +185,25 @@ Tests use Jest with a local devnode and Leo CLI execution.
 
 **Compliant token template tests** (`compliant-token-template.test.js`):
 - `initialize`: Rejects duplicate initialization
-- `transfer_public`: Moves balances; rejects insufficient balance
-- `approve_public` / `unapprove_public`: Manages allowances
+- `transfer_public` / `transfer_public_as_signer`: Move balances; reject insufficient balance and frozen sender/recipient
+- `approve_public` / `unapprove_public`: Manage allowances (keyed by the `TokenAllowance` struct directly)
 - `transfer_from_public`: Spender transfers with allowance
-- `transfer_public_to_private` / `transfer_from_public_to_private`: Public-to-private conversions with ComplianceRecord emission
-- `shield` / `unshield`: Shield and unshield with Merkle proof verification
-- `transfer_private`: Private transfer with freeze-list proof and ComplianceRecord
-- `transfer_private_to_public`: Returns `Metadata` record (not `ComplianceRecord`) with investigator as owner; validates no sender field
-- `shield`: ComplianceRecord contains correct investigator owner and sender
+- `transfer_public_to_private` / `transfer_from_public_to_private`: Public-to-private conversions with `ComplianceRecord` emission (no separate `shield` transition—the test harness may treat these flows as “shielding”)
+- `transfer_private_to_public`: Private-to-public conversion with freeze-list proofs; returns **`(Token, Final)`** only (tests may label this path “unshield” alongside registry-style wrappers)
+- `transfer_private`: Private transfer with freeze-list proof and `ComplianceRecord`
 - `mint_public`: Minter increases recipient balance; non-minter is rejected
-- `mint_private`: Minter creates private Token with ComplianceRecord
-- `burn_public`: Burner decreases owner balance; non-burner is rejected
+- `mint_private`: Minter creates private Token with `ComplianceRecord`
+- `burn_public` / `burn_private`: Burner decreases owner balance; non-burner is rejected
 - `pause/unpause`: `set_pause_status` blocks and unblocks transfers
 
 ## Reference Implementations
 
-- [`compliant_token_template/`](./compliant_token_template/) -- Full ARC20Compliant implementation with freeze list, Merkle proof non-inclusion verification, and multisig-gated upgrades
+- [`compliant_token_template/`](./compliant_token_template/) -- **`IARC22` + `IARC22Mintable`** implementation with freeze list integration, Merkle proof non-inclusion verification, **`view fn`** metadata/supply reads, **`add_supply` / `sub_supply`** bookkeeping, and multisig-gated upgrades
 - [`freezelist/`](./freezelist/) -- On-chain freeze list using a Merkle tree with windowed root updates for proof validity across blocks
 
 ## Dependencies
 
-- [ARC-20](../arc-0020/) -- ARC20Compliant tokens provide the same transfer primitives as ARC-20 with additional compliance constraints (freeze-list proofs, ComplianceRecord emission)
+- [ARC-20](../arc-0020/) -- **`IARC22`** tokens mirror ARC-20-style transfer primitives with extra compliance constraints (freeze-list proofs on sensitive paths, **`ComplianceRecord`** emission where specified)
 - **Leo compiler** with interface/dynamic dispatch support
 - **merkle_tree.aleo** and **multisig_core.aleo** -- Deployed as on-chain dependencies; `merkle_tree.aleo` provides Merkle tree verification primitives, `multisig_core.aleo` gates program upgrades
 - **@provablehq/sdk** (for SDK-based testing)
@@ -180,15 +211,15 @@ Tests use Jest with a local devnode and Leo CLI execution.
 
 ## Backwards Compatibility
 
-ARC-22 is a new standard and has no backwards compatibility concerns. Programs implementing ARC20Compliant are not required to implement the base ARC20 interface, as the compliance requirements (freeze-list proofs on private transfers, ComplianceRecord emission) change the function signatures.
+ARC-22 is a new standard and has no backwards compatibility concerns. Programs implementing **`IARC22`** are not required to declare Leo conformance to the base **`ARC20`** interface name from ARC-20, because compliance paths change signatures (freeze-list proofs, **`ComplianceRecord`** outputs).
 
 ## Security Considerations
 
-**Freeze list**: The ARC20Compliant interface enforces freeze-list checks on all private transfers via Merkle proof non-inclusion. Public transfers check the `freeze_list` mapping directly. A windowed root update mechanism allows proofs generated against a previous root to remain valid for a configurable number of blocks after a root update, preventing race conditions where a freeze list update invalidates in-flight transactions.
+**Freeze list**: The **`IARC22`** surface enforces freeze-list checks on paths that carry Merkle proofs via Merkle proof non-inclusion. Public transfers check the **`freeze_list`** mapping directly. A windowed root update mechanism allows proofs generated against a previous root to remain valid for a configurable number of blocks after a root update, preventing race conditions where a freeze list update invalidates in-flight transactions.
 
-**Compliance records**: Private transfers emit a `ComplianceRecord` to the designated investigator address, allowing authorized parties to audit private token movements while preserving sender privacy from the public. The investigator address is hardcoded and can only be changed via multisig-gated program upgrade.
+**Compliance records**: Private transfers emit a **`ComplianceRecord`** to the designated investigator address where the interface specifies it, allowing authorized parties to audit those movements while preserving sender privacy from the general public. The investigator address is hardcoded and can only be changed via multisig-gated program upgrade.
 
-**Metadata records**: `transfer_private_to_public` emits a lighter `Metadata` record instead of `ComplianceRecord`, since the amount and recipient are already visible as public inputs.
+**Public inputs on private→public**: For **`transfer_private_to_public`**, **`amount`** and **`recipient`** are **`public`** inputs; the reference template does not add a separate investigator-only receipt record—auditability relies on those inputs.
 
 **Upgradability**: `compliant_token_template.aleo` and `freezelist.aleo` gate program upgrades behind `multisig_core.aleo` signing operations, ensuring that code changes require multi-party approval.
 

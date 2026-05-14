@@ -1,14 +1,25 @@
 {
   "program": "dummy_exchange.aleo",
+  "implements": [],
   "structs": [],
   "records": [],
   "mappings": [],
   "storage_variables": [],
-  "transitions": [
+  "functions": [
     {
       "name": "transfer_from",
-      "is_async": true,
+      "is_final": true,
+      "const_parameters": [],
       "inputs": [
+        {
+          "name": "token_id",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
         {
           "name": "owner",
           "ty": {
@@ -41,7 +52,60 @@
       ],
       "outputs": [
         {
-          "ty": "Future",
+          "ty": "Final",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "swap",
+      "is_final": true,
+      "const_parameters": [],
+      "inputs": [
+        {
+          "name": "token_in",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "token_out",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount_in",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount_out",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Final",
           "mode": "None"
         }
       ]

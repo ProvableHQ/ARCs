@@ -1,6 +1,6 @@
 /**
- * Shared ARC20 wrapper test logic. Both wrapped_credits and wrapped_token_registry
- * implement the same ARC20 interface; only deposit/withdraw differ.
+ * Shared wrapper tests. Both programs implement **`IARC20` + `IARC20Mintable`**;
+ * only deposit/withdraw helpers differ.
  *
  * @param {Object} config
  * @param {Object} config.Wrapper - Contract module (WrappedCredits or WrappedTokenRegistry)
@@ -128,7 +128,7 @@ export function registerArc20WrapperTests(config) {
       expect(after1).toBe(before1);
     });
 
-    test("transfer_private_to_public (positive): increases receiver public balance", async () => {
+    test("transfer_private_to_public (positive): increases receiver public balance, returns change Token", async () => {
       const mint = await Wrapper.shield(accounts[0], "80u128");
       await expectConfirmed(mint);
       const tokenRecords = extractRecordPlaintexts(mint.stdout);
@@ -190,11 +190,12 @@ export function registerArc20WrapperTests(config) {
       expect(after3).toBe(before3);
     });
 
-    test("transfer_from_public_to_private (positive): spender converts owner public to private", async () => {
+    test("transfer_from_public_to_private (positive): spender converts owner public to private for an explicit recipient", async () => {
       await expectConfirmed(await Wrapper.approvePublic(accounts[0], addr1, "80u128"));
 
       const before0 = await bal(addr0);
-      const exec = await Wrapper.transferFromPublicToPrivate(accounts[1], addr0, "40u128");
+      // Spender (addr1) pulls 40 tokens from addr0 and mints a private Token for addr2.
+      const exec = await Wrapper.transferFromPublicToPrivate(accounts[1], addr0, addr2, "40u128");
       await expectConfirmed(exec);
       const records = extractRecordPlaintexts(exec.stdout);
       expect(records.length).toBeGreaterThanOrEqual(1);
@@ -206,7 +207,7 @@ export function registerArc20WrapperTests(config) {
       await expectConfirmed(await Wrapper.approvePublic(accounts[0], addr3, "10u128"));
 
       const before0 = await bal(addr0);
-      await Wrapper.transferFromPublicToPrivate(accounts[3], addr0, "50u128", {
+      await Wrapper.transferFromPublicToPrivate(accounts[3], addr0, addr3, "50u128", {
         expectRejection: true,
       });
       const after0 = await bal(addr0);
@@ -230,9 +231,37 @@ export function registerArc20WrapperTests(config) {
         expectRejection: true,
       });
     });
+
+    test("transfer_public_as_signer: signer-scoped public transfer", async () => {
+      const before0 = await bal(addr0);
+      const before1 = await bal(addr1);
+      const exec = await Wrapper.transferPublicAsSigner(accounts[0], addr1, "70u128");
+      await expectConfirmed(exec);
+      const after0 = await bal(addr0);
+      const after1 = await bal(addr1);
+      expect(before0 - after0).toBe(70n);
+      expect(after1 - before1).toBe(70n);
+    });
+
+    test("split + join: round-trip a private Token", async () => {
+      const mint = await Wrapper.shield(accounts[0], "120u128");
+      await expectConfirmed(mint);
+      const inputs = extractRecordPlaintexts(mint.stdout);
+      expect(inputs.length).toBeGreaterThanOrEqual(1);
+
+      const splitExec = await Wrapper.splitToken(accounts[0], inputs[0], "40u128");
+      await expectConfirmed(splitExec);
+      const splitOut = extractRecordPlaintexts(splitExec.stdout);
+      expect(splitOut.length).toBe(2);
+
+      const joinExec = await Wrapper.joinTokens(accounts[0], splitOut[0], splitOut[1]);
+      await expectConfirmed(joinExec);
+      const joinOut = extractRecordPlaintexts(joinExec.stdout);
+      expect(joinOut.length).toBe(1);
+    });
   });
 
-  describe("MintableToken interface (shared)", () => {
+  describe("ARC20 mint/burn (shared)", () => {
     beforeEach(async () => {
       if (ensureBalance) await ensureBalance();
     });
@@ -254,7 +283,7 @@ export function registerArc20WrapperTests(config) {
       expect(after1).toBe(before1);
     });
 
-    test("mint_private (positive): debits signer, outputs Token for recipient", async () => {
+    test("mint_private (positive): outputs a private Token for recipient without touching public balances", async () => {
       const before0 = await bal(addr0);
       const before1 = await bal(addr1);
       const exec = await Wrapper.mintPrivate(accounts[0], addr1, "75u128");
@@ -263,7 +292,10 @@ export function registerArc20WrapperTests(config) {
       expect(records.length).toBeGreaterThanOrEqual(1);
       const after0 = await bal(addr0);
       const after1 = await bal(addr1);
-      expect(before0 - after0).toBe(75n);
+      // mint_private acts as a deposit: signer pays in the underlying asset and
+      // a private wrapped Token is created for the recipient. Public wrapped
+      // balances are unchanged on either side.
+      expect(after0).toBe(before0);
       expect(after1).toBe(before1);
     });
 
@@ -279,9 +311,9 @@ export function registerArc20WrapperTests(config) {
       expect(after1).toBe(before1);
     });
 
-    test("burn_public (positive): decreases caller balance, returns underlying", async () => {
+    test("burn_public (positive): decreases owner balance, returns underlying", async () => {
       const before0 = await bal(addr0);
-      const exec = await Wrapper.burnPublic(accounts[0], "50u128");
+      const exec = await Wrapper.burnPublic(accounts[0], addr0, "50u128");
       await expectConfirmed(exec);
       const after0 = await bal(addr0);
       expect(before0 - after0).toBe(50n);
@@ -289,23 +321,27 @@ export function registerArc20WrapperTests(config) {
 
     test("burn_public (negative): insufficient balance rejects", async () => {
       const before0 = await bal(addr0);
-      await Wrapper.burnPublic(accounts[0], "999999999999999999999999u128", {
+      await Wrapper.burnPublic(accounts[0], addr0, "999999999999999999999999u128", {
         expectRejection: true,
       });
       const after0 = await bal(addr0);
       expect(after0).toBe(before0);
     });
 
-    test("burn_private (positive): consumes Token, owner receives underlying", async () => {
+    test("burn_private (positive): partial burn returns change Token", async () => {
       const mint = await Wrapper.shield(accounts[0], "60u128");
       await expectConfirmed(mint);
       const tokenRecords = extractRecordPlaintexts(mint.stdout);
       expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
 
       const before0 = await bal(addr0);
-      const burn = await Wrapper.burnPrivate(accounts[0], tokenRecords[0]);
+      const burn = await Wrapper.burnPrivate(accounts[0], tokenRecords[0], "20u128");
       await expectConfirmed(burn);
+      // burn_private returns a change Token (the post-burn remainder).
+      const burnRecords = extractRecordPlaintexts(burn.stdout);
+      expect(burnRecords.length).toBeGreaterThanOrEqual(1);
       const after0 = await bal(addr0);
+      // public balance untouched; only underlying credits move (verified by leoExecute confirming).
       expect(after0).toBe(before0);
     });
 
@@ -318,7 +354,9 @@ export function registerArc20WrapperTests(config) {
 
       const before0 = await bal(addr0);
       const before1 = await bal(addr1);
-      await Wrapper.burnPrivate(accounts[0], tokenRecords[0], {
+      // accounts[0] cannot spend a Token owned by accounts[1] -- record ownership
+      // is enforced at proof generation regardless of any explicit assert.
+      await Wrapper.burnPrivate(accounts[0], tokenRecords[0], "10u128", {
         expectRejection: true,
       });
       const after0 = await bal(addr0);

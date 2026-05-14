@@ -1,0 +1,127 @@
+
+=== devnet start 2026-05-15T14:10:08.362Z ===
+Starting the Devnode server...
+2026-05-15T14:10:08.433741Z  INFO Loading the ledger from storage...
+2026-05-15T14:10:08.468345Z TRACE Queuing operation 'add block (ab1v6dqjy9zxagrezrx4slwxpanm6avwvpxvz4smdl58afh4j86zy8skz57ea)' for sequential processing
+2026-05-15T14:10:08.468375Z TRACE Sequentially processing operation 'add block (ab1v6dqjy9zxagrezrx4slwxpanm6avwvpxvz4smdl58afh4j86zy8skz57ea)'
+2026-05-15T14:10:08.475458Z TRACE Updating the current epoch hash at block 0 to 'ab1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq5g436j'
+2026-05-15T14:10:08.475518Z DEBUG REST rate limit per IP - 999999999 RPS
+2026-05-15T14:10:08.676099Z TRACE registering event source with poller: token=Token(4771073408), interests=READABLE | WRITABLE
+Server running on http://127.0.0.1:3032
+Advancing the Devnode to the latest consensus version
+2026-05-15T14:10:08.680574Z TRACE checkout waiting for idle connection: ("http", 127.0.0.1:3032)
+2026-05-15T14:10:08.680586Z DEBUG starting new connection 'Some("127.0.0.1")'
+2026-05-15T14:10:08.680593Z TRACE Http::connect; scheme=Some("http"), host=Some("127.0.0.1"), port=Some(Port(3032))
+2026-05-15T14:10:08.680596Z DEBUG connecting to 127.0.0.1:3032
+2026-05-15T14:10:08.680666Z TRACE registering event source with poller: token=Token(4815135104), interests=READABLE | WRITABLE
+2026-05-15T14:10:08.680778Z DEBUG connected to 127.0.0.1:3032
+2026-05-15T14:10:08.680798Z TRACE http1 handshake complete, spawning background dispatcher task
+2026-05-15T14:10:08.680797Z TRACE registering event source with poller: token=Token(4817223168), interests=READABLE | WRITABLE
+2026-05-15T14:10:08.680807Z TRACE waiting for connection to be ready
+2026-05-15T14:10:08.680808Z TRACE connection 127.0.0.1:51806 accepted
+2026-05-15T14:10:08.680836Z TRACE connection is ready
+2026-05-15T14:10:08.680842Z TRACE checkout dropped for ("http", 127.0.0.1:3032)
+2026-05-15T14:10:08.680984Z  INFO Received POST /block/create from 127.0.0.1:51806
+2026-05-15T14:10:08.681006Z DEBUG request{method=POST uri=/block/create version=HTTP/1.1}: started processing request
+2026-05-15T14:10:08.681152Z TRACE Queuing operation 'atomic speculate (height 1, round 1)' for sequential processing
+2026-05-15T14:10:08.681165Z TRACE Sequentially processing operation 'atomic speculate (height 1, round 1)'
+2026-05-15T14:10:08.697947Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.706021Z TRACE Queuing operation 'add block (ab14t6c289a776tz2yyqzy6yudlh0604gdt3q85wru9aghvgwvsqspqtq2uat)' for sequential processing
+2026-05-15T14:10:08.706038Z TRACE Sequentially processing operation 'add block (ab14t6c289a776tz2yyqzy6yudlh0604gdt3q85wru9aghvgwvsqspqtq2uat)'
+2026-05-15T14:10:08.724805Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.727055Z TRACE Queuing operation 'atomic speculate (height 2, round 2)' for sequential processing
+2026-05-15T14:10:08.727070Z TRACE Sequentially processing operation 'atomic speculate (height 2, round 2)'
+2026-05-15T14:10:08.743437Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.751650Z TRACE Queuing operation 'add block (ab10kvf8ntcqmlsdqkv57923nekvz92v7yhvy58u6fdcujd50fr9szqkl5h9v)' for sequential processing
+2026-05-15T14:10:08.751668Z TRACE Sequentially processing operation 'add block (ab10kvf8ntcqmlsdqkv57923nekvz92v7yhvy58u6fdcujd50fr9szqkl5h9v)'
+2026-05-15T14:10:08.770723Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.773194Z TRACE Queuing operation 'atomic speculate (height 3, round 3)' for sequential processing
+2026-05-15T14:10:08.773207Z TRACE Sequentially processing operation 'atomic speculate (height 3, round 3)'
+2026-05-15T14:10:08.789654Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.797628Z TRACE Queuing operation 'add block (ab1szt6zl20tgj8rls00ax75h6pzfrmjqhseechhg27rq5ffxue0cpq490ylx)' for sequential processing
+2026-05-15T14:10:08.797646Z TRACE Sequentially processing operation 'add block (ab1szt6zl20tgj8rls00ax75h6pzfrmjqhseechhg27rq5ffxue0cpq490ylx)'
+2026-05-15T14:10:08.816009Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.818470Z TRACE Queuing operation 'atomic speculate (height 4, round 4)' for sequential processing
+2026-05-15T14:10:08.818488Z TRACE Sequentially processing operation 'atomic speculate (height 4, round 4)'
+2026-05-15T14:10:08.835407Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.843345Z TRACE Queuing operation 'add block (ab1vgnr2kaxc8a7q8qh0xrmn56ccg2swsks5dm7gs7sn0me5f7xpvyscthe6q)' for sequential processing
+2026-05-15T14:10:08.843364Z TRACE Sequentially processing operation 'add block (ab1vgnr2kaxc8a7q8qh0xrmn56ccg2swsks5dm7gs7sn0me5f7xpvyscthe6q)'
+2026-05-15T14:10:08.861815Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.864323Z TRACE Queuing operation 'atomic speculate (height 5, round 5)' for sequential processing
+2026-05-15T14:10:08.864338Z TRACE Sequentially processing operation 'atomic speculate (height 5, round 5)'
+2026-05-15T14:10:08.881714Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.889906Z TRACE Queuing operation 'add block (ab10mmmd5hp30w00rl6j8pf9p5he24c6glwztkmr3dtnj2kshnmygqq2mg4nt)' for sequential processing
+2026-05-15T14:10:08.889930Z TRACE Sequentially processing operation 'add block (ab10mmmd5hp30w00rl6j8pf9p5he24c6glwztkmr3dtnj2kshnmygqq2mg4nt)'
+2026-05-15T14:10:08.908141Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.910459Z TRACE Queuing operation 'atomic speculate (height 6, round 6)' for sequential processing
+2026-05-15T14:10:08.910485Z TRACE Sequentially processing operation 'atomic speculate (height 6, round 6)'
+2026-05-15T14:10:08.927058Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.934927Z TRACE Queuing operation 'add block (ab1h390rcdm7p2tgxc0vdxpmhq6q4nwmava247n3qk53ee5rwncaqpq8x4egd)' for sequential processing
+2026-05-15T14:10:08.934944Z TRACE Sequentially processing operation 'add block (ab1h390rcdm7p2tgxc0vdxpmhq6q4nwmava247n3qk53ee5rwncaqpq8x4egd)'
+2026-05-15T14:10:08.953249Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.955360Z TRACE Queuing operation 'atomic speculate (height 7, round 7)' for sequential processing
+2026-05-15T14:10:08.955370Z TRACE Sequentially processing operation 'atomic speculate (height 7, round 7)'
+2026-05-15T14:10:08.971801Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:08.979625Z TRACE Queuing operation 'add block (ab1qkmnfp27uwfps38dq94yu2cstp46zvmldwaqm55tls47nf0hmczs3l0pvl)' for sequential processing
+2026-05-15T14:10:08.979636Z TRACE Sequentially processing operation 'add block (ab1qkmnfp27uwfps38dq94yu2cstp46zvmldwaqm55tls47nf0hmczs3l0pvl)'
+2026-05-15T14:10:08.998180Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.000319Z TRACE Queuing operation 'atomic speculate (height 8, round 8)' for sequential processing
+2026-05-15T14:10:09.000331Z TRACE Sequentially processing operation 'atomic speculate (height 8, round 8)'
+2026-05-15T14:10:09.016525Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.024430Z TRACE Queuing operation 'add block (ab1mzk9ux38hhvs5jnklm3frqp0r09ka6fxq9vph5npexpc9gmsj5fqmdsnu6)' for sequential processing
+2026-05-15T14:10:09.024446Z TRACE Sequentially processing operation 'add block (ab1mzk9ux38hhvs5jnklm3frqp0r09ka6fxq9vph5npexpc9gmsj5fqmdsnu6)'
+2026-05-15T14:10:09.043535Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.045835Z TRACE Queuing operation 'atomic speculate (height 9, round 9)' for sequential processing
+2026-05-15T14:10:09.045844Z TRACE Sequentially processing operation 'atomic speculate (height 9, round 9)'
+2026-05-15T14:10:09.062083Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.069558Z TRACE Queuing operation 'add block (ab1mnymvnw74jp33rlkwgn22mqc5qrxcxsclgkcsf54ly293hz50qxs47v3na)' for sequential processing
+2026-05-15T14:10:09.069575Z TRACE Sequentially processing operation 'add block (ab1mnymvnw74jp33rlkwgn22mqc5qrxcxsclgkcsf54ly293hz50qxs47v3na)'
+2026-05-15T14:10:09.090599Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.094300Z TRACE Queuing operation 'atomic speculate (height 10, round 10)' for sequential processing
+2026-05-15T14:10:09.094321Z TRACE Sequentially processing operation 'atomic speculate (height 10, round 10)'
+2026-05-15T14:10:09.191651Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.203794Z TRACE Queuing operation 'add block (ab1gstkuuxqf8rp3tez627an9l8fjefhh7nh9rvq674gz9q96r34sgsacr67v)' for sequential processing
+2026-05-15T14:10:09.203960Z TRACE Sequentially processing operation 'add block (ab1gstkuuxqf8rp3tez627an9l8fjefhh7nh9rvq674gz9q96r34sgsacr67v)'
+2026-05-15T14:10:09.225032Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.228114Z TRACE Queuing operation 'atomic speculate (height 11, round 11)' for sequential processing
+2026-05-15T14:10:09.228128Z TRACE Sequentially processing operation 'atomic speculate (height 11, round 11)'
+2026-05-15T14:10:09.247331Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.256351Z TRACE Queuing operation 'add block (ab1w2zwhtr8e0x9326t7380zv5urz6q988fanprua54etwlxfmzyv9s2802ay)' for sequential processing
+2026-05-15T14:10:09.256366Z TRACE Sequentially processing operation 'add block (ab1w2zwhtr8e0x9326t7380zv5urz6q988fanprua54etwlxfmzyv9s2802ay)'
+2026-05-15T14:10:09.277144Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.298061Z TRACE Queuing operation 'atomic speculate (height 12, round 12)' for sequential processing
+2026-05-15T14:10:09.298080Z TRACE Sequentially processing operation 'atomic speculate (height 12, round 12)'
+2026-05-15T14:10:09.315604Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.324311Z TRACE Queuing operation 'add block (ab1zha2hpk53lgyq0tx859nrx43l6kvc4clmvh3vrn0njv47w2qjs8q9765pj)' for sequential processing
+2026-05-15T14:10:09.324335Z TRACE Sequentially processing operation 'add block (ab1zha2hpk53lgyq0tx859nrx43l6kvc4clmvh3vrn0njv47w2qjs8q9765pj)'
+2026-05-15T14:10:09.345955Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.349996Z TRACE Queuing operation 'atomic speculate (height 13, round 13)' for sequential processing
+2026-05-15T14:10:09.350020Z TRACE Sequentially processing operation 'atomic speculate (height 13, round 13)'
+2026-05-15T14:10:09.367227Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.374769Z TRACE registering event source with poller: token=Token(4815248000), interests=READABLE | WRITABLE
+2026-05-15T14:10:09.374780Z TRACE connection 127.0.0.1:51807 accepted
+2026-05-15T14:10:09.376105Z TRACE Queuing operation 'add block (ab142st3u795rj38tl638n608fwtc97sp9002wuwfw97vaavk40mqyq69k0zn)' for sequential processing
+2026-05-15T14:10:09.376123Z TRACE Sequentially processing operation 'add block (ab142st3u795rj38tl638n608fwtc97sp9002wuwfw97vaavk40mqyq69k0zn)'
+2026-05-15T14:10:09.379160Z TRACE registering event source with poller: token=Token(4815110272), interests=READABLE | WRITABLE
+2026-05-15T14:10:09.379231Z TRACE connection 127.0.0.1:51808 accepted
+2026-05-15T14:10:09.379396Z  INFO Received GET /block/height/latest from 127.0.0.1:51808
+2026-05-15T14:10:09.379410Z DEBUG request{method=GET uri=/block/height/latest version=HTTP/1.1}: started processing request
+2026-05-15T14:10:09.394863Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.397477Z DEBUG request{method=GET uri=/block/height/latest version=HTTP/1.1}: finished processing request latency=18 ms status=200
+2026-05-15T14:10:09.397586Z TRACE Queuing operation 'atomic speculate (height 14, round 14)' for sequential processing
+2026-05-15T14:10:09.397600Z TRACE Sequentially processing operation 'atomic speculate (height 14, round 14)'
+2026-05-15T14:10:09.414494Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.423252Z TRACE Queuing operation 'add block (ab10c7h6xmc04n26pte009hf078vdzwj6l6rm25l6hssyry726nty8sjpncra)' for sequential processing
+2026-05-15T14:10:09.423274Z TRACE Sequentially processing operation 'add block (ab10c7h6xmc04n26pte009hf078vdzwj6l6rm25l6hssyry726nty8sjpncra)'
+2026-05-15T14:10:09.442716Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.445232Z TRACE Queuing operation 'atomic speculate (height 15, round 15)' for sequential processing
+2026-05-15T14:10:09.445244Z TRACE Sequentially processing operation 'atomic speculate (height 15, round 15)'
+2026-05-15T14:10:09.462456Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.471399Z TRACE Queuing operation 'add block (ab15t2g4k4pc8k2vxhde7d60n7q0ej39042lfa2qytugrq53rcvtc9qacctsv)' for sequential processing
+2026-05-15T14:10:09.471423Z TRACE Sequentially processing operation 'add block (ab15t2g4k4pc8k2vxhde7d60n7q0ej39042lfa2qytugrq53rcvtc9qacctsv)'
+2026-05-15T14:10:09.490081Z TRACE Total stake invalidated due to validator not in committee: 0
+2026-05-15T14:10:09.492547Z TRACE Queuing operation 'atomic speculate (height 16, round 16)' for sequential processing
+2026-05-15T14:10:09.492559Z TRACE Sequentially processing operation 'atomic speculate (height 16, round 16)'
+2026-05-15T14:10:09.509583Z TRACE Total stake invalidated due to validator not in committee: 0
+
+=== devnet stop 2026-05-15T14:10:09.518Z ===
