@@ -12,7 +12,7 @@ created: 2026-03-18
 
 ARC-22 defines a compliant fungible token interface for Aleo. It extends [ARC-20](../arc-0020/) with freeze-list enforcement and compliance records for regulated token issuers (stablecoins, security tokens). ARC-22 preserves Aleo's privacy guarantees while enabling regulatory oversight through Merkle non-inclusion proofs and investigator-visible compliance records.
 
-The reference program [`compliant_token_template.aleo`](./compliant_token_template/) declares the Leo interface **`IARC22`** with core transfers, **`view fn`** reads, compliance-bearing transitions, and **`mint_*` / `burn_*`**. Earlier discussion may use the shorthand **ARC20 compliant** for this surface; the signatures below match [`compliant_token_template/src/main.leo`](./compliant_token_template/src/main.leo).
+The reference program [`compliant_token_template.aleo`](./compliant_token_template/) declares the Leo interface **`IARC22`** with core transfers, **`view fn`** reads, and compliance-bearing transitions. Earlier discussion may use the shorthand **ARC20 compliant** for this surface; the signatures below match [`compliant_token_template/src/main.leo`](./compliant_token_template/src/main.leo).
 
 ## Motivation
 
@@ -88,7 +88,7 @@ interface IARC22 {
 }
 ```
 
-**Public ↔ private without dedicated `shield` / `unshield`.** The reference template does not expose separate shield or unshield transitions. Use **`transfer_public_to_private`** (caller debits public balance; mints private **`Token`** plus **`ComplianceRecord`**) and **`transfer_private_to_public`** (private **`Token`** in; credits recipient public balance; returns change **`Token`** and **`Final`**).
+**Public ↔ private conversions.** Use **`transfer_public_to_private`** (caller debits public balance; returns private **`Token`** plus **`ComplianceRecord`**) and **`transfer_private_to_public`** (private **`Token`** in; credits recipient public balance; returns change **`Token`** and **`Final`**).
 
 **Private→public return type.** **`transfer_private_to_public`** returns **`(Token, Final)`** only—no investigator **`Metadata`** record type. Amount and recipient are already **`public`** inputs on the transition; auditing uses those inputs plus emitted **`ComplianceRecord`** on other paths.
 
@@ -168,7 +168,7 @@ IARC22@(token_program)::transfer_from_public(owner, recipient, amount);
 
 See [ARC-20 Dynamic Dispatch](../arc-0020/#dynamic-dispatch) for the full syntax reference, the `_dynamic_call` intrinsic, and worked examples.
 
-Private transitions (**`transfer_private`**, **`transfer_private_to_public`**, **`mint_private`**, **`burn_private`**, **`transfer_from_public_to_private`**, **`transfer_public_to_private`**, etc.) can also be invoked dynamically—the caller supplies Merkle non-inclusion proofs where required. **`ComplianceRecord`** outputs return as dynamic records where applicable (see Leo’s dynamic records documentation).
+Private transitions (**`transfer_private`**, **`transfer_private_to_public`**, **`transfer_from_public_to_private`**, **`transfer_public_to_private`**, etc.) can also be invoked dynamically—the caller supplies Merkle non-inclusion proofs where required. **`ComplianceRecord`** outputs return as dynamic records where applicable (see Leo’s dynamic records documentation).
 
 ## Test Cases
 
@@ -179,12 +179,9 @@ Tests use Jest with a local devnode and Leo CLI execution.
 - `transfer_public` / `transfer_public_as_signer`: Move balances; reject insufficient balance and frozen sender/recipient
 - `approve_public` / `unapprove_public`: Manage allowances (keyed by the `TokenAllowance` struct directly)
 - `transfer_from_public`: Spender transfers with allowance
-- `transfer_public_to_private` / `transfer_from_public_to_private`: Public-to-private conversions with `ComplianceRecord` emission (no separate `shield` transition—the test harness may treat these flows as “shielding”)
-- `transfer_private_to_public`: Private-to-public conversion with freeze-list proofs; returns **`(Token, Final)`** only (tests may label this path “unshield” alongside registry-style wrappers)
+- `transfer_public_to_private` / `transfer_from_public_to_private`: Public-to-private conversions with `ComplianceRecord` emission
+- `transfer_private_to_public`: Private-to-public conversion with freeze-list proofs; returns **`(Token, Final)`** only
 - `transfer_private`: Private transfer with freeze-list proof and `ComplianceRecord`
-- `mint_public`: Minter increases recipient balance; non-minter is rejected
-- `mint_private`: Minter creates private Token with `ComplianceRecord`
-- `burn_public` / `burn_private`: Burner decreases owner balance; non-burner is rejected
 - `pause/unpause`: `set_pause_status` blocks and unblocks transfers
 
 ## Reference Implementations

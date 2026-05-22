@@ -403,6 +403,17 @@
           "ty": {
             "Record": {
               "path": [
+                "ComplianceRecord"
+              ],
+              "program": "compliant_token_template.aleo"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": {
+            "Record": {
+              "path": [
                 "Token"
               ],
               "program": "compliant_token_template.aleo"

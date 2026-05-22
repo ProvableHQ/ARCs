@@ -12,7 +12,7 @@ created: 2026-03-18
 
 ARC-20 defines a fungible token standard for Aleo, supporting both public and private balances. Programs declare conformance to the `ARC20` interface, and any other program can call them at runtime via dynamic dispatch -- without compile-time knowledge of the specific token implementation.
 
-The standard defines a single **ARC20** interface covering public transfers, private transfers, shielding/unshielding, approvals, joins/splits, and mint/burn. Implementations commonly expose name, symbol, decimals, allowances, and supply via **`view fn`** on the core surface rather than a separate Leo trait. Reference deployments **[`wrapped_credits.aleo`](./wrapped_credits/)** and **[`wrapped_token_registry.aleo`](./wrapped_token_registry/)** both use the program-local name **`IARC20`** and match each other closely—see [**Implementation snapshots (reference wrappers)**](#implementation-snapshots-reference-wrappers).
+The standard defines a single **ARC20** interface covering public transfers, private transfers, approvals, joins, and splits. Implementations commonly expose name, symbol, decimals, allowances, and supply via **`view fn`** on the core surface rather than a separate Leo trait. Reference deployments **[`wrapped_credits.aleo`](./wrapped_credits/)** and **[`wrapped_token_registry.aleo`](./wrapped_token_registry/)** both use the program-local name **`IARC20`** and match each other closely—see [**Implementation snapshots (reference wrappers)**](#implementation-snapshots-reference-wrappers).
 
 For regulated tokens requiring freeze lists and compliance records, see [ARC-22](../arc-0022/).
 
@@ -51,9 +51,6 @@ interface ARC20 {
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
     fn transfer_from_public_to_private(public owner: address, public recipient: address, public amount: u128) -> (Token, Final);
 
-    fn shield(public amount: u128) -> (Token, Final);
-    fn unshield(input: Token, amount: u128) -> (Token, Final);
-
     fn join(input_1: Token, input_2: Token) -> Token;
     fn split(input: Token, amount: u128) -> (Token, Token);
 }
@@ -62,10 +59,8 @@ interface ARC20 {
 Notes on signatures:
 
 - `transfer_public_as_signer` is the signer-scoped variant of `transfer_public`, mirroring the existing primitives in `credits.aleo` / `token_registry.aleo`.
-- `transfer_from_public_to_private` includes an explicit `recipient` so the spender can mint the resulting `Token` to a third party.
-- `burn_public` accepts an explicit `owner`, leaving the choice of `self.caller` vs. `self.signer` to the caller rather than baking it into the implementation.
+- `transfer_from_public_to_private` includes an explicit `recipient` so the spender can route the resulting `Token` to a third party.
 - `join` / `split` mirror the helpers offered by other Aleo tokens.
-- `mint_private` / `burn_private` keep `amount` and `recipient` as `public` inputs so that conforming wrappers can forward the value into the underlying public ledger (e.g. `credits.aleo::transfer_public_as_signer`). Privacy of the resulting `Token` is preserved by the proof.
 - Optional **`view fn`** reads (**`balance_of`**, **`allowance`**, **`decimals`**, **`name`**, **`symbol`**, plus implementation-defined **`total_supply`** / **`max_supply`**) are declared on **`IARC20`** in the [`wrapped_credits`](./wrapped_credits/) and [`wrapped_token_registry`](./wrapped_token_registry/) references instead of a separate metadata-extending interface type.
 
 ### Record Types
@@ -100,19 +95,18 @@ record Metadata {
 
 ### Implementation snapshots (reference wrappers)
 
-[`wrapped_credits/src/main.leo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry/src/main.leo`](./wrapped_token_registry/src/main.leo) both declare **`IARC20`** with core transfers, approvals, **`view fn`** accessors, and **`mint_*` / `burn_*`** signatures. Only the identifier name differs from the **`ARC20`** spelling in the specification fragment above.
+[`wrapped_credits/src/main.leo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry/src/main.leo`](./wrapped_token_registry/src/main.leo) both declare **`IARC20`** with core transfers, approvals, and **`view fn`** accessors. Only the identifier name differs from the **`ARC20`** spelling in the specification fragment above.
 
 Compared to the normative **`ARC20`** block in this document, both reference wrappers behave as follows:
 
 | Topic | Normative **`ARC20`** in this ARC | **`wrapped_credits.aleo`** / **`wrapped_token_registry.aleo`** |
 |--------|-----------------------------------|-------------------------------------|
 | Private→public receipt | **`transfer_private_to_public` → `(Token, Metadata, Final)`** | **`(Token, Final)`** — no **`Metadata`** record type |
-| Shield / unshield | Dedicated **`shield` / `unshield`** | Not exposed; use **`transfer_public_to_private`** and **`transfer_private_to_public`** |
 | **`transfer_from_public_to_private`** | Example uses **`public recipient`** | **`private recipient`** |
 | Read APIs | Historically mapping/API reads | **`view fn`** on **`IARC20`**: **`balance_of`**, **`allowance`**, **`decimals`**, **`name`**, **`symbol`**; both programs also define **`total_supply`** and **`max_supply`** views reading **`storage token_info`** |
 | Supply counter | Implementation-defined | Shared **`final fn add_supply` / `sub_supply`** |
 
-Bridging uses wrapper-specific helpers: **`wrapped_credits`** — **`deposit_credits_*`**, **`withdraw_credits_*`**; **`wrapped_token_registry`** — **`deposit_token_public`**, **`withdraw_token_*`** (registry-backed **`mint_*` / `burn_*`** remain deposit/withdraw semantics).
+Bridging uses wrapper-specific helpers: **`wrapped_credits`** — **`deposit_credits_*`**, **`withdraw_credits_*`**; **`wrapped_token_registry`** — **`deposit_token_public`**, **`withdraw_token_*`**.
 
 ### Dynamic Dispatch
 
@@ -225,21 +219,17 @@ Tests use Jest with a local devnode and Leo CLI execution.
 **ARC20 shared interface tests** (`arc20-wrapper-tests.js`), run for both `wrapped_credits` and `wrapped_token_registry`:
 
 - All transfer variants: `transfer_public`, `transfer_public_as_signer`, `transfer_private`, `transfer_private_to_public` (returns change **`Token`** + **`Final`** only), `transfer_public_to_private`
-- Public↔private round-trips via **`transfer_public_to_private` / `transfer_private_to_public`** (the JS harness may still call these paths **`shield` / `unshield`** for shared helpers)
+- Public↔private round-trips via **`transfer_public_to_private` / `transfer_private_to_public`**
 - Approve/unapprove + `transfer_from_public` / `transfer_from_public_to_private` allowance management (the latter includes an explicit `recipient`)
 - `join` / `split`
-- `mint_public` / `mint_private` / `burn_public` / `burn_private` (the latter two include an explicit `owner` / change-record output)
 - Negative tests: insufficient balance, exceeded allowance
 
 ## Rationale
 
-- **Single interface**: `mint`/`burn` are part of `ARC20` rather than a separate extension interface. Tokens that have no minting authority can simply revert in `mint_*` and `burn_*`, but downstream consumers always know the methods exist.
 - **Additive approvals**: `approve_public` increases the existing allowance rather than replacing it. This avoids race conditions -- two `approve_public` calls in the same block will both succeed and add to the allowance, rather than one silently overwriting the other.
 - **u128 amounts**: Future-proofs the standard for high-supply tokens and avoids truncation issues. `u64` would limit maximum supply to ~18.4 quintillion base units, which is insufficient for some token designs.
-- **`recipient` naming**: The receiving address is consistently named `recipient` across every transfer, mint, shield, and unshield variant.
-- **`shield` / `unshield` naming**: `shield` converts the signer's public balance to a private `Token` record. `unshield` converts a private `Token` back to the owner's public balance and returns the change `Token` together with a `Final`.
+- **`recipient` naming**: The receiving address is consistently named `recipient` across transfer variants.
 - **`transfer_private_to_public` returns a `Metadata` receipt**: the spender's private `Token` is consumed during the transfer, and the recipient receives the funds publicly. `Metadata` is a small, owner-scoped record returned to the spender so they have a fresh receipt without having to scan their `sk_tag` for the spent record.
-- **`burn_public(owner, amount)`**: Implementations choose whether to enforce `owner == self.caller`, `owner == self.signer`, or some role-gated invariant. Pinning either of these into the interface would limit composability for stateful wrappers and compliant tokens.
 
 ## Reference Implementations
 
@@ -283,9 +273,9 @@ A **stateless** wrapper (pure forwarding) cannot work because:
 
 A **stateful** wrapper maintains its own `balances` mapping and exposes the standard ARC20 interface. Deposit/withdraw functions bridge between the wrapper's internal balances and the underlying program. See [`wrapped_credits.aleo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry.aleo`](./wrapped_token_registry/src/main.leo) for reference implementations.
 
-### Shielding Considerations
+### Public/Private Considerations
 
-- Dedicated **`shield` / `unshield`** transitions (when present) are self-only operations: the signer converts between their own public and private balances of the wrapped token. Implementations such as **`wrapped_credits`** and **`wrapped_token_registry`** expose the same effect through **`transfer_public_to_private`** / **`transfer_private_to_public`** (see [snapshots](#implementation-snapshots-reference-wrappers)). No interaction with the underlying token is required for shield/unshield-style flows on the wrapper’s own ledger.
+- Implementations such as **`wrapped_credits`** and **`wrapped_token_registry`** convert between public and private balances through **`transfer_public_to_private`** / **`transfer_private_to_public`** (see [snapshots](#implementation-snapshots-reference-wrappers)). No interaction with the underlying token is required for these wrapper-local balance moves.
 - `transfer_private_to_public` has a UX limitation: the recipient receives tokens in their public balance but cannot learn the private sender's identity (by design). The sender can still locate the spent record off-chain via their `sk_tag`.
 
 ## Migration Guide: Wrapping Token Registry Tokens
@@ -311,7 +301,7 @@ This signature mismatch means `token_registry.aleo` cannot directly implement th
 4. Implement deposit/withdraw to bridge between the wrapper and the registry:
     - `deposit_token_public(amount)`: calls `token_registry.aleo::transfer_public_as_signer(TOKEN_ID, self.address, amount)`, increments local balance
     - `withdraw_token_public(amount)`: decrements local balance, calls `token_registry.aleo::transfer_public(TOKEN_ID, withdrawer, amount)`
-5. Implement transfers, approvals, **`view fn`** reads, joins/splits, and mint/burn (`mint_*` / `burn_*` may act as deposit/withdraw on wrappers). Dedicated **`shield` / `unshield`** transitions are optional if **`transfer_public_to_private` / `transfer_private_to_public`** cover public↔private moves.
+5. Implement transfers, approvals, **`view fn`** reads, joins/splits, deposit/withdraw helpers, and **`transfer_public_to_private` / `transfer_private_to_public`** for public↔private moves.
 
 ### Deposit/Withdraw Flow
 
@@ -327,7 +317,7 @@ This signature mismatch means `token_registry.aleo` cannot directly implement th
 
 ### Reference
 
-See [`wrapped_token_registry/`](./wrapped_token_registry/) for a complete implementation wrapping token ID `99999field`. In this wrapper, `mint_public`/`mint_private` act as deposits (pull from the signer's registry balance) and `burn_public`/`burn_private` act as withdraws (send back to the registry).
+See [`wrapped_token_registry/`](./wrapped_token_registry/) for a complete implementation wrapping token ID `99999field`.
 
 ## Comparison to ERC-20
 
@@ -342,7 +332,6 @@ For developers familiar with Ethereum's ERC-20 standard:
 | `approve(spender, amount)` | `approve_public(spender, amount)` | Additive (not replace) -- use `unapprove_public` to decrease |
 | `transferFrom(from, to, amount)` | `transfer_from_public(owner, recipient, amount)` | Direct equivalent |
 | -- | `transfer_private(input, recipient, amount)` | No ERC-20 equivalent -- private transfers are unique to Aleo |
-| -- | `shield(amount)` / `unshield(input, amount)` | Convert between public and private balances |
 | -- | `join(a, b)` / `split(a, n)` | Manage record granularity |
 | Contract address = token | Program name = token | Each ARC20 token is its own deployed program |
 
@@ -350,7 +339,7 @@ For developers familiar with Ethereum's ERC-20 standard:
 
 **Approval model**: ARC-20 uses additive approvals -- `approve_public` increases the allowance, and `unapprove_public` decreases it. This differs from ERC-20's replace semantics. To change an allowance from 100 to 50, call `unapprove_public(50)` rather than setting a new value. Calling `approve_public` without first reducing the existing allowance will add to it.
 
-**Arithmetic overflow/underflow**: Leo's `u128` arithmetic aborts the transaction on underflow/overflow (enforced by the Aleo VM). Implementations therefore omit redundant explicit `assert(... >= amount)` checks in `unshield`, `transfer_from_public`, `transfer_from_public_to_private`, and `unapprove_public` -- the VM aborts naturally on underflow.
+**Arithmetic overflow/underflow**: Leo's `u128` arithmetic aborts the transaction on underflow/overflow (enforced by the Aleo VM). Implementations therefore omit redundant explicit `assert(... >= amount)` checks in `transfer_from_public`, `transfer_from_public_to_private`, and `unapprove_public` -- the VM aborts naturally on underflow.
 
 **Self.caller vs self.signer**: Wrapper programs must carefully distinguish between `self.caller` (the immediate caller, which may be another program) and `self.signer` (the transaction originator). Deposit functions use `self.signer` to pull from the user's underlying balance, while transfer functions use `self.caller` for composability with DeFi programs. The interface exposes both `transfer_public` (caller-scoped) and `transfer_public_as_signer` (signer-scoped) so consumers can pick the appropriate semantics.
 
