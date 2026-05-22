@@ -265,12 +265,10 @@ program compliant_token_template.aleo: IARC22 {
     }
 
     view fn name() -> identifier {
-        let touch: TokenInfo = token_info.unwrap_or(default_token_info_uninit());
         return 'CompliantToken';
     }
 
     view fn symbol() -> identifier {
-        let touch: TokenInfo = token_info.unwrap_or(default_token_info_uninit());
         return 'COMP';
     }
 

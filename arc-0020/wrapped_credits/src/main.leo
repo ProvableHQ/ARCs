@@ -122,12 +122,10 @@ program wrapped_credits.aleo: IARC20 {
     }
 
     view fn name() -> identifier {
-        let touch: TokenInfo = token_info.unwrap_or(default_token_info());
         return 'wCredits';
     }
 
     view fn symbol() -> identifier {
-        let touch: TokenInfo = token_info.unwrap_or(default_token_info());
         return 'wCRD';
     }
 
