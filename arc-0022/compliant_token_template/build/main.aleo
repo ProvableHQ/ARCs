@@ -1093,7 +1093,7 @@ view allowance:
     get.or_use allowances[r2] 0u128 into r3;
     output r3 as u128.public;
 
-view total_supply:
+view supply:
     contains token_info__[false] into r0;
     cast 0u128 0u128 0u8 0u128 0u128 into r1 as TokenInfo;
     get.or_use token_info__[false] r1 into r2;
@@ -1157,15 +1157,9 @@ view decimals:
     output r17.decimals as u8.public;
 
 view name:
-    contains token_info__[false] into r0;
-    cast 0u128 0u128 0u8 0u128 0u128 into r1 as TokenInfo;
-    get.or_use token_info__[false] r1 into r2;
     output 'CompliantToken' as identifier.public;
 
 view symbol:
-    contains token_info__[false] into r0;
-    cast 0u128 0u128 0u8 0u128 0u128 into r1 as TokenInfo;
-    get.or_use token_info__[false] r1 into r2;
     output 'COMP' as identifier.public;
 
 constructor:

@@ -648,7 +648,7 @@
       ]
     },
     {
-      "name": "total_supply",
+      "name": "supply",
       "is_final": false,
       "const_parameters": [],
       "inputs": [],
