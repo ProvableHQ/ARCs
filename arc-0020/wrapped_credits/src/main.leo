@@ -47,7 +47,9 @@ interface IARC20 {
 
 fn default_token_info() -> TokenInfo {
     return TokenInfo {
+        // wCredits
         name: 138438205403108515442419u128,
+        // wCRD
         symbol: 580610435347u128,
         decimals: 6u8,
         supply: 0u128,
