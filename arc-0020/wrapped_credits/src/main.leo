@@ -132,7 +132,7 @@ program wrapped_credits.aleo: IARC20 {
     // ----------------------------------------------------------------------
     // Wrapper-specific deposit / withdraw helpers (not part of ARC20)
     // ----------------------------------------------------------------------
-    fn deposit_credits_public(public amount: u64) -> Final {
+    fn deposit_credits_public_signer(public amount: u64) -> Final {
         let credits_finalization = credits.aleo::transfer_public_as_signer(self.address, amount);
         let depositor = self.signer;
         return final {

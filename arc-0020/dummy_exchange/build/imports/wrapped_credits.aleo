@@ -28,13 +28,13 @@ mapping allowances:
     key as TokenAllowance.public;
     value as u128.public;
 
-function deposit_credits_public:
+function deposit_credits_public_signer:
     input r0 as u64.public;
     call credits.aleo/transfer_public_as_signer wrapped_credits.aleo r0 into r1;
-    async deposit_credits_public r1 self.signer r0 into r2;
-    output r2 as wrapped_credits.aleo/deposit_credits_public.future;
+    async deposit_credits_public_signer r1 self.signer r0 into r2;
+    output r2 as wrapped_credits.aleo/deposit_credits_public_signer.future;
 
-finalize deposit_credits_public:
+finalize deposit_credits_public_signer:
     input r0 as credits.aleo/transfer_public_as_signer.future;
     input r1 as address.public;
     input r2 as u64.public;

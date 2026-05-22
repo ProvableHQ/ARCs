@@ -59,7 +59,7 @@ describe("wrapped_credits.aleo", () => {
     await AleoUtils.stopDevnode();
   });
 
-  test("deposit_credits_public (positive and negative test): increases only depositor balance", async () => {
+  test("deposit_credits_public_signer (positive and negative test): increases only depositor balance", async () => {
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
     const exec = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "1000u64");

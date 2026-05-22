@@ -34,7 +34,7 @@ export async function getPublicBalance(address) {
 
 export async function depositCreditsPublic(account, amountU64, opts = {}) {
   const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(PROGRAM_PATH, `deposit_credits_public`, [amountU64], {
+  return await AleoUtils.leoExecute(PROGRAM_PATH, `deposit_credits_public_signer`, [amountU64], {
     privateKey,
     ...opts,
   });

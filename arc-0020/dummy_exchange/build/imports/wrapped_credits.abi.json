@@ -139,7 +139,7 @@
   "storage_variables": [],
   "transitions": [
     {
-      "name": "deposit_credits_public",
+      "name": "deposit_credits_public_signer",
       "is_async": true,
       "inputs": [
         {

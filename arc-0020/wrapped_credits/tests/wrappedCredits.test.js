@@ -17,8 +17,8 @@ async function run() {
   console.log('Running basic flow: deposit -> transfer -> withdraw (approximate)');
 
   try {
-    console.log('-- deposit_credits_public 1000');
-    await c.execute('deposit_credits_public', '1000u64');
+    console.log('-- deposit_credits_public_signer 1000');
+    await c.execute('deposit_credits_public_signer', '1000u64');
   } catch (e) {
     console.error('deposit failed:', e.stderr || e);
   }

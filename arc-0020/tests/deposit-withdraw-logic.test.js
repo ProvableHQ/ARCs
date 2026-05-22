@@ -35,7 +35,7 @@ function normalizeDepositWithdraw(s) {
   // Strip comments first (before collapsing newlines, else //[^\n]* eats rest of string)
   s = s.replace(/\/\/[^\n]*/g, "");
   return s
-    .replace(/deposit_credits_public/g, "deposit_public")
+    .replace(/deposit_credits_public_signer/g, "deposit_public")
     .replace(/deposit_token_public/g, "deposit_public")
     .replace(/deposit_credits_private/g, "deposit_private")
     .replace(/deposit_token_private/g, "deposit_private")
