@@ -10,9 +10,9 @@ created: 2026-03-18
 
 ## Abstract
 
-ARC-20 defines a fungible token standard for Aleo, supporting both public and private balances. Programs declare conformance to the `ARC20` interface, and any other program can call them at runtime via dynamic dispatch -- without compile-time knowledge of the specific token implementation.
+ARC-20 defines a fungible token standard for Aleo, supporting both public and private balances. Programs declare conformance to the `IARC20` interface, and any other program can call them at runtime via dynamic dispatch -- without compile-time knowledge of the specific token implementation.
 
-The standard defines a single **ARC20** interface covering public transfers, private transfers, approvals, joins, and splits. Implementations commonly expose name, symbol, decimals, allowances, and supply via **`view fn`** on the core surface rather than a separate Leo trait. Reference deployments **[`wrapped_credits.aleo`](./wrapped_credits/)** and **[`wrapped_token_registry.aleo`](./wrapped_token_registry/)** both use the program-local name **`IARC20`** and match each other closely—see [**Implementation snapshots (reference wrappers)**](#implementation-snapshots-reference-wrappers).
+The standard defines a single **`IARC20`** interface covering public transfers, private transfers, approvals, joins, splits, and **`view fn`** accessors for name, symbol, decimals, balances, allowances, and supply. Reference deployments **[`wrapped_credits.aleo`](./wrapped_credits/)** and **[`wrapped_token_registry.aleo`](./wrapped_token_registry/)** both declare conformance to **`IARC20`** with identical interface signatures.
 
 For regulated tokens requiring freeze lists and compliance records, see [ARC-22](../arc-0022/).
 
@@ -26,42 +26,51 @@ ARC-20 supersedes the previous ARC-20 draft (2023), which was written in Aleo in
 
 ### Interfaces
 
-#### ARC20
+#### IARC20
 
-The fungible token interface. Every ARC-20 token must implement these functions:
+The fungible token interface. Every ARC-20 token must implement these functions and **`view fn`** accessors:
 
 ```leo
-interface ARC20 {
+interface IARC20 {
     record Token {
         owner: address,
         amount: u128,
         ..
     }
-    // Private receipt for the spender of `transfer_private_to_public`.
-    record Metadata;
-
-    fn approve_public(public spender: address, public amount: u128) -> Final;
-    fn unapprove_public(public spender: address, public amount: u128) -> Final;
 
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final;
-    fn transfer_private(input: Token, recipient: address, amount: u128) -> (Token, Token);
-    fn transfer_private_to_public(input: Token, recipient: address, amount: u128) -> (Token, Metadata, Final);
-    fn transfer_public_to_private(recipient: address, public amount: u128) -> (Token, Final);
+    fn approve_public(public spender: address, public amount: u128) -> Final;
+    fn unapprove_public(public spender: address, public amount: u128) -> Final;
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
-    fn transfer_from_public_to_private(public owner: address, public recipient: address, public amount: u128) -> (Token, Final);
-
+    fn transfer_from_public_to_private(
+        public owner: address,
+        recipient: address,
+        public amount: u128,
+    ) -> (Token, Final);
+    fn transfer_private(input: Token, recipient: address, amount: u128) -> (Token, Token);
+    fn transfer_private_to_public(input: Token, recipient: address, amount: u128) -> (Token, Final);
+    fn transfer_public_to_private(recipient: address, public amount: u128) -> (Token, Final);
     fn join(input_1: Token, input_2: Token) -> Token;
     fn split(input: Token, amount: u128) -> (Token, Token);
+
+    view fn balance_of(account: address) -> u128;
+    view fn allowance(owner: address, spender: address) -> u128;
+    view fn supply() -> u128;
+    view fn max_supply() -> u128;
+    view fn decimals() -> u8;
+    view fn name() -> identifier;
+    view fn symbol() -> identifier;
 }
 ```
 
 Notes on signatures:
 
 - `transfer_public_as_signer` is the signer-scoped variant of `transfer_public`, mirroring the existing primitives in `credits.aleo` / `token_registry.aleo`.
-- `transfer_from_public_to_private` includes an explicit `recipient` so the spender can route the resulting `Token` to a third party.
+- `transfer_from_public_to_private` includes an explicit `recipient` (declared **`private`**, so the receiving address is not revealed on-chain) so the spender can route the resulting `Token` to a third party.
+- `transfer_private_to_public` returns only **`(Token, Final)`** -- the change record plus a finalization future. The spender's original `Token` is consumed; the change record returned to **`input.owner`** is the spender's fresh receipt.
 - `join` / `split` mirror the helpers offered by other Aleo tokens.
-- Optional **`view fn`** reads (**`balance_of`**, **`allowance`**, **`decimals`**, **`name`**, **`symbol`**, plus implementation-defined **`total_supply`** / **`max_supply`**) are declared on **`IARC20`** in the [`wrapped_credits`](./wrapped_credits/) and [`wrapped_token_registry`](./wrapped_token_registry/) references instead of a separate metadata-extending interface type.
+- **`view fn`** reads (**`balance_of`**, **`allowance`**, **`supply`**, **`max_supply`**, **`decimals`**, **`name`**, **`symbol`**) are part of the interface contract and enable off-consensus reads (SDK / explorers) through Leo 4's view function machinery.
 
 ### Record Types
 
@@ -76,37 +85,28 @@ record Token {
 
 The interface explicitly allows extra fields with `..`, but a conforming implementation must include at least `owner: address` and `amount: u128`.
 
-**Metadata** -- Emitted by `transfer_private_to_public` as a private receipt for the spender. Conforming implementations only need to declare it (`record Metadata;`); the interface intentionally does not constrain any fields beyond the implicit `owner: address`. Reference wrappers set the `Metadata.owner` to the spender (`input.owner`) so the spender retains a fresh, owner-scoped record after their original `Token` is consumed:
-
-```leo
-record Metadata {
-    owner: address,
-}
-```
-
 ### Programs
 
 | Program | Description |
 |---------|-------------|
 | [`token_registry.aleo`](./token_registry/) | Multi-token registry supporting token registration, role-based access, and authorized balances. Manages public and private balances for arbitrary token IDs. |
-| [`wrapped_credits.aleo`](./wrapped_credits/) | **`IARC20`** wrapper around `credits.aleo`. Deposits Aleo credits and issues 1:1 wrapped tokens; see [reference snapshots](#implementation-snapshots-reference-wrappers). |
-| [`wrapped_token_registry.aleo`](./wrapped_token_registry/) | **`IARC20`** wrapper fixing one `token_registry.aleo` token ID (`WRAPPED_TOKEN_ID`); same surface as **`wrapped_credits`** aside from deposit/withdraw (see [snapshots](#implementation-snapshots-reference-wrappers)). |
+| [`wrapped_credits.aleo`](./wrapped_credits/) | **`IARC20`** wrapper around `credits.aleo`. Deposits Aleo credits and issues 1:1 wrapped tokens. |
+| [`wrapped_token_registry.aleo`](./wrapped_token_registry/) | **`IARC20`** wrapper fixing one `token_registry.aleo` token ID (`WRAPPED_TOKEN_ID`); same interface surface as **`wrapped_credits`** aside from the deposit/withdraw helpers. |
 | [`dummy_exchange.aleo`](./dummy_exchange/) | Dynamic dispatch example -- demonstrates `transfer_from_public` and `swap` to interact with any ARC20 token by program identifier at runtime. |
 
-### Implementation snapshots (reference wrappers)
+### Reference wrappers
 
-[`wrapped_credits/src/main.leo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry/src/main.leo`](./wrapped_token_registry/src/main.leo) both declare **`IARC20`** with core transfers, approvals, and **`view fn`** accessors. Only the identifier name differs from the **`ARC20`** spelling in the specification fragment above.
+[`wrapped_credits/src/main.leo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry/src/main.leo`](./wrapped_token_registry/src/main.leo) declare an **identical** **`IARC20`** interface block and implement every required transition and **`view fn`**. Implementation-level conventions shared by both:
 
-Compared to the normative **`ARC20`** block in this document, both reference wrappers behave as follows:
+| Topic | **`wrapped_credits.aleo`** / **`wrapped_token_registry.aleo`** |
+|--------|--------------------------------------------------------------|
+| Public balance storage | **`mapping balances: address => u128`** |
+| Allowance storage | **`mapping allowances: TokenAllowance => u128`**, where **`TokenAllowance { account, spender }`** is used as the map key directly |
+| Metadata & supply | **`storage token_info: TokenInfo`** singleton (`name`, `symbol`, `decimals`, `supply`, `max_supply`) |
+| Supply bookkeeping | Shared top-level **`final fn add_supply` / `sub_supply`** invoked from deposit / withdraw paths |
+| View fn metadata | **`view fn name() -> identifier`** and **`view fn symbol() -> identifier`** return Leo identifier literals (e.g. `'wCredits'`, `'wCRD'`) |
 
-| Topic | Normative **`ARC20`** in this ARC | **`wrapped_credits.aleo`** / **`wrapped_token_registry.aleo`** |
-|--------|-----------------------------------|-------------------------------------|
-| Private→public receipt | **`transfer_private_to_public` → `(Token, Metadata, Final)`** | **`(Token, Final)`** — no **`Metadata`** record type |
-| **`transfer_from_public_to_private`** | Example uses **`public recipient`** | **`private recipient`** |
-| Read APIs | Historically mapping/API reads | **`view fn`** on **`IARC20`**: **`balance_of`**, **`allowance`**, **`decimals`**, **`name`**, **`symbol`**; both programs also define **`total_supply`** and **`max_supply`** views reading **`storage token_info`** |
-| Supply counter | Implementation-defined | Shared **`final fn add_supply` / `sub_supply`** |
-
-Bridging uses wrapper-specific helpers: **`wrapped_credits`** — **`deposit_credits_*`**, **`withdraw_credits_*`**; **`wrapped_token_registry`** — **`deposit_token_public`**, **`withdraw_token_*`**.
+Bridging to the underlying program uses wrapper-specific helpers that are **not** part of **`IARC20`**: **`wrapped_credits`** -- **`deposit_credits_public_signer`**, **`deposit_credits_private`**, **`withdraw_credits_public`**, **`withdraw_credits_public_signer`**, **`withdraw_credits_private`**; **`wrapped_token_registry`** -- **`deposit_token_public`**, **`withdraw_token_*`**.
 
 ### Dynamic Dispatch
 
@@ -127,13 +127,13 @@ The target is an `identifier` variable, an `identifier` literal (single-quoted p
 
 ```leo
 // Call by identifier variable (passed as a function parameter)
-ARC20@(token_id)::transfer_public(recipient, amount);
+IARC20@(token_id)::transfer_public(recipient, amount);
 
 // Call by program name literal
-ARC20@('my_token')::transfer_public(recipient, amount);
+IARC20@('my_token')::transfer_public(recipient, amount);
 
 // Specify both program name and network
-ARC20@('my_token', 'aleo')::transfer_public(recipient, amount);
+IARC20@('my_token', 'aleo')::transfer_public(recipient, amount);
 ```
 
 The compiler resolves function names and validates argument types against the interface definition. No manual function selector encoding is needed.
@@ -151,11 +151,11 @@ program my_exchange.aleo {
         public amount_out: u128,
     ) -> Final {
         // Pull tokens from the user (requires prior approve_public)
-        let transfer_in: Final = ARC20@(token_in)::transfer_from_public(
+        let transfer_in: Final = IARC20@(token_in)::transfer_from_public(
             self.signer, self.address, amount_in
         );
         // Send tokens to the user
-        let transfer_out: Final = ARC20@(token_out)::transfer_public(
+        let transfer_out: Final = IARC20@(token_out)::transfer_public(
             self.signer, amount_out
         );
         return final {
@@ -172,13 +172,13 @@ For private token operations, `dyn record` provides dynamic records that work wi
 
 ```leo
 fn deposit_private(
-    private token_record: dyn record,    // any ARC20 Token record
-    public token_id: identifier,         // which ARC20 program
+    private token_record: dyn record,    // any IARC20 Token record
+    public token_id: identifier,         // which IARC20 program
     public recipient: address,
     public amount: u128,
 ) -> (dyn record, Final) {
     let (change, transfer_future): (dyn record, Final) =
-        ARC20@(token_id)::transfer_private_to_public(
+        IARC20@(token_id)::transfer_private_to_public(
             token_record, recipient, amount
         );
     return (change, final { transfer_future.run(); });
@@ -192,18 +192,18 @@ See [`dummy_exchange.aleo`](./dummy_exchange/) for a working dynamic dispatch ex
 A program declares interface conformance with `: InterfaceName`:
 
 ```leo
-interface ARC20 {
+interface IARC20 {
     record Token { owner: address, amount: u128, .. }
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
-    // ... other required functions
+    // ... other required functions and view fn accessors
 }
 
-program my_token.aleo: ARC20 {
+program my_token.aleo: IARC20 {
     record Token {
         owner: address,
         amount: u128,
     }
-    // Must implement all functions from ARC20
+    // Must implement all functions and view fn accessors from IARC20
     fn transfer_public(public recipient: address, public amount: u128) -> Final {
         // ...
     }
@@ -216,12 +216,13 @@ See [`wrapped_credits.aleo`](./wrapped_credits/src/main.leo) and [`wrapped_token
 
 Tests use Jest with a local devnode and Leo CLI execution.
 
-**ARC20 shared interface tests** (`arc20-wrapper-tests.js`), run for both `wrapped_credits` and `wrapped_token_registry`:
+**IARC20 shared interface tests** (`arc20-wrapper-tests.js`), run for both `wrapped_credits` and `wrapped_token_registry`:
 
-- All transfer variants: `transfer_public`, `transfer_public_as_signer`, `transfer_private`, `transfer_private_to_public` (returns change **`Token`** + **`Final`** only), `transfer_public_to_private`
+- All transfer variants: `transfer_public`, `transfer_public_as_signer`, `transfer_private`, `transfer_private_to_public` (returns change **`Token`** + **`Final`**), `transfer_public_to_private`
 - Public↔private round-trips via **`transfer_public_to_private` / `transfer_private_to_public`**
-- Approve/unapprove + `transfer_from_public` / `transfer_from_public_to_private` allowance management (the latter includes an explicit `recipient`)
+- Approve/unapprove + `transfer_from_public` / `transfer_from_public_to_private` allowance management (the latter includes an explicit private `recipient`)
 - `join` / `split`
+- **`view fn`** reads: `balance_of`, `allowance`, `supply`, `max_supply`, `decimals`, `name`, `symbol`
 - Negative tests: insufficient balance, exceeded allowance
 
 ## Rationale
@@ -229,11 +230,12 @@ Tests use Jest with a local devnode and Leo CLI execution.
 - **Additive approvals**: `approve_public` increases the existing allowance rather than replacing it. This avoids race conditions -- two `approve_public` calls in the same block will both succeed and add to the allowance, rather than one silently overwriting the other.
 - **u128 amounts**: Future-proofs the standard for high-supply tokens and avoids truncation issues. `u64` would limit maximum supply to ~18.4 quintillion base units, which is insufficient for some token designs.
 - **`recipient` naming**: The receiving address is consistently named `recipient` across transfer variants.
-- **`transfer_private_to_public` returns a `Metadata` receipt**: the spender's private `Token` is consumed during the transfer, and the recipient receives the funds publicly. `Metadata` is a small, owner-scoped record returned to the spender so they have a fresh receipt without having to scan their `sk_tag` for the spent record.
+- **`transfer_private_to_public` returns `(Token, Final)`**: the spender's private `Token` is consumed during the transfer; the change `Token` (owned by the original spender) is the spender's fresh receipt, avoiding the need to scan `sk_tag` for the spent record.
+- **`view fn` on the interface**: `balance_of`, `allowance`, `supply`, `max_supply`, `decimals`, `name`, `symbol` are part of the interface contract so off-consensus consumers (SDK, explorers, indexers) have a uniform read API without depending on implementation-specific mapping/storage layouts.
 
 ## Reference Implementations
 
-- [`wrapped_credits/`](./wrapped_credits/) -- **`IARC20`** wrapping `credits.aleo` (see [snapshots](#implementation-snapshots-reference-wrappers))
+- [`wrapped_credits/`](./wrapped_credits/) -- **`IARC20`** wrapping `credits.aleo`
 - [`wrapped_token_registry/`](./wrapped_token_registry/) -- **`IARC20`** wrapping a fixed `token_registry.aleo` token ID
 - [`token_registry/`](./token_registry/) -- Multi-token registry
 - [`dummy_exchange/`](./dummy_exchange/) -- Dynamic dispatch interoperability example
@@ -249,11 +251,11 @@ This ARC supersedes the previous ARC-20 draft (2023). The prior spec was written
 
 ### Why Wrappers Are Needed
 
-Existing programs cannot directly implement the ARC20 interface for three reasons:
+Existing programs cannot directly implement the **`IARC20`** interface for three reasons:
 
-1. **Record name mismatch**: `credits.aleo` defines `record credits`, not `record Token`. The ARC20 interface requires `record Token`. *(Not currently enforced at protocol level, but expected by consuming programs.)*
+1. **Record name mismatch**: `credits.aleo` defines `record credits`, not `record Token`. The **`IARC20`** interface requires `record Token`. *(Not currently enforced at protocol level, but expected by consuming programs.)*
 2. **Record entry name mismatch**: `credits.aleo` uses `microcredits` as the balance field, not `amount`. *(Enforced at protocol level; may become relaxable in future.)*
-3. **Record entry type mismatch**: `credits.aleo` uses `u64` for amounts, while ARC20 uses `u128`. *(Permanently enforced -- types affect circuit size and cannot be aliased.)*
+3. **Record entry type mismatch**: `credits.aleo` uses `u64` for amounts, while **`IARC20`** uses `u128`. *(Permanently enforced -- types affect circuit size and cannot be aliased.)*
 
 ### Incompatible Programs
 
@@ -271,12 +273,12 @@ A **stateless** wrapper (pure forwarding) cannot work because:
 - Interface conformance cannot rename records or remap field names
 - `self.caller` in the underlying program would be the wrapper, not the original caller -- breaking escrow patterns where a third-party program needs to hold tokens
 
-A **stateful** wrapper maintains its own `balances` mapping and exposes the standard ARC20 interface. Deposit/withdraw functions bridge between the wrapper's internal balances and the underlying program. See [`wrapped_credits.aleo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry.aleo`](./wrapped_token_registry/src/main.leo) for reference implementations.
+A **stateful** wrapper maintains its own `balances` mapping and exposes the standard **`IARC20`** interface. Deposit/withdraw functions bridge between the wrapper's internal balances and the underlying program. See [`wrapped_credits.aleo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry.aleo`](./wrapped_token_registry/src/main.leo) for reference implementations.
 
 ### Public/Private Considerations
 
-- Implementations such as **`wrapped_credits`** and **`wrapped_token_registry`** convert between public and private balances through **`transfer_public_to_private`** / **`transfer_private_to_public`** (see [snapshots](#implementation-snapshots-reference-wrappers)). No interaction with the underlying token is required for these wrapper-local balance moves.
-- `transfer_private_to_public` has a UX limitation: the recipient receives tokens in their public balance but cannot learn the private sender's identity (by design). The sender can still locate the spent record off-chain via their `sk_tag`.
+- Implementations such as **`wrapped_credits`** and **`wrapped_token_registry`** convert between public and private balances through **`transfer_public_to_private`** / **`transfer_private_to_public`** entirely within wrapper-local state. No interaction with the underlying token is required for these balance moves.
+- `transfer_private_to_public` has a UX limitation: the recipient receives tokens in their public balance but cannot learn the private sender's identity (by design). The sender can still locate the spent record off-chain via their `sk_tag`; the returned change `Token` (owned by the spender) also serves as a fresh receipt.
 
 ## Migration Guide: Wrapping Token Registry Tokens
 
@@ -288,14 +290,14 @@ Teams that have already deployed tokens to `token_registry.aleo` can make them A
 
 ```
 token_registry.aleo::transfer_public(token_id, recipient, amount)  // 3 params
-ARC20::transfer_public(recipient, amount)                          // 2 params
+IARC20::transfer_public(recipient, amount)                         // 2 params
 ```
 
-This signature mismatch means `token_registry.aleo` cannot directly implement the ARC20 interface.
+This signature mismatch means `token_registry.aleo` cannot directly implement the **`IARC20`** interface.
 
 ### How to Create a Wrapper
 
-1. Deploy a new program implementing **`ARC20`** or the reference **`IARC20`** interface used by [`wrapped_token_registry`](./wrapped_token_registry/)
+1. Deploy a new program declaring conformance to **`IARC20`** (as used by [`wrapped_token_registry`](./wrapped_token_registry/))
 2. Set a `WRAPPED_TOKEN_ID` constant for your token's ID in the registry
 3. Maintain local `balances: address => u128` and `allowances: TokenAllowance => u128` mappings, plus a `storage token_info: TokenInfo;` singleton
 4. Implement deposit/withdraw to bridge between the wrapper and the registry:
@@ -323,17 +325,19 @@ See [`wrapped_token_registry/`](./wrapped_token_registry/) for a complete implem
 
 For developers familiar with Ethereum's ERC-20 standard:
 
-| ERC-20 | ARC-20 | Notes |
-|--------|--------|-------|
-| `balanceOf` / `balance_of(address)` | Query `balances` mapping via API **or** `view fn balance_of` where implemented | Leo 4 **`view fn`** supports off-consensus reads (SDK / explorers); mappings remain queryable directly |
-| `totalSupply()` | Query `token_info` / **`view fn total_supply`** where implemented | Same data via storage or **`view fn`** |
-| `name()` / `symbol()` / `decimals()` | **`view fn`** on **`IARC20`** (reference wrappers) **or** mapping/API reads | Same constants via **`view fn`** as in [`wrapped_credits`](./wrapped_credits/) / [`wrapped_token_registry`](./wrapped_token_registry/) |
+| ERC-20 | ARC-20 (**`IARC20`**) | Notes |
+|--------|----------------------|-------|
+| `balanceOf(address)` | `view fn balance_of(account) -> u128` | Off-consensus read via Leo 4 **`view fn`**; underlying `balances` mapping also queryable directly |
+| `totalSupply()` | `view fn supply() -> u128` | Reads `storage token_info.supply`; `view fn max_supply() -> u128` exposes the configured cap |
+| `decimals()` | `view fn decimals() -> u8` | Reads `storage token_info.decimals` |
+| `name()` / `symbol()` | `view fn name() -> identifier` / `view fn symbol() -> identifier` | Reference wrappers return Leo identifier literals (`'wCredits'`, `'wCRD'`, `'wTokReg'`, `'wTR'`) |
+| `allowance(owner, spender)` | `view fn allowance(owner, spender) -> u128` | Reads `allowances` map keyed by `TokenAllowance { account, spender }` |
 | `transfer(to, amount)` | `transfer_public(recipient, amount)` | Direct equivalent |
 | `approve(spender, amount)` | `approve_public(spender, amount)` | Additive (not replace) -- use `unapprove_public` to decrease |
 | `transferFrom(from, to, amount)` | `transfer_from_public(owner, recipient, amount)` | Direct equivalent |
 | -- | `transfer_private(input, recipient, amount)` | No ERC-20 equivalent -- private transfers are unique to Aleo |
 | -- | `join(a, b)` / `split(a, n)` | Manage record granularity |
-| Contract address = token | Program name = token | Each ARC20 token is its own deployed program |
+| Contract address = token | Program name = token | Each ARC-20 token is its own deployed program |
 
 ## Security Considerations
 

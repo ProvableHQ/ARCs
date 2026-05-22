@@ -10,20 +10,6 @@ import { Address } from "@provablehq/sdk";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Encode a plain Aleo program name (without ".aleo") to its `field` token-id
-// representation: little-endian bytes of the UTF-8 program name.
-//
-// The dummy_exchange contract receives `token_id: field` and uses dynamic
-// dispatch to call into the program with that name. For wrapped_credits this
-// resolves to `field("wrapped_credits")`.
-function programNameToTokenIdField(programName) {
-  const id = [...Buffer.from(programName)].reduce(
-    (acc, byte, i) => acc + BigInt(byte) * 256n ** BigInt(i),
-    0n,
-  );
-  return `${id}field`;
-}
-
 describe("wrapped_credits.aleo", () => {
   const programPath = path.join(__dirname, "..", "wrapped_credits");
   const exchangePath = path.join(__dirname, "..", "dummy_exchange");
@@ -40,7 +26,7 @@ describe("wrapped_credits.aleo", () => {
   }
 
   const exchangeAddress = Address.fromProgramId(DummyExchange.PROGRAM_ID).to_string();
-  const wrappedCreditsTokenId = programNameToTokenIdField("wrapped_credits");
+  const wrappedCreditsTokenId = DummyExchange.programNameToTokenIdField("wrapped_credits");
 
   beforeAll(async () => {
     const start = Date.now();
@@ -250,30 +236,92 @@ describe("wrapped_credits.aleo", () => {
     expect(after1 - before1).toBe(40n);
   });
 
-  test.skip("dummy_exchange: spendable allowance via transfer_from", async () => {
-    const amount = "75u128";
-    const execApprovePublic = await WrappedCredits.approvePublic(
-      AleoUtils.accounts[0],
-      exchangeAddress,
-      amount,
-    );
-    await expectConfirmed(execApprovePublic);
+  // KNOWN-FAILING: dummy_exchange.aleo uses `_dynamic_call` to invoke the
+  // wrapped_credits ARC20 surface (`transfer_from_public` / `transfer_public`).
+  // With Leo 4.0.2, dynamic calls coerce every argument to `*.private`, but
+  // those wrapped_credits transitions expect `address.public` for owner /
+  // recipient. The on-chain execution verifier rejects the broadcast with:
+  //   "Input 0 in dynamic call to transfer_from_public should be of type
+  //    address.private, found: public"
+  //
+  // Both tests in this block are kept (skipped) so the dynamic-dispatch flows
+  // are exercised in code, and so the test bodies are ready to re-enable once
+  // Leo supports public-mode arguments through `_dynamic_call` (or once the
+  // dummy_exchange Leo source is reworked accordingly).
+  describe.skip("dummy_exchange (dynamic dispatch into wrapped_credits)", () => {
+    test("transfer_from: spender pulls from owner via allowance", async () => {
+      const amount = "75u128";
+      const execApprovePublic = await WrappedCredits.approvePublic(
+        AleoUtils.accounts[0],
+        exchangeAddress,
+        amount,
+      );
+      await expectConfirmed(execApprovePublic);
 
-    const before0 = await bal(addr0);
-    const before1 = await bal(addr1);
-    const execTransferFrom = await DummyExchange.transferFrom(
-      AleoUtils.accounts[0],
-      wrappedCreditsTokenId,
-      addr0,
-      addr1,
-      amount,
-      { with: ["wrapped_credits.aleo"] },
-    );
-    await expectConfirmed(execTransferFrom);
-    const after0 = await bal(addr0);
-    const after1 = await bal(addr1);
-    expect(before0 - after0).toBe(75n);
-    expect(after1 - before1).toBe(75n);
+      const before0 = await bal(addr0);
+      const before1 = await bal(addr1);
+      const execTransferFrom = await DummyExchange.transferFrom(
+        AleoUtils.accounts[0],
+        wrappedCreditsTokenId,
+        addr0,
+        addr1,
+        amount,
+        { with: ["wrapped_credits.aleo"] },
+      );
+      await expectConfirmed(execTransferFrom);
+      const after0 = await bal(addr0);
+      const after1 = await bal(addr1);
+      expect(before0 - after0).toBe(75n);
+      expect(after1 - before1).toBe(75n);
+    });
+
+    test("swap: signer trades amount_in for amount_out (same token)", async () => {
+      // dummy_exchange.aleo::swap performs two dynamic calls:
+      //   1. transfer_from_public(token_in, signer, exchange, amount_in)  – pull
+      //   2. transfer_public(token_out, signer, amount_out)               – push
+      //
+      // For the push to succeed, the exchange's own balance of `token_out`
+      // must already cover `amount_out`. We pre-fund it here, then approve
+      // `amount_in` so the pull side can spend on the signer's behalf.
+      const amountIn = "75u128";
+      const amountOut = "50u128";
+
+      // Pre-fund the exchange so it can pay out `amount_out` on the push leg.
+      await expectConfirmed(
+        await WrappedCredits.transferPublic(
+          AleoUtils.accounts[0],
+          exchangeAddress,
+          amountOut,
+        ),
+      );
+      // Approve the exchange to pull `amount_in` from the signer.
+      await expectConfirmed(
+        await WrappedCredits.approvePublic(
+          AleoUtils.accounts[0],
+          exchangeAddress,
+          amountIn,
+        ),
+      );
+
+      const before0 = await bal(addr0);
+      const beforeExchange = await bal(exchangeAddress);
+      const execSwap = await DummyExchange.swap(
+        AleoUtils.accounts[0],
+        wrappedCreditsTokenId,
+        wrappedCreditsTokenId,
+        amountIn,
+        amountOut,
+        { with: ["wrapped_credits.aleo"] },
+      );
+      await expectConfirmed(execSwap);
+      const after0 = await bal(addr0);
+      const afterExchange = await bal(exchangeAddress);
+
+      // Net effect on the signer: -amountIn (paid in) + amountOut (received).
+      expect(before0 - after0).toBe(75n - 50n);
+      // Net effect on the exchange: mirror image.
+      expect(afterExchange - beforeExchange).toBe(75n - 50n);
+    });
   });
 
   test("transfer_public_as_signer (negative): insufficient balance rejects", async () => {

@@ -4,7 +4,9 @@ import { fileURLToPath } from "node:url";
 import * as AleoUtils from "./lib/aleo-test-utils.js";
 import * as TokenRegistry from "./contracts/token-registry.js";
 import * as WrappedTokenRegistry from "./contracts/wrapped-token-registry.js";
+import * as DummyExchange from "./contracts/dummy-exchange.js";
 import { registerArc20WrapperTests } from "./lib/arc20-wrapper-tests.js";
+import { Address } from "@provablehq/sdk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +27,7 @@ function encodeAsciiToU128Literal(s) {
 describe("token_registry.aleo", () => {
   const programPath = path.join(__dirname, "..", "token_registry");
   const wrappedProgramPath = path.join(__dirname, "..", "wrapped_token_registry");
+  const exchangePath = path.join(__dirname, "..", "dummy_exchange");
   const pk0 = AleoUtils.DEFAULT_PRIVATE_KEYS[0];
   const addr0 = AleoUtils.addresses[0];
   const addr1 = AleoUtils.addresses[1];
@@ -33,6 +36,13 @@ describe("token_registry.aleo", () => {
   const CUSTOM_TOKEN_ID = "12345field";
   // Token ID wrapped by wrapped_token_registry.aleo (matches WRAPPED_TOKEN_ID const in the wrapper).
   const WRAPPED_TOKEN_ID = WrappedTokenRegistry.WRAPPED_TOKEN_ID;
+
+  // Used by the dummy_exchange dynamic-dispatch tests below: the exchange
+  // routes a call to whatever program the field encodes.
+  const exchangeAddress = Address.fromProgramId(DummyExchange.PROGRAM_ID).to_string();
+  const wrappedTokenRegistryTokenId = DummyExchange.programNameToTokenIdField(
+    "wrapped_token_registry",
+  );
 
   const TOKEN_NAME = encodeAsciiToU128Literal("TEST");
   const TOKEN_SYMBOL = encodeAsciiToU128Literal("TST");
@@ -60,6 +70,16 @@ describe("token_registry.aleo", () => {
       programId: WrappedTokenRegistry.PROGRAM_ID,
       programPath: wrappedProgramPath,
     });
+
+    // Deploy dummy_exchange so the (currently skipped) dynamic-dispatch tests
+    // below can be re-enabled without changing setup. `skip` avoids
+    // re-deploying wrapped_token_registry, which is already on-chain.
+    await AleoUtils.deployProgramFromFile({
+      programId: DummyExchange.PROGRAM_ID,
+      programPath: exchangePath,
+      skip: ["wrapped_token_registry"],
+    });
+
     process.stdout.write(`wrapped-token-registry.test.js beforeAll: ${Date.now() - start}ms\n`);
   });
 
@@ -216,6 +236,104 @@ describe("token_registry.aleo", () => {
     await expectConfirmed(exec);
     const after = await WrappedTokenRegistry.getPublicBalance(addr0);
     expect(before - after).toBe(100n);
+  });
+
+  // KNOWN-FAILING: dummy_exchange.aleo uses `_dynamic_call` to invoke
+  // wrapped_token_registry's ARC20 surface (`transfer_from_public` /
+  // `transfer_public`). With Leo 4.0.2, dynamic calls coerce every argument to
+  // `*.private`, but those wrapped_token_registry transitions expect
+  // `address.public` for owner / recipient. The on-chain execution verifier
+  // rejects the broadcast with:
+  //   "Input 0 in dynamic call to transfer_from_public should be of type
+  //    address.private, found: public"
+  //
+  // Both tests in this block are kept (skipped) so the dynamic-dispatch flows
+  // are exercised in code, and so the test bodies are ready to re-enable once
+  // Leo supports public-mode arguments through `_dynamic_call` (or once the
+  // dummy_exchange Leo source is reworked accordingly). dummy_exchange is
+  // deployed in `beforeAll` so that re-enabling these tests does not require
+  // any further setup changes.
+  describe.skip("dummy_exchange (dynamic dispatch into wrapped_token_registry)", () => {
+    async function bal(addr) {
+      return await WrappedTokenRegistry.getPublicBalance(addr);
+    }
+
+    test("transfer_from: spender pulls from owner via allowance", async () => {
+      await setupWrappedToken();
+      await expectConfirmed(
+        await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128"),
+      );
+
+      const amount = "75u128";
+      await expectConfirmed(
+        await WrappedTokenRegistry.approvePublic(AleoUtils.accounts[0], exchangeAddress, amount),
+      );
+
+      const before0 = await bal(addr0);
+      const before1 = await bal(addr1);
+      const execTransferFrom = await DummyExchange.transferFrom(
+        AleoUtils.accounts[0],
+        wrappedTokenRegistryTokenId,
+        addr0,
+        addr1,
+        amount,
+        { with: ["wrapped_token_registry.aleo"] },
+      );
+      await expectConfirmed(execTransferFrom);
+      const after0 = await bal(addr0);
+      const after1 = await bal(addr1);
+      expect(before0 - after0).toBe(75n);
+      expect(after1 - before1).toBe(75n);
+    });
+
+    test("swap: signer trades amount_in for amount_out (same token)", async () => {
+      // dummy_exchange.aleo::swap performs two dynamic calls:
+      //   1. transfer_from_public(token_in, signer, exchange, amount_in)  – pull
+      //   2. transfer_public(token_out, signer, amount_out)               – push
+      //
+      // For the push to succeed, the exchange's own balance of `token_out`
+      // must already cover `amount_out`. We pre-fund it here, then approve
+      // `amount_in` so the pull side can spend on the signer's behalf.
+      await setupWrappedToken();
+      await expectConfirmed(
+        await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "500u128"),
+      );
+
+      const amountIn = "75u128";
+      const amountOut = "50u128";
+
+      await expectConfirmed(
+        await WrappedTokenRegistry.transferPublic(
+          AleoUtils.accounts[0],
+          exchangeAddress,
+          amountOut,
+        ),
+      );
+      await expectConfirmed(
+        await WrappedTokenRegistry.approvePublic(
+          AleoUtils.accounts[0],
+          exchangeAddress,
+          amountIn,
+        ),
+      );
+
+      const before0 = await bal(addr0);
+      const beforeExchange = await bal(exchangeAddress);
+      const execSwap = await DummyExchange.swap(
+        AleoUtils.accounts[0],
+        wrappedTokenRegistryTokenId,
+        wrappedTokenRegistryTokenId,
+        amountIn,
+        amountOut,
+        { with: ["wrapped_token_registry.aleo"] },
+      );
+      await expectConfirmed(execSwap);
+      const after0 = await bal(addr0);
+      const afterExchange = await bal(exchangeAddress);
+
+      expect(before0 - after0).toBe(75n - 50n);
+      expect(afterExchange - beforeExchange).toBe(75n - 50n);
+    });
   });
 
   registerArc20WrapperTests({

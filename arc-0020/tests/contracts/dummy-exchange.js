@@ -10,6 +10,22 @@ const __dirname = path.dirname(__filename);
 
 export const PROGRAM_PATH = path.resolve(__dirname, "..", "..", "dummy_exchange");
 
+/**
+ * Encode an Aleo program name (without ".aleo") to its `field` token-id
+ * representation: little-endian bytes of the UTF-8 program name.
+ *
+ * The dummy_exchange contract takes `token_id: field` and routes a dynamic
+ * call to that program. For example, `programNameToTokenIdField("wrapped_credits")`
+ * yields the field literal that resolves to `wrapped_credits.aleo`.
+ */
+export function programNameToTokenIdField(programName) {
+  const id = [...Buffer.from(programName)].reduce(
+    (acc, byte, i) => acc + BigInt(byte) * 256n ** BigInt(i),
+    0n,
+  );
+  return `${id}field`;
+}
+
 // `transfer_from` uses `_dynamic_call` to invoke the supplied token program at
 // runtime. The local Leo VM that builds the proof has to know about that
 // external program, so callers can pass `opts.with: ["wrapped_credits.aleo"]`
