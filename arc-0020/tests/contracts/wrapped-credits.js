@@ -144,38 +144,6 @@ export async function transferFromPublicToPrivate(account, owner, recipient, amo
   });
 }
 
-export async function mintPublic(account, recipient, amountU128, opts = {}) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(PROGRAM_PATH, `mint_public`, [recipient, amountU128], {
-    privateKey,
-    ...opts,
-  });
-}
-
-export async function mintPrivate(account, recipient, amountU128, opts = {}) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(PROGRAM_PATH, `mint_private`, [recipient, amountU128], {
-    privateKey,
-    ...opts,
-  });
-}
-
-export async function burnPublic(account, owner, amountU128, opts = {}) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(PROGRAM_PATH, `burn_public`, [owner, amountU128], {
-    privateKey,
-    ...opts,
-  });
-}
-
-export async function burnPrivate(account, inputRecord, amountU128, opts = {}) {
-  const privateKey = account.privateKey().to_string();
-  return await AleoUtils.leoExecute(PROGRAM_PATH, `burn_private`, [inputRecord, amountU128], {
-    privateKey,
-    ...opts,
-  });
-}
-
 export async function joinTokens(account, input1, input2, opts = {}) {
   const privateKey = account.privateKey().to_string();
   return await AleoUtils.leoExecute(PROGRAM_PATH, `join`, [input1, input2], {

@@ -150,9 +150,9 @@ program wrapped_credits.aleo: IARC20 {
             self.address,
             amount,
         );
-        let mint_output = Token { owner: self.signer, amount: amount as u128 };
+        let token_output = Token { owner: self.signer, amount: amount as u128 };
         return (
-            change, mint_output,
+            change, token_output,
             final {
                 credits_finalization.run();
                 add_supply(amount as u128);
@@ -325,44 +325,5 @@ program wrapped_credits.aleo: IARC20 {
         let first = Token { owner: input.owner, amount: amount };
         let second = Token { owner: input.owner, amount: input.amount - amount };
         return (first, second);
-    }
-
-    // ----------------------------------------------------------------------
-    // mint / burn functionality
-    // ----------------------------------------------------------------------
-    fn mint_public(public recipient: address, public amount: u128) -> Final {
-        return final {
-            let previous_balance = balances.get_or_use(recipient, 0u128);
-            balances.set(recipient, previous_balance + amount);
-            add_supply(amount);
-        };
-    }
-
-    fn mint_private(recipient: address, public amount: u128) -> (Token, Final) {
-        let token = Token { owner: recipient, amount };
-        return (
-            token,
-            final {
-                add_supply(amount);
-            },
-        );
-    }
-
-    fn burn_public(public owner: address, public amount: u128) -> Final {
-        return final {
-            let previous_balance = balances.get(owner);
-            balances.set(owner, previous_balance - amount);
-            sub_supply(amount);
-        };
-    }
-
-    fn burn_private(input: Token, public amount: u128) -> (Token, Final) {
-        let change_token = Token { owner: input.owner, amount: input.amount - amount };
-        return (
-            change_token,
-            final {
-                sub_supply(amount);
-            },
-        );
     }
 }

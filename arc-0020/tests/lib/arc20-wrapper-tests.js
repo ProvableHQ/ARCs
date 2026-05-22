@@ -1,6 +1,6 @@
 /**
- * Shared wrapper tests. Both programs implement **`IARC20` + `IARC20Mintable`**;
- * only deposit/withdraw helpers differ.
+ * Shared wrapper tests. Both programs implement **`IARC20`**; only
+ * deposit/withdraw helpers differ.
  *
  * @param {Object} config
  * @param {Object} config.Wrapper - Contract module (WrappedCredits or WrappedTokenRegistry)
@@ -261,110 +261,6 @@ export function registerArc20WrapperTests(config) {
     });
   });
 
-  describe("ARC20 mint/burn (shared)", () => {
-    beforeEach(async () => {
-      if (ensureBalance) await ensureBalance();
-    });
-
-    test("mint_public (positive): signer deposits backing, recipient receives balance", async () => {
-      const before1 = await bal(addr1);
-      const exec = await Wrapper.mintPublic(accounts[0], addr1, "100u128");
-      await expectConfirmed(exec);
-      const after1 = await bal(addr1);
-      expect(after1 - before1).toBe(100n);
-    });
-
-    test("mint_public (negative): insufficient backing rejects", async () => {
-      const before1 = await bal(addr1);
-      await Wrapper.mintPublic(accounts[0], addr1, "999999999999999999999999u128", {
-        expectRejection: true,
-      });
-      const after1 = await bal(addr1);
-      expect(after1).toBe(before1);
-    });
-
-    test("mint_private (positive): outputs a private Token for recipient without touching public balances", async () => {
-      const before0 = await bal(addr0);
-      const before1 = await bal(addr1);
-      const exec = await Wrapper.mintPrivate(accounts[0], addr1, "75u128");
-      await expectConfirmed(exec);
-      const records = extractRecordPlaintexts(exec.stdout);
-      expect(records.length).toBeGreaterThanOrEqual(1);
-      const after0 = await bal(addr0);
-      const after1 = await bal(addr1);
-      // mint_private acts as a deposit: signer pays in the underlying asset and
-      // a private wrapped Token is created for the recipient. Public wrapped
-      // balances are unchanged on either side.
-      expect(after0).toBe(before0);
-      expect(after1).toBe(before1);
-    });
-
-    test("mint_private (negative): insufficient balance rejects", async () => {
-      const before0 = await bal(addr0);
-      const before1 = await bal(addr1);
-      await Wrapper.mintPrivate(accounts[0], addr1, "999999999999999999999999u128", {
-        expectRejection: true,
-      });
-      const after0 = await bal(addr0);
-      const after1 = await bal(addr1);
-      expect(after0).toBe(before0);
-      expect(after1).toBe(before1);
-    });
-
-    test("burn_public (positive): decreases owner balance, returns underlying", async () => {
-      const before0 = await bal(addr0);
-      const exec = await Wrapper.burnPublic(accounts[0], addr0, "50u128");
-      await expectConfirmed(exec);
-      const after0 = await bal(addr0);
-      expect(before0 - after0).toBe(50n);
-    });
-
-    test("burn_public (negative): insufficient balance rejects", async () => {
-      const before0 = await bal(addr0);
-      await Wrapper.burnPublic(accounts[0], addr0, "999999999999999999999999u128", {
-        expectRejection: true,
-      });
-      const after0 = await bal(addr0);
-      expect(after0).toBe(before0);
-    });
-
-    test("burn_private (positive): partial burn returns change Token", async () => {
-      const mint = await Wrapper.shield(accounts[0], "60u128");
-      await expectConfirmed(mint);
-      const tokenRecords = extractRecordPlaintexts(mint.stdout);
-      expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
-
-      const before0 = await bal(addr0);
-      const burn = await Wrapper.burnPrivate(accounts[0], tokenRecords[0], "20u128");
-      await expectConfirmed(burn);
-      // burn_private returns a change Token (the post-burn remainder).
-      const burnRecords = extractRecordPlaintexts(burn.stdout);
-      expect(burnRecords.length).toBeGreaterThanOrEqual(1);
-      const after0 = await bal(addr0);
-      // public balance untouched; only underlying credits move (verified by leoExecute confirming).
-      expect(after0).toBe(before0);
-    });
-
-    test("burn_private (negative): rejects if Token owner != signer", async () => {
-      await expectConfirmed(await Wrapper.transferPublic(accounts[0], addr1, "40u128"));
-      const mint = await Wrapper.shield(accounts[1], "40u128");
-      await expectConfirmed(mint);
-      const tokenRecords = extractRecordPlaintexts(mint.stdout);
-      expect(tokenRecords.length).toBeGreaterThanOrEqual(1);
-
-      const before0 = await bal(addr0);
-      const before1 = await bal(addr1);
-      // accounts[0] cannot spend a Token owned by accounts[1] -- record ownership
-      // is enforced at proof generation regardless of any explicit assert.
-      await Wrapper.burnPrivate(accounts[0], tokenRecords[0], "10u128", {
-        expectRejection: true,
-      });
-      const after0 = await bal(addr0);
-      const after1 = await bal(addr1);
-      expect(after0).toBe(before0);
-      expect(after1).toBe(before1);
-    });
-  });
 }
 
 export function extractRecordPlaintexts(stdout) {
