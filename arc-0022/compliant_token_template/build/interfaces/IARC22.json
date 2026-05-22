@@ -710,9 +710,7 @@
         {
           "ty": {
             "Plaintext": {
-              "Primitive": {
-                "UInt": "U128"
-              }
+              "Primitive": "Identifier"
             }
           },
           "mode": "None"
@@ -728,9 +726,7 @@
         {
           "ty": {
             "Plaintext": {
-              "Primitive": {
-                "UInt": "U128"
-              }
+              "Primitive": "Identifier"
             }
           },
           "mode": "None"

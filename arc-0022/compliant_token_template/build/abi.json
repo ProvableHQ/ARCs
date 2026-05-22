@@ -354,6 +354,185 @@
       ]
     },
     {
+      "name": "mint_public",
+      "is_final": true,
+      "const_parameters": [],
+      "inputs": [
+        {
+          "name": "recipient",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Final",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "mint_private",
+      "is_final": true,
+      "const_parameters": [],
+      "inputs": [
+        {
+          "name": "recipient",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Record": {
+              "path": [
+                "ComplianceRecord"
+              ],
+              "program": "compliant_token_template.aleo"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": {
+            "Record": {
+              "path": [
+                "Token"
+              ],
+              "program": "compliant_token_template.aleo"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": "Final",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "burn_public",
+      "is_final": true,
+      "const_parameters": [],
+      "inputs": [
+        {
+          "name": "owner",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Address"
+            }
+          },
+          "mode": "Public"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Final",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "burn_private",
+      "is_final": true,
+      "const_parameters": [],
+      "inputs": [
+        {
+          "name": "input_record",
+          "ty": {
+            "Record": {
+              "path": [
+                "Token"
+              ],
+              "program": "compliant_token_template.aleo"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "name": "amount",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U128"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Record": {
+              "path": [
+                "ComplianceRecord"
+              ],
+              "program": "compliant_token_template.aleo"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": {
+            "Record": {
+              "path": [
+                "Token"
+              ],
+              "program": "compliant_token_template.aleo"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": "Final",
+          "mode": "None"
+        }
+      ]
+    },
+    {
       "name": "transfer_public",
       "is_final": true,
       "const_parameters": [],
@@ -1079,9 +1258,7 @@
         {
           "ty": {
             "Plaintext": {
-              "Primitive": {
-                "UInt": "U128"
-              }
+              "Primitive": "Identifier"
             }
           },
           "mode": "None"
@@ -1097,9 +1274,7 @@
         {
           "ty": {
             "Plaintext": {
-              "Primitive": {
-                "UInt": "U128"
-              }
+              "Primitive": "Identifier"
             }
           },
           "mode": "None"

@@ -120,6 +120,167 @@ finalize initialize:
     set false into pause__[false];
     set true into initialized__[false];
 
+function mint_public:
+    input r0 as address.public;
+    input r1 as u128.public;
+    async mint_public self.caller r0 r1 into r2;
+    output r2 as compliant_token_template.aleo/mint_public.future;
+
+finalize mint_public:
+    input r0 as address.public;
+    input r1 as address.public;
+    input r2 as u128.public;
+    get address_to_role[r0] into r3;
+    and r3 1u16 into r4;
+    is.eq r4 1u16 into r5;
+    assert.eq r5 true;
+    contains pause__[false] into r6;
+    get.or_use pause__[false] false into r7;
+    ternary r6 r7 false into r8;
+    cast r6 r8 into r9 as Optional__ATAkdHctJwx;
+    assert.eq r9.is_some true;
+    assert.eq r9.val false;
+    get.or_use balances[r1] 0u128 into r10;
+    add r2 r10 into r11;
+    set r11 into balances[r1];
+    contains token_info__[false] into r12;
+    cast 0u128 0u128 0u8 0u128 0u128 into r13 as TokenInfo;
+    get.or_use token_info__[false] r13 into r14;
+    cast 0u128 0u128 0u8 0u128 0u128 into r15 as TokenInfo;
+    ternary r12 r14.name r15.name into r16;
+    ternary r12 r14.symbol r15.symbol into r17;
+    ternary r12 r14.decimals r15.decimals into r18;
+    ternary r12 r14.supply r15.supply into r19;
+    ternary r12 r14.max_supply r15.max_supply into r20;
+    cast r16 r17 r18 r19 r20 into r21 as TokenInfo;
+    cast r12 r21 into r22 as Optional__An66AtVsP75;
+    assert.eq r22.is_some true;
+    add r22.val.supply r2 into r23;
+    lte r23 r22.val.max_supply into r24;
+    assert.eq r24 true;
+    cast r22.val.name r22.val.symbol r22.val.decimals r23 r22.val.max_supply into r25 as TokenInfo;
+    set r25 into token_info__[false];
+
+function mint_private:
+    input r0 as address.private;
+    input r1 as u128.public;
+    cast r0 r1 into r2 as Token.record;
+    cast aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px r1 aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc r0 into r3 as ComplianceRecord.record;
+    async mint_private self.caller r1 into r4;
+    output r3 as ComplianceRecord.record;
+    output r2 as Token.record;
+    output r4 as compliant_token_template.aleo/mint_private.future;
+
+finalize mint_private:
+    input r0 as address.public;
+    input r1 as u128.public;
+    get address_to_role[r0] into r2;
+    and r2 1u16 into r3;
+    is.eq r3 1u16 into r4;
+    assert.eq r4 true;
+    contains pause__[false] into r5;
+    get.or_use pause__[false] false into r6;
+    ternary r5 r6 false into r7;
+    cast r5 r7 into r8 as Optional__ATAkdHctJwx;
+    assert.eq r8.is_some true;
+    assert.eq r8.val false;
+    contains token_info__[false] into r9;
+    cast 0u128 0u128 0u8 0u128 0u128 into r10 as TokenInfo;
+    get.or_use token_info__[false] r10 into r11;
+    cast 0u128 0u128 0u8 0u128 0u128 into r12 as TokenInfo;
+    ternary r9 r11.name r12.name into r13;
+    ternary r9 r11.symbol r12.symbol into r14;
+    ternary r9 r11.decimals r12.decimals into r15;
+    ternary r9 r11.supply r12.supply into r16;
+    ternary r9 r11.max_supply r12.max_supply into r17;
+    cast r13 r14 r15 r16 r17 into r18 as TokenInfo;
+    cast r9 r18 into r19 as Optional__An66AtVsP75;
+    assert.eq r19.is_some true;
+    add r19.val.supply r1 into r20;
+    lte r20 r19.val.max_supply into r21;
+    assert.eq r21 true;
+    cast r19.val.name r19.val.symbol r19.val.decimals r20 r19.val.max_supply into r22 as TokenInfo;
+    set r22 into token_info__[false];
+
+function burn_public:
+    input r0 as address.public;
+    input r1 as u128.public;
+    async burn_public self.caller r0 r1 into r2;
+    output r2 as compliant_token_template.aleo/burn_public.future;
+
+finalize burn_public:
+    input r0 as address.public;
+    input r1 as address.public;
+    input r2 as u128.public;
+    get address_to_role[r0] into r3;
+    and r3 2u16 into r4;
+    is.eq r4 2u16 into r5;
+    assert.eq r5 true;
+    contains pause__[false] into r6;
+    get.or_use pause__[false] false into r7;
+    ternary r6 r7 false into r8;
+    cast r6 r8 into r9 as Optional__ATAkdHctJwx;
+    assert.eq r9.is_some true;
+    assert.eq r9.val false;
+    get balances[r1] into r10;
+    sub r10 r2 into r11;
+    set r11 into balances[r1];
+    contains token_info__[false] into r12;
+    cast 0u128 0u128 0u8 0u128 0u128 into r13 as TokenInfo;
+    get.or_use token_info__[false] r13 into r14;
+    cast 0u128 0u128 0u8 0u128 0u128 into r15 as TokenInfo;
+    ternary r12 r14.name r15.name into r16;
+    ternary r12 r14.symbol r15.symbol into r17;
+    ternary r12 r14.decimals r15.decimals into r18;
+    ternary r12 r14.supply r15.supply into r19;
+    ternary r12 r14.max_supply r15.max_supply into r20;
+    cast r16 r17 r18 r19 r20 into r21 as TokenInfo;
+    cast r12 r21 into r22 as Optional__An66AtVsP75;
+    assert.eq r22.is_some true;
+    sub r22.val.supply r2 into r23;
+    cast r22.val.name r22.val.symbol r22.val.decimals r23 r22.val.max_supply into r24 as TokenInfo;
+    set r24 into token_info__[false];
+
+function burn_private:
+    input r0 as Token.record;
+    input r1 as u128.public;
+    sub r0.amount r1 into r2;
+    cast r0.owner r2 into r3 as Token.record;
+    cast aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px r1 r0.owner aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc into r4 as ComplianceRecord.record;
+    async burn_private self.caller r1 into r5;
+    output r4 as ComplianceRecord.record;
+    output r3 as Token.record;
+    output r5 as compliant_token_template.aleo/burn_private.future;
+
+finalize burn_private:
+    input r0 as address.public;
+    input r1 as u128.public;
+    get address_to_role[r0] into r2;
+    and r2 2u16 into r3;
+    is.eq r3 2u16 into r4;
+    assert.eq r4 true;
+    contains pause__[false] into r5;
+    get.or_use pause__[false] false into r6;
+    ternary r5 r6 false into r7;
+    cast r5 r7 into r8 as Optional__ATAkdHctJwx;
+    assert.eq r8.is_some true;
+    assert.eq r8.val false;
+    contains token_info__[false] into r9;
+    cast 0u128 0u128 0u8 0u128 0u128 into r10 as TokenInfo;
+    get.or_use token_info__[false] r10 into r11;
+    cast 0u128 0u128 0u8 0u128 0u128 into r12 as TokenInfo;
+    ternary r9 r11.name r12.name into r13;
+    ternary r9 r11.symbol r12.symbol into r14;
+    ternary r9 r11.decimals r12.decimals into r15;
+    ternary r9 r11.supply r12.supply into r16;
+    ternary r9 r11.max_supply r12.max_supply into r17;
+    cast r13 r14 r15 r16 r17 into r18 as TokenInfo;
+    cast r9 r18 into r19 as Optional__An66AtVsP75;
+    assert.eq r19.is_some true;
+    sub r19.val.supply r1 into r20;
+    cast r19.val.name r19.val.symbol r19.val.decimals r20 r19.val.max_supply into r21 as TokenInfo;
+    set r21 into token_info__[false];
+
 function transfer_public:
     input r0 as address.public;
     input r1 as u128.public;
@@ -999,43 +1160,13 @@ view name:
     contains token_info__[false] into r0;
     cast 0u128 0u128 0u8 0u128 0u128 into r1 as TokenInfo;
     get.or_use token_info__[false] r1 into r2;
-    cast 0u128 0u128 0u8 0u128 0u128 into r3 as TokenInfo;
-    ternary r0 r2.name r3.name into r4;
-    ternary r0 r2.symbol r3.symbol into r5;
-    ternary r0 r2.decimals r3.decimals into r6;
-    ternary r0 r2.supply r3.supply into r7;
-    ternary r0 r2.max_supply r3.max_supply into r8;
-    cast r4 r5 r6 r7 r8 into r9 as TokenInfo;
-    cast r0 r9 into r10 as Optional__An66AtVsP75;
-    cast 0u128 0u128 0u8 0u128 0u128 into r11 as TokenInfo;
-    ternary r10.is_some r10.val.name r11.name into r12;
-    ternary r10.is_some r10.val.symbol r11.symbol into r13;
-    ternary r10.is_some r10.val.decimals r11.decimals into r14;
-    ternary r10.is_some r10.val.supply r11.supply into r15;
-    ternary r10.is_some r10.val.max_supply r11.max_supply into r16;
-    cast r12 r13 r14 r15 r16 into r17 as TokenInfo;
-    output r17.name as u128.public;
+    output 'CompliantToken' as identifier.public;
 
 view symbol:
     contains token_info__[false] into r0;
     cast 0u128 0u128 0u8 0u128 0u128 into r1 as TokenInfo;
     get.or_use token_info__[false] r1 into r2;
-    cast 0u128 0u128 0u8 0u128 0u128 into r3 as TokenInfo;
-    ternary r0 r2.name r3.name into r4;
-    ternary r0 r2.symbol r3.symbol into r5;
-    ternary r0 r2.decimals r3.decimals into r6;
-    ternary r0 r2.supply r3.supply into r7;
-    ternary r0 r2.max_supply r3.max_supply into r8;
-    cast r4 r5 r6 r7 r8 into r9 as TokenInfo;
-    cast r0 r9 into r10 as Optional__An66AtVsP75;
-    cast 0u128 0u128 0u8 0u128 0u128 into r11 as TokenInfo;
-    ternary r10.is_some r10.val.name r11.name into r12;
-    ternary r10.is_some r10.val.symbol r11.symbol into r13;
-    ternary r10.is_some r10.val.decimals r11.decimals into r14;
-    ternary r10.is_some r10.val.supply r11.supply into r15;
-    ternary r10.is_some r10.val.max_supply r11.max_supply into r16;
-    cast r12 r13 r14 r15 r16 into r17 as TokenInfo;
-    output r17.symbol as u128.public;
+    output 'COMP' as identifier.public;
 
 constructor:
     gt edition 0u16 into r0;
