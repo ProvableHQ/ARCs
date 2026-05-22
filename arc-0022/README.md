@@ -12,7 +12,7 @@ created: 2026-03-18
 
 ARC-22 defines a compliant fungible token interface for Aleo. It extends [ARC-20](../arc-0020/) with freeze-list enforcement and compliance records for regulated token issuers (stablecoins, security tokens). ARC-22 preserves Aleo's privacy guarantees while enabling regulatory oversight through Merkle non-inclusion proofs and investigator-visible compliance records.
 
-The reference program [`compliant_token_template.aleo`](./compliant_token_template/) declares Leo interfaces **`IARC22`** (core transfers, **`view fn`** reads, and compliance-bearing transitions) and **`IARC22Mintable: IARC22`** (**`mint_*` / `burn_*`**). Earlier discussion may use the shorthand **ARC20 compliant** for this surface; the signatures below match [`compliant_token_template/src/main.leo`](./compliant_token_template/src/main.leo).
+The reference program [`compliant_token_template.aleo`](./compliant_token_template/) declares the Leo interface **`IARC22`** with core transfers, **`view fn`** reads, compliance-bearing transitions, and **`mint_*` / `burn_*`**. Earlier discussion may use the shorthand **ARC20 compliant** for this surface; the signatures below match [`compliant_token_template/src/main.leo`](./compliant_token_template/src/main.leo).
 
 ## Motivation
 
@@ -25,11 +25,9 @@ ARC-22 adds these capabilities while preserving Aleo's privacy guarantees throug
 
 ## Specification
 
-### `IARC22` and `IARC22Mintable`
+### `IARC22`
 
 The compliant token surface adds freeze-list enforcement (via Merkle non-inclusion proofs on private sends) and investigator-visible **`ComplianceRecord`** outputs where specified. Mappings and storage variables are intentionally **not** part of the interface body—only function signatures and the records (**`Token`**, **`ComplianceRecord`**) form the contract.
-
-Mint and burn are isolated on **`IARC22Mintable: IARC22`** so consumers can type dynamic calls against a core compliant token vs. a mintable deployment.
 
 ```leo
 interface IARC22 {
@@ -87,13 +85,6 @@ interface IARC22 {
     view fn decimals() -> u8;
     view fn name() -> u128;
     view fn symbol() -> u128;
-}
-
-interface IARC22Mintable: IARC22 {
-    fn mint_public(public recipient: address, public amount: u128) -> Final;
-    fn mint_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
-    fn burn_public(public owner: address, public amount: u128) -> Final;
-    fn burn_private(input_record: Token, public amount: u128) -> (ComplianceRecord, Token, Final);
 }
 ```
 
@@ -167,7 +158,7 @@ The investigator address is hardcoded as the `INVESTIGATOR_ADDRESS` constant in 
 
 ### Dynamic Dispatch
 
-**`IARC22`** / **`IARC22Mintable`** are Leo `interface`s, so transitions can be called dynamically using interface-enforced syntax (`Interface@(target)::function(args)`):
+**`IARC22`** is a Leo `interface`, so transitions can be called dynamically using interface-enforced syntax (`Interface@(target)::function(args)`):
 
 ```leo
 IARC22@(token_program)::transfer_public(recipient, amount);
@@ -198,7 +189,7 @@ Tests use Jest with a local devnode and Leo CLI execution.
 
 ## Reference Implementations
 
-- [`compliant_token_template/`](./compliant_token_template/) -- **`IARC22` + `IARC22Mintable`** implementation with freeze list integration, Merkle proof non-inclusion verification, **`view fn`** metadata/supply reads, **`add_supply` / `sub_supply`** bookkeeping, and multisig-gated upgrades
+- [`compliant_token_template/`](./compliant_token_template/) -- **`IARC22`** implementation with freeze list integration, Merkle proof non-inclusion verification, **`view fn`** metadata/supply reads, **`add_supply` / `sub_supply`** bookkeeping, and multisig-gated upgrades
 - [`freezelist/`](./freezelist/) -- On-chain freeze list using a Merkle tree with windowed root updates for proof validity across blocks
 
 ## Dependencies

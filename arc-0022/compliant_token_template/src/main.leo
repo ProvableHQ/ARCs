@@ -159,16 +159,8 @@ interface IARC22 {
     view fn symbol() -> u128;
 }
 
-// Role-gated mint/burn for compliant deployments (see implementation).
-interface IARC22Mintable: IARC22 {
-    fn mint_public(public recipient: address, public amount: u128) -> Final;
-    fn mint_private(recipient: address, public amount: u128) -> (ComplianceRecord, Token, Final);
-    fn burn_public(public owner: address, public amount: u128) -> Final;
-    fn burn_private(input_record: Token, public amount: u128) -> (ComplianceRecord, Token, Final);
-}
-
 // DEPLOYER_ADDRESS: must match test account (AleoUtils.addresses[0]) for tests.
-program compliant_token_template.aleo: IARC22Mintable {
+program compliant_token_template.aleo: IARC22 {
     @custom
     constructor() {
         // Only require multisig for upgrades - initial deployment has no checks.

@@ -12,7 +12,7 @@ created: 2026-03-18
 
 ARC-20 defines a fungible token standard for Aleo, supporting both public and private balances. Programs declare conformance to the `ARC20` interface, and any other program can call them at runtime via dynamic dispatch -- without compile-time knowledge of the specific token implementation.
 
-The standard defines a single **ARC20** interface covering public transfers, private transfers, shielding/unshielding, approvals, joins/splits, and mint/burn. Implementations commonly expose name, symbol, decimals, allowances, and supply via **`view fn`** on the core surface rather than a separate Leo trait. Reference deployments **[`wrapped_credits.aleo`](./wrapped_credits/)** and **[`wrapped_token_registry.aleo`](./wrapped_token_registry/)** both use program-local names **`IARC20`** / **`IARC20Mintable`** and match each other closely—see [**Implementation snapshots (reference wrappers)**](#implementation-snapshots-reference-wrappers).
+The standard defines a single **ARC20** interface covering public transfers, private transfers, shielding/unshielding, approvals, joins/splits, and mint/burn. Implementations commonly expose name, symbol, decimals, allowances, and supply via **`view fn`** on the core surface rather than a separate Leo trait. Reference deployments **[`wrapped_credits.aleo`](./wrapped_credits/)** and **[`wrapped_token_registry.aleo`](./wrapped_token_registry/)** both use the program-local name **`IARC20`** and match each other closely—see [**Implementation snapshots (reference wrappers)**](#implementation-snapshots-reference-wrappers).
 
 For regulated tokens requiring freeze lists and compliance records, see [ARC-22](../arc-0022/).
 
@@ -56,11 +56,6 @@ interface ARC20 {
 
     fn join(input_1: Token, input_2: Token) -> Token;
     fn split(input: Token, amount: u128) -> (Token, Token);
-
-    fn mint_public(public recipient: address, public amount: u128) -> Final;
-    fn mint_private(public recipient: address, public amount: u128) -> (Token, Final);
-    fn burn_public(public owner: address, public amount: u128) -> Final;
-    fn burn_private(input: Token, public amount: u128) -> (Token, Final);
 }
 ```
 
@@ -99,13 +94,13 @@ record Metadata {
 | Program | Description |
 |---------|-------------|
 | [`token_registry.aleo`](./token_registry/) | Multi-token registry supporting token registration, role-based access, and authorized balances. Manages public and private balances for arbitrary token IDs. |
-| [`wrapped_credits.aleo`](./wrapped_credits/) | **`IARC20` + `IARC20Mintable`** wrapper around `credits.aleo`. Deposits Aleo credits and issues 1:1 wrapped tokens; see [reference snapshots](#implementation-snapshots-reference-wrappers). |
-| [`wrapped_token_registry.aleo`](./wrapped_token_registry/) | **`IARC20` + `IARC20Mintable`** wrapper fixing one `token_registry.aleo` token ID (`WRAPPED_TOKEN_ID`); same surface as **`wrapped_credits`** aside from deposit/withdraw (see [snapshots](#implementation-snapshots-reference-wrappers)). |
+| [`wrapped_credits.aleo`](./wrapped_credits/) | **`IARC20`** wrapper around `credits.aleo`. Deposits Aleo credits and issues 1:1 wrapped tokens; see [reference snapshots](#implementation-snapshots-reference-wrappers). |
+| [`wrapped_token_registry.aleo`](./wrapped_token_registry/) | **`IARC20`** wrapper fixing one `token_registry.aleo` token ID (`WRAPPED_TOKEN_ID`); same surface as **`wrapped_credits`** aside from deposit/withdraw (see [snapshots](#implementation-snapshots-reference-wrappers)). |
 | [`dummy_exchange.aleo`](./dummy_exchange/) | Dynamic dispatch example -- demonstrates `transfer_from_public` and `swap` to interact with any ARC20 token by program identifier at runtime. |
 
 ### Implementation snapshots (reference wrappers)
 
-[`wrapped_credits/src/main.leo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry/src/main.leo`](./wrapped_token_registry/src/main.leo) both declare **`IARC20`** (core transfers, approvals, **`view fn`** accessors) and **`IARC20Mintable: IARC20`** (**`mint_*` / `burn_*`** only). Mint/burn are split from the core surface the same way a normative **`MintableToken: ARC20`** extension would; only the identifier names differ from the **`ARC20`** spelling in the specification fragment above.
+[`wrapped_credits/src/main.leo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry/src/main.leo`](./wrapped_token_registry/src/main.leo) both declare **`IARC20`** with core transfers, approvals, **`view fn`** accessors, and **`mint_*` / `burn_*`** signatures. Only the identifier name differs from the **`ARC20`** spelling in the specification fragment above.
 
 Compared to the normative **`ARC20`** block in this document, both reference wrappers behave as follows:
 
@@ -221,7 +216,7 @@ program my_token.aleo: ARC20 {
 }
 ```
 
-See [`wrapped_credits.aleo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry.aleo`](./wrapped_token_registry/src/main.leo) for complete **`IARC20Mintable`** implementations.
+See [`wrapped_credits.aleo`](./wrapped_credits/src/main.leo) and [`wrapped_token_registry.aleo`](./wrapped_token_registry/src/main.leo) for complete **`IARC20`** implementations.
 
 ## Test Cases
 
@@ -238,7 +233,7 @@ Tests use Jest with a local devnode and Leo CLI execution.
 
 ## Rationale
 
-- **Single interface**: `mint`/`burn` are part of `ARC20` rather than a separate `MintableToken` interface. Tokens that have no minting authority can simply revert in `mint_*` and `burn_*`, but downstream consumers always know the methods exist.
+- **Single interface**: `mint`/`burn` are part of `ARC20` rather than a separate extension interface. Tokens that have no minting authority can simply revert in `mint_*` and `burn_*`, but downstream consumers always know the methods exist.
 - **Additive approvals**: `approve_public` increases the existing allowance rather than replacing it. This avoids race conditions -- two `approve_public` calls in the same block will both succeed and add to the allowance, rather than one silently overwriting the other.
 - **u128 amounts**: Future-proofs the standard for high-supply tokens and avoids truncation issues. `u64` would limit maximum supply to ~18.4 quintillion base units, which is insufficient for some token designs.
 - **`recipient` naming**: The receiving address is consistently named `recipient` across every transfer, mint, shield, and unshield variant.
@@ -248,8 +243,8 @@ Tests use Jest with a local devnode and Leo CLI execution.
 
 ## Reference Implementations
 
-- [`wrapped_credits/`](./wrapped_credits/) -- **`IARC20` + `IARC20Mintable`** wrapping `credits.aleo` (see [snapshots](#implementation-snapshots-reference-wrappers))
-- [`wrapped_token_registry/`](./wrapped_token_registry/) -- **`IARC20` + `IARC20Mintable`** wrapping a fixed `token_registry.aleo` token ID
+- [`wrapped_credits/`](./wrapped_credits/) -- **`IARC20`** wrapping `credits.aleo` (see [snapshots](#implementation-snapshots-reference-wrappers))
+- [`wrapped_token_registry/`](./wrapped_token_registry/) -- **`IARC20`** wrapping a fixed `token_registry.aleo` token ID
 - [`token_registry/`](./token_registry/) -- Multi-token registry
 - [`dummy_exchange/`](./dummy_exchange/) -- Dynamic dispatch interoperability example
 
@@ -310,7 +305,7 @@ This signature mismatch means `token_registry.aleo` cannot directly implement th
 
 ### How to Create a Wrapper
 
-1. Deploy a new program implementing **`ARC20`** or the reference **`IARC20`** / **`IARC20Mintable`** split used by [`wrapped_token_registry`](./wrapped_token_registry/)
+1. Deploy a new program implementing **`ARC20`** or the reference **`IARC20`** interface used by [`wrapped_token_registry`](./wrapped_token_registry/)
 2. Set a `WRAPPED_TOKEN_ID` constant for your token's ID in the registry
 3. Maintain local `balances: address => u128` and `allowances: TokenAllowance => u128` mappings, plus a `storage token_info: TokenInfo;` singleton
 4. Implement deposit/withdraw to bridge between the wrapper and the registry:

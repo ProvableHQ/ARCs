@@ -43,13 +43,6 @@ interface IARC20 {
     view fn symbol() -> identifier;
 }
 
-interface IARC20Mintable: IARC20 {
-    fn mint_public(public recipient: address, public amount: u128) -> Final;
-    fn mint_private(recipient: address, public amount: u128) -> (Token, Final);
-    fn burn_public(public owner: address, public amount: u128) -> Final;
-    fn burn_private(input: Token, public amount: u128) -> (Token, Final);
-}
-
 fn default_token_info() -> TokenInfo {
     return TokenInfo {
         name: 138438205403108515442419u128,
@@ -84,7 +77,7 @@ final fn sub_supply(amount: u128) {
     };
 }
 
-program wrapped_credits.aleo: IARC20Mintable {
+program wrapped_credits.aleo: IARC20 {
     @noupgrade
     constructor() {}
 
