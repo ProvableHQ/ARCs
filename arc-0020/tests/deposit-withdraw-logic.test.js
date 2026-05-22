@@ -1,3 +1,14 @@
+/**
+ * Static check: the deposit/withdraw functions in `wrapped_credits` and
+ * `wrapped_token_registry` must implement the same logic, modulo
+ * source-level naming differences.
+ *
+ * Both wrappers expose the same effective ARC20 wrapping behavior; the only
+ * deltas are the underlying token program (`credits.aleo` vs
+ * `token_registry.aleo`), the helper-function names, and the local variable
+ * names. After normalizing those away, the function bodies should compare
+ * byte-for-byte equal.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -5,17 +16,22 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Slice from the first `fn deposit_*` definition up to the start of
+// `fn transfer_public` (which marks the end of the deposit/withdraw block in
+// both wrapper sources).
 function extractDepositWithdrawBlock(content) {
   const m = content.match(/fn deposit_.*?(?=\n\n    fn transfer_public)/s);
   return m ? m[0].trim() : null;
 }
 
+// Find a function by name in the (already-normalized) source slice and return
+// the full `fn name(...) { ... }` text using brace-depth tracking. This is
+// resilient to nested blocks (e.g., `final { ... }`).
 function extractFunctionWithBalancedBraces(str, fnName) {
   const re = new RegExp(`fn ${fnName}\\s*\\(`);
   const m = str.match(re);
   if (!m) return null;
   const start = m.index;
-  // Find the first { (function body start) and track brace depth from there
   const bodyStart = str.indexOf("{", start);
   if (bodyStart === -1) return null;
   let depth = 1;
@@ -30,46 +46,79 @@ function extractFunctionWithBalancedBraces(str, fnName) {
   return null;
 }
 
+// Pairs of (regex, replacement) applied in order. Goal: erase superficial
+// differences (helper function names, parameter widths, identifier labels)
+// while preserving meaningful logic.
+const NORMALIZATION_RULES = [
+  // 1) Strip line comments. Must run BEFORE collapsing newlines, otherwise
+  //    `//[^\n]*` would greedily eat the rest of the file.
+  [/\/\/[^\n]*/g, ""],
+
+  // 2) Unify wrapper-specific transition names → generic ARC20 names.
+  [/deposit_(credits|token)_public_signer/g, "deposit_public"],
+  [/deposit_token_public/g, "deposit_public"],
+  [/deposit_(credits|token)_private/g, "deposit_private"],
+  [/withdraw_(credits|token)_public_signer/g, "withdraw_public_signer"],
+  [/withdraw_(credits|token)_public/g, "withdraw_public"],
+  [/withdraw_(credits|token)_private/g, "withdraw_private"],
+
+  // 3) Unify the underlying-token program references.
+  [/credits\.aleo\/credits/g, "ExternalRecord"],
+  [/token_registry\.aleo\/Token/g, "Token"],
+  [/(credits|token_registry)\.aleo::/g, "external::"],
+  [/(credits|token_registry)\.aleo\//g, "external::"],
+
+  // 4) Token-id is implicit for credits but explicit for token_registry. Inject
+  //    `TOKEN_ID` so the credits version matches the token_registry version.
+  [/WRAPPED_TOKEN_ID/g, "TOKEN_ID"],
+  [
+    /external::transfer_public_as_signer\(self\.address,/g,
+    "external::transfer_public_as_signer(TOKEN_ID, self.address,",
+  ],
+  [
+    /external::transfer_public\(self\.caller,/g,
+    "external::transfer_public(TOKEN_ID, self.caller,",
+  ],
+  [
+    /external::transfer_public\(self\.signer,/g,
+    "external::transfer_public(TOKEN_ID, self.signer,",
+  ],
+  // Both wrappers should withdraw to a generic `withdrawer` symbol.
+  [
+    /external::transfer_public\(TOKEN_ID,\s*self\.caller,\s*amount\)/g,
+    "external::transfer_public(TOKEN_ID, withdrawer, amount)",
+  ],
+  [
+    /external::transfer_public\(TOKEN_ID,\s*self\.signer,\s*amount\)/g,
+    "external::transfer_public(TOKEN_ID, withdrawer, amount)",
+  ],
+
+  // 5) Numeric width and parameter name normalization. Credits uses u64 with
+  //    `as u128` casts; token_registry uses u128 throughout.
+  [/amount as u128/g, "amount"],
+  [/\bu64\b/g, "u128"],
+
+  // 6) Pick a single canonical name for the ad-hoc local variables that
+  //    differ purely in style between the two wrappers.
+  [/previous_balance/g, "prev"],
+  [/credits_finalization/g, "tr_final"],
+  [/mint_output/g, "token_out"],
+  [/(input_record|input_token)/g, "input"],
+
+  // 7) Whitespace canonicalization (must run last).
+  [/\s*\(\s*/g, " ("],
+  [/\s*\)/g, ")"],
+  [/,\s*\)/g, ")"],
+  [/\s+/g, " "],
+];
+
 function normalizeDepositWithdraw(s) {
   if (!s) return "";
-  // Strip comments first (before collapsing newlines, else //[^\n]* eats rest of string)
-  s = s.replace(/\/\/[^\n]*/g, "");
-  return s
-    .replace(/deposit_credits_public_signer/g, "deposit_public")
-    .replace(/deposit_token_public_signer/g, "deposit_public")
-    .replace(/deposit_token_public/g, "deposit_public")
-    .replace(/deposit_credits_private/g, "deposit_private")
-    .replace(/deposit_token_private/g, "deposit_private")
-    .replace(/withdraw_credits_public_signer/g, "withdraw_public_signer")
-    .replace(/withdraw_token_public_signer/g, "withdraw_public_signer")
-    .replace(/withdraw_credits_public/g, "withdraw_public")
-    .replace(/withdraw_token_public/g, "withdraw_public")
-    .replace(/withdraw_credits_private/g, "withdraw_private")
-    .replace(/withdraw_token_private/g, "withdraw_private")
-    .replace(/credits\.aleo\/credits/g, "ExternalRecord")
-    .replace(/token_registry\.aleo\/Token/g, "Token")
-    .replace(/credits\.aleo::/g, "external::")
-    .replace(/token_registry\.aleo::/g, "external::")
-    .replace(/credits\.aleo\//g, "external::")
-    .replace(/token_registry\.aleo\//g, "external::")
-    .replace(/WRAPPED_TOKEN_ID/g, "TOKEN_ID")
-    .replace(/amount as u128/g, "amount")
-    .replace(/\bu64\b/g, "u128")
-    .replace(/previous_balance/g, "prev")
-    .replace(/credits_finalization/g, "tr_final")
-    .replace(/mint_output/g, "token_out")
-    .replace(/input_record/g, "input")
-    .replace(/input_token/g, "input")
-    .replace(/external::transfer_public_as_signer\(self\.address,/g, "external::transfer_public_as_signer(TOKEN_ID, self.address,")
-    .replace(/external::transfer_public\(self\.caller,/g, "external::transfer_public(TOKEN_ID, self.caller,")
-    .replace(/external::transfer_public\(self\.signer,/g, "external::transfer_public(TOKEN_ID, self.signer,")
-    .replace(/external::transfer_public\(TOKEN_ID,\s*self\.caller,\s*amount\)/g, "external::transfer_public(TOKEN_ID, withdrawer, amount)")
-    .replace(/external::transfer_public\(TOKEN_ID,\s*self\.signer,\s*amount\)/g, "external::transfer_public(TOKEN_ID, withdrawer, amount)")
-    .replace(/\s*\(\s*/g, " (")
-    .replace(/\s*\)/g, ")")
-    .replace(/,\s*\)/g, ")")
-    .replace(/\s+/g, " ")
-    .trim();
+  let out = s;
+  for (const [pattern, replacement] of NORMALIZATION_RULES) {
+    out = out.replace(pattern, replacement);
+  }
+  return out.trim();
 }
 
 describe("deposit/withdraw logic", () => {
@@ -90,6 +139,10 @@ describe("deposit/withdraw logic", () => {
     const norm1 = normalizeDepositWithdraw(block1);
     const norm2 = normalizeDepositWithdraw(block2);
 
+    // The private deposit/withdraw transitions emit different external record
+    // shapes (credits.aleo::credits vs token_registry.aleo::Token return value
+    // ordering and types), so we restrict the equality check to the public
+    // transitions, where the wrappers must be identical modulo naming.
     const comparableFns = ["deposit_public", "withdraw_public", "withdraw_public_signer"];
     for (const fn of comparableFns) {
       const f1 = extractFunctionWithBalancedBraces(norm1, fn);

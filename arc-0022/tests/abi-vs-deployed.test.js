@@ -3,6 +3,10 @@
  * IARC22 function signatures as the deployed `usdcx_stablecoin.aleo` program
  * on mainnet.
  *
+ * Requires network access to the Explorer API
+ * (`https://api.explorer.provable.com/v2`); override with `EXPLORER_API_BASE`,
+ * `DEPLOYED_NETWORK`, or `DEPLOYED_PROGRAM_ID` env vars.
+ *
  * Local ABI side:
  *   - We run `leo build` in `compliant_token_template/` and read
  *     `build/abi.json`.

@@ -10,8 +10,23 @@ import { Address } from "@provablehq/sdk";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Encode a plain Aleo program name (without ".aleo") to its `field` token-id
+// representation: little-endian bytes of the UTF-8 program name.
+//
+// The dummy_exchange contract receives `token_id: field` and uses dynamic
+// dispatch to call into the program with that name. For wrapped_credits this
+// resolves to `field("wrapped_credits")`.
+function programNameToTokenIdField(programName) {
+  const id = [...Buffer.from(programName)].reduce(
+    (acc, byte, i) => acc + BigInt(byte) * 256n ** BigInt(i),
+    0n,
+  );
+  return `${id}field`;
+}
+
 describe("wrapped_credits.aleo", () => {
   const programPath = path.join(__dirname, "..", "wrapped_credits");
+  const exchangePath = path.join(__dirname, "..", "dummy_exchange");
   const pk0 = AleoUtils.DEFAULT_PRIVATE_KEYS[0];
   const addr0 = AleoUtils.addresses[0];
   const addr1 = AleoUtils.addresses[1];
@@ -25,7 +40,7 @@ describe("wrapped_credits.aleo", () => {
   }
 
   const exchangeAddress = Address.fromProgramId(DummyExchange.PROGRAM_ID).to_string();
-  let exchangeDeployed = false;
+  const wrappedCreditsTokenId = programNameToTokenIdField("wrapped_credits");
 
   beforeAll(async () => {
     const start = Date.now();
@@ -36,14 +51,13 @@ describe("wrapped_credits.aleo", () => {
       programPath,
     });
 
-    const exchangePath = path.join(__dirname, "..", "dummy_exchange");
     await AleoUtils.deployProgramFromFile({
       programId: DummyExchange.PROGRAM_ID,
       programPath: exchangePath,
       skip: ["wrapped_credits"],
     });
 
-    // Ensure addr0 has an initial wrapped balance for tests.
+    // Ensure addr0 has enough wrapped balance for the rest of the suite.
     const b0 = await bal(addr0);
     if (b0 < 2000n) {
       const dep = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "5000u64");
@@ -58,7 +72,7 @@ describe("wrapped_credits.aleo", () => {
     await AleoUtils.stopDevnode();
   });
 
-  test("deposit_credits_public_signer (positive and negative test): increases only depositor balance", async () => {
+  test("deposit_credits_public_signer (positive): increases only depositor balance", async () => {
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
     const exec = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "1000u64");
@@ -70,7 +84,6 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("deposit_credits_private (positive): accepts a credits record and returns a Token", async () => {
-    // Create a credits.aleo::credits record for addr0.
     const creditsExec = await AleoUtils.leoExecute(
       programPath,
       "credits.aleo::transfer_public_to_private",
@@ -93,7 +106,7 @@ describe("wrapped_credits.aleo", () => {
     // Expect at least change credits record + minted Token.
     expect(outRecords.length).toBeGreaterThanOrEqual(2);
 
-    // This transition mints a private Token output and should not touch public balances mapping.
+    // Private deposit mints a Token output and must not touch the public balances mapping.
     const after0 = await bal(addr0);
     expect(after0 - before0).toBe(0n);
   });
@@ -160,7 +173,6 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("withdraw_credits_private (positive): converts Token amount into private credits record", async () => {
-    // Shield to create token owned by signer.
     const mint = await WrappedCredits.shield(AleoUtils.accounts[0], "70u128");
     await expectConfirmed(mint);
     const tokenRecords = extractRecordPlaintexts(mint.stdout);
@@ -179,7 +191,7 @@ describe("wrapped_credits.aleo", () => {
     // credits record + change token
     expect(out.length).toBeGreaterThanOrEqual(2);
 
-    // Private withdraw does not touch public balances mapping.
+    // Private withdraw does not touch the public balances mapping.
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
     expect(after0).toBe(before0);
@@ -196,7 +208,7 @@ describe("wrapped_credits.aleo", () => {
     const res = await WrappedCredits.unshield(AleoUtils.accounts[0], tokenRecords[0], "20u128");
     await expectConfirmed(res);
     const out = extractRecordPlaintexts(res.stdout);
-    // unshield now returns a single change Token (the unused "zero token" was removed).
+    // Single change Token record; the legacy "zero token" was removed.
     expect(out.length).toBe(1);
     const after0 = await bal(addr0);
     expect(after0 - before0).toBe(20n);
@@ -222,7 +234,6 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("transfer_public_as_signer (positive): debits signer and credits receiver", async () => {
-    // Ensure signer has enough.
     const b0 = await bal(addr0);
     if (b0 < 100n) {
       const topup = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "500u64");
@@ -239,23 +250,25 @@ describe("wrapped_credits.aleo", () => {
     expect(after1 - before1).toBe(40n);
   });
 
-  test("dummy_exchange: spendable allowance via transfer_from", async () => {
-    if (!exchangeDeployed) {
-      console.warn("Skipping dummy_exchange test: program not deployed");
-      return;
-    }
+  test.skip("dummy_exchange: spendable allowance via transfer_from", async () => {
     const amount = "75u128";
-    const execApprovePublic = await WrappedCredits.approvePublic(AleoUtils.accounts[0], exchangeAddress, amount);
+    const execApprovePublic = await WrappedCredits.approvePublic(
+      AleoUtils.accounts[0],
+      exchangeAddress,
+      amount,
+    );
     await expectConfirmed(execApprovePublic);
 
     const before0 = await bal(addr0);
     const before1 = await bal(addr1);
-    // dummy_exchange now uses dynamic dispatch: transfer_from(token_id, owner, recipient, amount).
-    // token_id is the program name encoded as a field (little-endian bytes of program name without ".aleo").
-    const tokenIdField = [...Buffer.from("wrapped_credits")].reduce(
-      (acc, byte, i) => acc + BigInt(byte) * (256n ** BigInt(i)), 0n,
-    ).toString() + "field";
-    const execTransferFrom = await DummyExchange.transferFrom(AleoUtils.accounts[0], tokenIdField, addr0, addr1, amount);
+    const execTransferFrom = await DummyExchange.transferFrom(
+      AleoUtils.accounts[0],
+      wrappedCreditsTokenId,
+      addr0,
+      addr1,
+      amount,
+      { with: ["wrapped_credits.aleo"] },
+    );
     await expectConfirmed(execTransferFrom);
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
@@ -264,19 +277,24 @@ describe("wrapped_credits.aleo", () => {
   });
 
   test("transfer_public_as_signer (negative): insufficient balance rejects", async () => {
+    // Make sure addr1 has at least one token so we can compute "balance + 1".
     const before1 = await bal(addr1);
     if (before1 === 0n) {
       await expectConfirmed(await WrappedCredits.transferPublic(AleoUtils.accounts[0], addr1, "1u128"));
     }
-    const amount = (await bal(addr1)) + 1n;
+
+    const balance1 = await bal(addr1);
+    const amount = balance1 + 1n;
     const before0 = await bal(addr0);
+
     await WrappedCredits.transferPublicAsSigner(AleoUtils.accounts[1], addr0, `${amount}u128`, {
       expectRejection: true,
     });
+
     const after0 = await bal(addr0);
     const after1 = await bal(addr1);
     expect(after0).toBe(before0);
-    expect(after1).toBe(before1);
+    expect(after1).toBe(balance1);
   });
 
   registerArc20WrapperTests({
@@ -287,12 +305,12 @@ describe("wrapped_credits.aleo", () => {
     ensureBalance: async () => {
       const b = await bal(addr0);
       if (b < 500n) {
-        throw new Error("Insufficient balance");
-        //   NOTE: don't deposit more by default because this creates a lot of overhead.
-        //   const dep = await WrappedCredits.depositCreditsPublic(AleoUtils.accounts[0], "500u64");
-        //   await expectConfirmed(dep);
+        // Avoid silently topping up: each deposit takes ~1 block and adds noise to balance assertions.
+        // Tests are ordered so previous successful tests should keep addr0 funded.
+        throw new Error(
+          `wrapped_credits: addr0 balance is ${b} (< 500). A previous test likely failed and drained the balance.`,
+        );
       }
     },
   });
 });
-

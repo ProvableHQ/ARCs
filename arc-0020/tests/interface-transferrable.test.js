@@ -1,3 +1,16 @@
+/**
+ * Static checks on the ARC20 / ARC22 interface declarations:
+ *
+ *   1. Both ARC20 wrappers declare the `IARC20` interface.
+ *   2. Both ARC20 wrappers declare *exactly the same* `IARC20` body.
+ *   3. The ARC22 `IARC22` interface is the same as `IARC20` modulo the parts
+ *      that are intentionally specific to ARC22 (private-only flows and the
+ *      `ComplianceRecord`).
+ *
+ * These tests intentionally operate on the source text — we don't need a Leo
+ * parser; we just need to extract a balanced `interface { ... }` block and
+ * compare canonicalized entries.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -5,6 +18,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Slice out an `interface NAME { ... }` block by tracking brace depth.
 function extractInterface(content, name) {
   const startMatch = content.match(new RegExp(`interface\\s+${name}\\s*\\{`));
   expect(startMatch).not.toBeNull();
@@ -18,15 +32,16 @@ function extractInterface(content, name) {
       depth += 1;
     } else if (content[i] === "}") {
       depth -= 1;
-      if (depth === 0) {
-        return content.slice(start, i + 1).trim();
-      }
+      if (depth === 0) return content.slice(start, i + 1).trim();
     }
   }
 
   throw new Error(`Could not find end of interface ${name}`);
 }
 
+// Slice out a single interface entry starting at `startIndex`. An entry is
+// either a `record … { … }` block (brace-terminated) or an `fn / view fn`
+// declaration ending in a semicolon.
 function extractInterfaceDeclaration(content, startIndex) {
   const openBrace = content.indexOf("{", startIndex);
   const semicolon = content.indexOf(";", startIndex);
@@ -38,9 +53,7 @@ function extractInterfaceDeclaration(content, startIndex) {
         depth += 1;
       } else if (content[i] === "}") {
         depth -= 1;
-        if (depth === 0) {
-          return content.slice(startIndex, i + 1).trim();
-        }
+        if (depth === 0) return content.slice(startIndex, i + 1).trim();
       }
     }
   }
@@ -48,6 +61,9 @@ function extractInterfaceDeclaration(content, startIndex) {
   return content.slice(startIndex, semicolon + 1).trim();
 }
 
+// Canonicalize an interface body to the entries that the public ARC20 surface
+// shares with ARC22: skip private-only functions and the ARC22-specific
+// `ComplianceRecord`.
 function comparableInterfaceEntries(content, name) {
   const body = extractInterface(content, name);
   const entries = [];
@@ -57,13 +73,12 @@ function comparableInterfaceEntries(content, name) {
     const entry = extractInterfaceDeclaration(body, match.index);
     const functionName = entry.match(/(?:view\s+)?fn\s+(\w+)/)?.[1];
 
-    if (functionName?.includes("private")) {
-      continue;
-    }
+    // Private-only functions are intentionally excluded from the cross-spec
+    // comparison; ARC22 has additional Merkle-proof inputs there.
+    if (functionName?.includes("private")) continue;
 
-    if (entry.startsWith("record ComplianceRecord")) {
-      continue;
-    }
+    // ARC22-specific record (the investigator-facing receipt).
+    if (entry.startsWith("record ComplianceRecord")) continue;
 
     entries.push(entry);
   }

@@ -4,10 +4,23 @@ import { fileURLToPath } from "node:url";
 import * as AleoUtils from "./lib/aleo-test-utils.js";
 import * as TokenRegistry from "./contracts/token-registry.js";
 import * as WrappedTokenRegistry from "./contracts/wrapped-token-registry.js";
-import { registerArc20WrapperTests, extractRecordPlaintexts } from "./lib/arc20-wrapper-tests.js";
+import { registerArc20WrapperTests } from "./lib/arc20-wrapper-tests.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Encode an ASCII string into a Leo `u128` literal (little-endian byte layout).
+// Used for token `name` / `symbol`, which are stored as packed ASCII in u128.
+function encodeAsciiToU128Literal(s) {
+  if (Buffer.byteLength(s, "utf8") > 16) {
+    throw new Error(`encodeAsciiToU128Literal: "${s}" is longer than 16 bytes`);
+  }
+  const value = [...Buffer.from(s)].reduce(
+    (acc, byte, i) => acc + BigInt(byte) * 256n ** BigInt(i),
+    0n,
+  );
+  return `${value}u128`;
+}
 
 describe("token_registry.aleo", () => {
   const programPath = path.join(__dirname, "..", "token_registry");
@@ -16,14 +29,19 @@ describe("token_registry.aleo", () => {
   const addr0 = AleoUtils.addresses[0];
   const addr1 = AleoUtils.addresses[1];
 
-  // Custom token ID (must not equal CREDITS_RESERVED_TOKEN_ID)
+  // Custom token ID (must not collide with CREDITS_RESERVED_TOKEN_ID).
   const CUSTOM_TOKEN_ID = "12345field";
-  // Token ID wrapped by wrapped_token_registry.aleo
+  // Token ID wrapped by wrapped_token_registry.aleo (matches WRAPPED_TOKEN_ID const in the wrapper).
   const WRAPPED_TOKEN_ID = WrappedTokenRegistry.WRAPPED_TOKEN_ID;
+
+  const TOKEN_NAME = encodeAsciiToU128Literal("TEST");
+  const TOKEN_SYMBOL = encodeAsciiToU128Literal("TST");
+  const DECIMALS = "6u8";
   const MAX_SUPPLY = "1000000u128";
   const MINT_AMOUNT = "1000u128";
   const TRANSFER_AMOUNT = "200u128";
-  const AUTHORIZED_UNTIL = "4294967295u32"; // max u32 = no expiry for non-auth tokens
+  // Max u32 sentinel: token_registry.aleo treats this as "no expiry" for non-auth tokens.
+  const AUTHORIZED_UNTIL = "4294967295u32";
 
   async function expectConfirmed(execResult) {
     await AleoUtils.waitForTransactionConfirmedFromLeoExecution(execResult);
@@ -38,13 +56,10 @@ describe("token_registry.aleo", () => {
       programPath,
     });
 
-    // const prevEndpoint = process.env.ENDPOINT;
-    // process.env.ENDPOINT = AleoUtils.getNetworkUrl();
     await AleoUtils.deployProgramFromFile({
       programId: WrappedTokenRegistry.PROGRAM_ID,
       programPath: wrappedProgramPath,
     });
-    // process.env.ENDPOINT = prevEndpoint;
     process.stdout.write(`wrapped-token-registry.test.js beforeAll: ${Date.now() - start}ms\n`);
   });
 
@@ -62,30 +77,20 @@ describe("token_registry.aleo", () => {
   });
 
   test("register_token: admin can register a custom token", async () => {
-    // name "TEST" = 1413829460u128 (ASCII), symbol "TST" = 1413829460u128
-    const name = "1413829460u128";
-    const symbol = "1413829460u128";
-    const decimals = "6u8";
-    const extAuthRequired = "false";
-    const extAuthParty = addr0;
-
     const exec = await AleoUtils.leoExecute(
       programPath,
       "register_token",
-      [CUSTOM_TOKEN_ID, name, symbol, decimals, MAX_SUPPLY, extAuthRequired, extAuthParty],
+      [CUSTOM_TOKEN_ID, TOKEN_NAME, TOKEN_SYMBOL, DECIMALS, MAX_SUPPLY, "false", addr0],
       { privateKey: pk0 },
     );
     await expectConfirmed(exec);
   });
 
   test("register_token (negative): rejects duplicate token_id", async () => {
-    const name = "1413829460u128";
-    const symbol = "1413829460u128";
-    const decimals = "6u8";
     await AleoUtils.leoExecute(
       programPath,
       "register_token",
-      [CUSTOM_TOKEN_ID, name, symbol, decimals, MAX_SUPPLY, "false", addr0],
+      [CUSTOM_TOKEN_ID, TOKEN_NAME, TOKEN_SYMBOL, DECIMALS, MAX_SUPPLY, "false", addr0],
       { privateKey: pk0, expectRejection: true },
     );
   });
@@ -99,7 +104,7 @@ describe("token_registry.aleo", () => {
       AUTHORIZED_UNTIL,
     );
     await expectConfirmed(exec);
-    // Verify by transferring - if mint worked, transfer should succeed
+    // Verify the mint took effect by transferring out a portion.
     const transferExec = await TokenRegistry.transferPublic(
       AleoUtils.accounts[0],
       CUSTOM_TOKEN_ID,
@@ -128,7 +133,7 @@ describe("token_registry.aleo", () => {
       TRANSFER_AMOUNT,
     );
     await expectConfirmed(exec);
-    // Verify: addr1 can now transfer back (proves they received)
+    // Verify reachability of the new balance: addr1 sends a small portion back.
     const execBack = await TokenRegistry.transferPublic(
       AleoUtils.accounts[1],
       CUSTOM_TOKEN_ID,
@@ -159,24 +164,27 @@ describe("token_registry.aleo", () => {
     );
   });
 
+  // Register the wrapper-backed token in token_registry, then mint enough of it
+  // to addr0 so subsequent deposit_token_public_signer calls succeed. Idempotent
+  // wrt registration: a duplicate-register rejection is treated as "already done"
+  // and any other error is re-thrown.
   async function setupWrappedToken() {
-    const name = "1413829460u128";
-    const symbol = "1413829460u128";
-    const decimals = "6u8";
-    const extAuthRequired = "false";
-    const extAuthParty = addr0;
-
     try {
       const reg = await AleoUtils.leoExecute(
         programPath,
         "register_token",
-        [WRAPPED_TOKEN_ID, name, symbol, decimals, MAX_SUPPLY, extAuthRequired, extAuthParty],
+        [WRAPPED_TOKEN_ID, TOKEN_NAME, TOKEN_SYMBOL, DECIMALS, MAX_SUPPLY, "false", addr0],
         { privateKey: pk0 },
       );
       await expectConfirmed(reg);
-    } catch {
-      // already registered
+    } catch (err) {
+      const msg = String(err?.message || err);
+      // The first call of the suite registers the token; subsequent calls hit
+      // the duplicate-token assertion in token_registry.aleo. Any other failure
+      // (deploy issue, network, etc.) should still surface.
+      if (!msg.includes("Transaction rejected")) throw err;
     }
+
     const mintExec = await TokenRegistry.mintPublic(
       AleoUtils.accounts[0],
       WRAPPED_TOKEN_ID,
@@ -199,7 +207,9 @@ describe("token_registry.aleo", () => {
 
   test("wrapped_token_registry: withdraw_token_public decreases balance", async () => {
     await setupWrappedToken();
-    await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "400u128");
+    await expectConfirmed(
+      await WrappedTokenRegistry.depositTokenPublic(AleoUtils.accounts[0], "400u128"),
+    );
 
     const before = await WrappedTokenRegistry.getPublicBalance(addr0);
     const exec = await WrappedTokenRegistry.withdrawTokenPublic(AleoUtils.accounts[0], "100u128");

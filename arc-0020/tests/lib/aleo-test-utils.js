@@ -400,6 +400,11 @@ export async function leoExecute(programPath, fnName, inputs, opts = {}) {
     if (process.env.SKIP_LEO_CHECKS === "1") {
       executeArgs.push("--skip-execute-proof");
     }
+    if (opts.with?.length) {
+      // `--with` accepts a comma-separated list of program ids/files; for ids
+      // not present locally, leo fetches them from the configured endpoint.
+      executeArgs.push("--with", opts.with.join(","));
+    }
     const res = await run(LEO_BIN, executeArgs, {
       cwd: programPath,
       label: `leo execute ${fnName}`,
