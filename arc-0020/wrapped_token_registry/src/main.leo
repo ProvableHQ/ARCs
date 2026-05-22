@@ -36,6 +36,8 @@ interface IARC20 {
     fn split(input: Token, amount: u128) -> (Token, Token);
     view fn balance_of(account: address) -> u128;
     view fn allowance(owner: address, spender: address) -> u128;
+    view fn supply() -> u128;
+    view fn max_supply() -> u128;
     view fn decimals() -> u8;
     view fn name() -> identifier;
     view fn symbol() -> identifier;
