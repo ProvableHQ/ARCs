@@ -1,1 +1,11 @@
-{"program":"token_registry.aleo","version":"0.1.0","description":"Token registry for wrapped credits and custom tokens","license":"MIT","leo":"3.5.0","dependencies":[{"name":"credits.aleo","location":"network","path":null,"edition":null}],"dev_dependencies":null}
+{
+    "program":"token_registry.aleo",
+    "version":"0.1.0",
+    "description":"Token registry for wrapped credits and custom tokens",
+    "license":"MIT",
+    "leo":"3.5.0",
+    "dependencies":[
+        {"name":"credits.aleo", "location":"network","path":null,"edition":null}
+    ],
+    "dev_dependencies":null
+}

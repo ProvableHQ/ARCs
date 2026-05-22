@@ -133,8 +133,8 @@ program wrapped_credits.aleo: IARC20 {
     // Wrapper-specific deposit / withdraw helpers (not part of ARC20)
     // ----------------------------------------------------------------------
     fn deposit_credits_public_signer(public amount: u64) -> Final {
-        let credits_finalization = credits.aleo::transfer_public_as_signer(self.address, amount);
         let depositor = self.signer;
+        let credits_finalization = credits.aleo::transfer_public_as_signer(self.address, amount);
         return final {
             credits_finalization.run();
             let previous_balance = balances.get_or_use(depositor, 0u128);
@@ -163,8 +163,8 @@ program wrapped_credits.aleo: IARC20 {
     }
 
     fn withdraw_credits_public(public amount: u64) -> Final {
-        let credits_finalization = credits.aleo::transfer_public(self.caller, amount);
         let withdrawer = self.caller;
+        let credits_finalization = credits.aleo::transfer_public(self.caller, amount);
         return final {
             let previous_balance = balances.get(withdrawer);
             balances.set(withdrawer, previous_balance - amount as u128);
@@ -174,8 +174,8 @@ program wrapped_credits.aleo: IARC20 {
     }
 
     fn withdraw_credits_public_signer(public amount: u64) -> Final {
-        let credits_finalization = credits.aleo::transfer_public(self.signer, amount);
         let withdrawer = self.signer;
+        let credits_finalization = credits.aleo::transfer_public(self.signer, amount);
         return final {
             let previous_balance = balances.get(withdrawer);
             balances.set(withdrawer, previous_balance - amount as u128);
@@ -188,8 +188,9 @@ program wrapped_credits.aleo: IARC20 {
         input_token: Token,
         public amount: u64,
     ) -> (credits.aleo::credits, Token, Final) {
+        let withdrawer = self.signer;
         let (output, credits_finalization) = credits.aleo::transfer_public_to_private(
-            input_token.owner,
+            withdrawer,
             amount,
         );
         let change_token = Token {

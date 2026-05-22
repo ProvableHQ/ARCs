@@ -36,6 +36,7 @@ function normalizeDepositWithdraw(s) {
   s = s.replace(/\/\/[^\n]*/g, "");
   return s
     .replace(/deposit_credits_public_signer/g, "deposit_public")
+    .replace(/deposit_token_public_signer/g, "deposit_public")
     .replace(/deposit_token_public/g, "deposit_public")
     .replace(/deposit_credits_private/g, "deposit_private")
     .replace(/deposit_token_private/g, "deposit_private")
@@ -62,14 +63,8 @@ function normalizeDepositWithdraw(s) {
     .replace(/external::transfer_public_as_signer\(self\.address,/g, "external::transfer_public_as_signer(TOKEN_ID, self.address,")
     .replace(/external::transfer_public\(self\.caller,/g, "external::transfer_public(TOKEN_ID, self.caller,")
     .replace(/external::transfer_public\(self\.signer,/g, "external::transfer_public(TOKEN_ID, self.signer,")
-    .replace(
-      /let tr_final = external::transfer_public\s*\(\s*TOKEN_ID,\s*self\.caller,\s*amount\s*\)\s*;\s*let withdrawer = self\.caller/g,
-      "let withdrawer = self.caller; let tr_final = external::transfer_public(TOKEN_ID, withdrawer, amount)",
-    )
-    .replace(
-      /let tr_final = external::transfer_public\s*\(\s*TOKEN_ID,\s*self\.signer,\s*amount\s*\)\s*;\s*let withdrawer = self\.signer/g,
-      "let withdrawer = self.signer; let tr_final = external::transfer_public(TOKEN_ID, withdrawer, amount)",
-    )
+    .replace(/external::transfer_public\(TOKEN_ID,\s*self\.caller,\s*amount\)/g, "external::transfer_public(TOKEN_ID, withdrawer, amount)")
+    .replace(/external::transfer_public\(TOKEN_ID,\s*self\.signer,\s*amount\)/g, "external::transfer_public(TOKEN_ID, withdrawer, amount)")
     .replace(/\s*\(\s*/g, " (")
     .replace(/\s*\)/g, ")")
     .replace(/,\s*\)/g, ")")
