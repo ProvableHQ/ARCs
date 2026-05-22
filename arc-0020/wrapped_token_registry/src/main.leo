@@ -106,11 +106,6 @@ program wrapped_token_registry.aleo: IARC20 {
         return info.supply;
     }
 
-    view fn total_supply() -> u128 {
-        let info: TokenInfo = token_info.unwrap_or(default_token_info());
-        return info.supply;
-    }
-
     view fn max_supply() -> u128 {
         let info: TokenInfo = token_info.unwrap_or(default_token_info());
         return info.max_supply;
