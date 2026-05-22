@@ -142,7 +142,7 @@ interface IARC22 {
         public amount: u128,
         input_record: Token,
         sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
-    ) -> (Token, Final);
+    ) -> (ComplianceRecord, Token, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128) -> (
         ComplianceRecord, Token, Final,
     );
@@ -623,20 +623,27 @@ program compliant_token_template.aleo: IARC22Mintable {
     }
 
     // Transfers private tokens from the record owner to a recipient as public tokens.
+    // A ComplianceRecord is emitted for the investigator, who must match the stored investigator role.
     // The sender must not be frozen in the freeze list.
     fn transfer_private_to_public(
         public recipient: address,
         public amount: u128,
         input_record: Token,
         sender_merkle_proofs: [freezelist.aleo::MerkleProof; 2u32],
-    ) -> (Token, Final) {
+    ) -> (ComplianceRecord, Token, Final) {
         let root: field = verify_non_inclusion(input_record.owner, sender_merkle_proofs);
         let updated_record: Token = Token {
             owner: input_record.owner,
             amount: input_record.amount - amount,
         };
+        let compliance_record: ComplianceRecord = ComplianceRecord {
+            owner: INVESTIGATOR_ADDRESS,
+            amount: amount,
+            sender: input_record.owner,
+            recipient: recipient,
+        };
         return (
-            updated_record,
+            compliance_record, updated_record,
             final {
                 let is_paused: bool = pause.unwrap();
                 assert_eq(is_paused, false);
