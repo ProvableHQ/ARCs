@@ -110,7 +110,6 @@ interface IARC22 {
         amount: u128,
         ..
     }
-
     record ComplianceRecord {
         owner: address,
         amount: u128,
@@ -118,10 +117,8 @@ interface IARC22 {
         recipient: address,
         ..
     }
-
     fn transfer_public(public recipient: address, public amount: u128) -> Final;
     fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final;
-
     fn approve_public(public spender: address, public amount: u128) -> Final;
     fn unapprove_public(public spender: address, public amount: u128) -> Final;
     fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
@@ -130,7 +127,6 @@ interface IARC22 {
         recipient: address,
         public amount: u128,
     ) -> (ComplianceRecord, Token, Final);
-
     fn transfer_private(
         recipient: address,
         amount: u128,
@@ -146,10 +142,8 @@ interface IARC22 {
     fn transfer_public_to_private(recipient: address, public amount: u128) -> (
         ComplianceRecord, Token, Final,
     );
-
     fn join(input_1: Token, input_2: Token) -> Token;
     fn split(input: Token, amount: u128) -> (Token, Token);
-
     view fn balance_of(account: address) -> u128;
     view fn allowance(owner: address, spender: address) -> u128;
     view fn supply() -> u128;
