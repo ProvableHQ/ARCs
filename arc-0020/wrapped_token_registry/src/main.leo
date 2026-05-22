@@ -142,10 +142,10 @@ program wrapped_token_registry.aleo: IARC20 {
             amount,
         );
         return final {
-            tr_final.run();
             let prev = balances.get_or_use(depositor, 0u128);
             balances.set(depositor, prev + amount);
             add_supply(amount);
+            tr_final.run();
         };
     }
 

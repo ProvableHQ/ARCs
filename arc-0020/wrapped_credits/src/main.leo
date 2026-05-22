@@ -136,10 +136,10 @@ program wrapped_credits.aleo: IARC20 {
         let depositor = self.signer;
         let credits_finalization = credits.aleo::transfer_public_as_signer(self.address, amount);
         return final {
-            credits_finalization.run();
             let previous_balance = balances.get_or_use(depositor, 0u128);
             balances.set(depositor, previous_balance + amount as u128);
             add_supply(amount as u128);
+            credits_finalization.run();
         };
     }
 
@@ -156,8 +156,8 @@ program wrapped_credits.aleo: IARC20 {
         return (
             change, token_output,
             final {
-                credits_finalization.run();
                 add_supply(amount as u128);
+                credits_finalization.run();
             },
         );
     }
@@ -200,8 +200,8 @@ program wrapped_credits.aleo: IARC20 {
         return (
             output, change_token,
             final {
-                credits_finalization.run();
                 sub_supply(amount as u128);
+                credits_finalization.run();
             },
         );
     }
