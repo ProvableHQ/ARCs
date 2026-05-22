@@ -155,8 +155,8 @@ interface IARC22 {
     view fn total_supply() -> u128;
     view fn max_supply() -> u128;
     view fn decimals() -> u8;
-    view fn name() -> u128;
-    view fn symbol() -> u128;
+    view fn name() -> identifier;
+    view fn symbol() -> identifier;
 }
 
 // DEPLOYER_ADDRESS: must match test account (AleoUtils.addresses[0]) for tests.
@@ -264,14 +264,14 @@ program compliant_token_template.aleo: IARC22 {
         return info.decimals;
     }
 
-    view fn name() -> u128 {
-        let info: TokenInfo = token_info.unwrap_or(default_token_info_uninit());
-        return info.name;
+    view fn name() -> identifier {
+        let touch: TokenInfo = token_info.unwrap_or(default_token_info_uninit());
+        return 'CompliantToken';
     }
 
-    view fn symbol() -> u128 {
-        let info: TokenInfo = token_info.unwrap_or(default_token_info_uninit());
-        return info.symbol;
+    view fn symbol() -> identifier {
+        let touch: TokenInfo = token_info.unwrap_or(default_token_info_uninit());
+        return 'COMP';
     }
 
     // Only this address can deploy and initialize the program
