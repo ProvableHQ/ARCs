@@ -7,7 +7,6 @@ const ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
 // EMPTY_ROOT == hash of H(ZERO_ADDRESS, ZERO_ADDRESS)
 const EMPTY_ROOT: field = 3642222252059314292809609689035560016959342421640560347114299934615987159853field;
 
-
 struct MerkleProof {
     siblings: [field; MAX_TREE_DEPTH + 1],
     leaf_index: u32,

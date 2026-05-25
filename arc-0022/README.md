@@ -180,7 +180,7 @@ When the freeze list is updated, the Merkle root changes. A `block_height_window
 - Proofs generated against the previous root remain valid for `block_height_window` blocks after a root update
 - This allows in-flight transactions with proofs generated before a freeze list update to still succeed
 
-#### `IARC22Freezelist` State
+#### `IARC22Freezelist` State Variables
 
 | State Variable | Type | Description |
 |----------------|------|-------------|
@@ -209,7 +209,9 @@ Fully public transitions (**`transfer_public`**, **`transfer_public_as_signer`**
 
 ### ARC22 Tokens In Practice
 
-While not required by the interface, deployers will likely need a set of admin transitions for a fully functioning regulated token in practice:
+While not required by the interface, deployers will likely need a set of admin capabilities for a fully-functioning regulated token:
+
+- **Role-gated Access Controls** -- various predefined roles that only allow an approved subset of users to call certain functions.  Roles may include `MINTER_ROLE`, `BURNER_ROLE`, `PAUSE_ROLE`, `MANAGER_ROLE`, and `FREEZELIST_MANAGER_ROLE`.
 
 - **`initialize(name, symbol, decimals, max_supply, admin)`** -- one-time setup, callable only by `DEPLOYER_ADDRESS`; populates `storage token_info`, sets `pause = false`, marks `initialized = true`, and assigns `MANAGER_ROLE` to `admin`.
 
@@ -221,7 +223,7 @@ While not required by the interface, deployers will likely need a set of admin t
 
 - **`set_pause_status(pause_status)`** -- gated by `PAUSE_ROLE`; toggles the `pause` storage flag, which blocks every balance-moving transition.
 
-- **`Credentials` Record / `transfer_private_with_creds`** -- Allows users to only need to generate the Merkle non-inclusion proof one time, them continue to execute private transfers without needing to reprove (assuming the freeze list root hasn't changed)
+- **`Credentials` Record / `transfer_private_with_creds`** -- Allows users to only need to generate the Merkle non-inclusion proof one time, then continue to execute private transfers without needing to reprove (assuming the freeze list root hasn't changed)
 ```leo
 record Credentials {
     owner: address,
