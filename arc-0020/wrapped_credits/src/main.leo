@@ -32,7 +32,7 @@ interface IARC20 {
         public amount: u128,
     ) -> (Token, Final);
     fn transfer_private(input: Token, recipient: address, amount: u128) -> (Token, Token);
-    fn transfer_private_to_public(input: Token, recipient: address, amount: u128) -> (Token, Final);
+    fn transfer_private_to_public(input: Token, public recipient: address, public amount: u128) -> (Token, Final);
     fn transfer_public_to_private(recipient: address, public amount: u128) -> (Token, Final);
     fn join(input_1: Token, input_2: Token) -> Token;
     fn split(input: Token, amount: u128) -> (Token, Token);
@@ -249,8 +249,8 @@ program wrapped_credits.aleo: IARC20 {
 
     fn transfer_private_to_public(
         input: Token,
-        recipient: address,
-        amount: u128,
+        public recipient: address,
+        public amount: u128,
     ) -> (Token, Final) {
         let change_token = Token { owner: input.owner, amount: input.amount - amount };
         return (
