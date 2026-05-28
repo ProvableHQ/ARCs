@@ -238,22 +238,7 @@ describe("token_registry.aleo", () => {
     expect(before - after).toBe(100n);
   });
 
-  // KNOWN-FAILING: dummy_exchange.aleo uses `_dynamic_call` to invoke
-  // wrapped_token_registry's ARC20 surface (`transfer_from_public` /
-  // `transfer_public`). With Leo 4.0.2, dynamic calls coerce every argument to
-  // `*.private`, but those wrapped_token_registry transitions expect
-  // `address.public` for owner / recipient. The on-chain execution verifier
-  // rejects the broadcast with:
-  //   "Input 0 in dynamic call to transfer_from_public should be of type
-  //    address.private, found: public"
-  //
-  // Both tests in this block are kept (skipped) so the dynamic-dispatch flows
-  // are exercised in code, and so the test bodies are ready to re-enable once
-  // Leo supports public-mode arguments through `_dynamic_call` (or once the
-  // dummy_exchange Leo source is reworked accordingly). dummy_exchange is
-  // deployed in `beforeAll` so that re-enabling these tests does not require
-  // any further setup changes.
-  describe.skip("dummy_exchange (dynamic dispatch into wrapped_token_registry)", () => {
+  describe("dummy_exchange (interface dispatch into wrapped_token_registry)", () => {
     async function bal(addr) {
       return await WrappedTokenRegistry.getPublicBalance(addr);
     }

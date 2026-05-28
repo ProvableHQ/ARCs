@@ -236,19 +236,7 @@ describe("wrapped_credits.aleo", () => {
     expect(after1 - before1).toBe(40n);
   });
 
-  // KNOWN-FAILING: dummy_exchange.aleo uses `_dynamic_call` to invoke the
-  // wrapped_credits ARC20 surface (`transfer_from_public` / `transfer_public`).
-  // With Leo 4.0.2, dynamic calls coerce every argument to `*.private`, but
-  // those wrapped_credits transitions expect `address.public` for owner /
-  // recipient. The on-chain execution verifier rejects the broadcast with:
-  //   "Input 0 in dynamic call to transfer_from_public should be of type
-  //    address.private, found: public"
-  //
-  // Both tests in this block are kept (skipped) so the dynamic-dispatch flows
-  // are exercised in code, and so the test bodies are ready to re-enable once
-  // Leo supports public-mode arguments through `_dynamic_call` (or once the
-  // dummy_exchange Leo source is reworked accordingly).
-  describe.skip("dummy_exchange (dynamic dispatch into wrapped_credits)", () => {
+  describe("dummy_exchange (interface dispatch into wrapped_credits)", () => {
     test("transfer_from: spender pulls from owner via allowance", async () => {
       const amount = "75u128";
       const execApprovePublic = await WrappedCredits.approvePublic(

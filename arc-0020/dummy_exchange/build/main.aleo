@@ -5,7 +5,7 @@ function transfer_from:
     input r1 as address.public;
     input r2 as address.public;
     input r3 as u128.public;
-    call.dynamic r0 1868917857field 567541106188061564941814004975800285532843504244field with r1 r2 r3 (as address.private address.private u128.private) into r4 (as dynamic.future);
+    call.dynamic r0 'aleo' 'transfer_from_public' with r1 r2 r3 (as address.public address.public u128.public) into r4 (as dynamic.future);
     async transfer_from r4 into r5;
     output r5 as dummy_exchange.aleo/transfer_from.future;
 
@@ -18,8 +18,8 @@ function swap:
     input r1 as field.public;
     input r2 as u128.public;
     input r3 as u128.public;
-    call.dynamic r0 1868917857field 567541106188061564941814004975800285532843504244field with self.signer dummy_exchange.aleo r2 (as address.private address.private u128.private) into r4 (as dynamic.future);
-    call.dynamic r1 1868917857field 516175629116388850284097790795674228field with self.signer r3 (as address.private u128.private) into r5 (as dynamic.future);
+    call.dynamic r0 'aleo' 'transfer_from_public' with self.signer dummy_exchange.aleo r2 (as address.public address.public u128.public) into r4 (as dynamic.future);
+    call.dynamic r1 'aleo' 'transfer_public' with self.signer r3 (as address.public u128.public) into r5 (as dynamic.future);
     async swap r4 r5 into r6;
     output r6 as dummy_exchange.aleo/swap.future;
 

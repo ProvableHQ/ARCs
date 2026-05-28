@@ -1,20 +1,41 @@
-// Dummy exchange demonstrating ARC20 interoperability via dynamic dispatch.
+// Dummy exchange demonstrating ARC20 interoperability via interface dispatch.
 //
-// Instead of importing a specific token program, this uses `_dynamic_call` to
-// interact with *any* ARC20 token by its program ID at runtime.
-//
-// Requires Leo compiler with dynamic dispatch support.
-// If your compiler does not support `_dynamic_call`, see the static-import
-// version in git history (prior to this commit).
+// Uses the IARC20 interface to interact with *any* ARC20 token by its program
+// ID (token_id field) at runtime.
+
+interface IARC20 {
+    record Token {
+        owner: address,
+        amount: u128,
+        ..
+    }
+    fn transfer_public(public recipient: address, public amount: u128) -> Final;
+    fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final;
+    fn approve_public(public spender: address, public amount: u128) -> Final;
+    fn unapprove_public(public spender: address, public amount: u128) -> Final;
+    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
+    fn transfer_from_public_to_private(
+        public owner: address,
+        recipient: address,
+        public amount: u128,
+    ) -> (Token, Final);
+    fn transfer_private(input: Token, recipient: address, amount: u128) -> (Token, Token);
+    fn transfer_private_to_public(input: Token, public recipient: address, public amount: u128) -> (Token, Final);
+    fn transfer_public_to_private(recipient: address, public amount: u128) -> (Token, Final);
+    fn join(input_1: Token, input_2: Token) -> Token;
+    fn split(input: Token, amount: u128) -> (Token, Token);
+    view fn balance_of(account: address) -> u128;
+    view fn allowance(owner: address, spender: address) -> u128;
+    view fn supply() -> u128;
+    view fn max_supply() -> u128;
+    view fn decimals() -> u8;
+    view fn name() -> identifier;
+    view fn symbol() -> identifier;
+}
 
 program dummy_exchange.aleo {
     @noupgrade
     constructor() {}
-
-    // ARC20 function selectors for dynamic dispatch.
-    const NETWORK_ALEO: field = 1868917857field;
-    const TRANSFER_FROM_PUBLIC_ID: field = 567541106188061564941814004975800285532843504244field;
-    const TRANSFER_PUBLIC_ID: field = 516175629116388850284097790795674228field;
 
     // Pull tokens from `owner` to `recipient` via allowance (approve_public must be called first).
     // Works with any ARC20 token — the caller passes the token's program ID.
@@ -24,14 +45,7 @@ program dummy_exchange.aleo {
         public recipient: address,
         public amount: u128,
     ) -> Final {
-        let f: Final = _dynamic_call::[Final](
-            token_id,
-            NETWORK_ALEO,
-            TRANSFER_FROM_PUBLIC_ID,
-            owner,
-            recipient,
-            amount,
-        );
+        let f: Final = IARC20@(token_id)::transfer_from_public(owner, recipient, amount);
         return final { f.run(); };
     }
 
@@ -45,22 +59,9 @@ program dummy_exchange.aleo {
         public amount_out: u128,
     ) -> Final {
         // Pull token_in from signer via allowance
-        let pull: Final = _dynamic_call::[Final](
-            token_in,
-            NETWORK_ALEO,
-            TRANSFER_FROM_PUBLIC_ID,
-            self.signer,
-            self.address,
-            amount_in,
-        );
+        let pull: Final = IARC20@(token_in)::transfer_from_public(self.signer, self.address, amount_in);
         // Send token_out to signer from this program's balance
-        let push: Final = _dynamic_call::[Final](
-            token_out,
-            NETWORK_ALEO,
-            TRANSFER_PUBLIC_ID,
-            self.signer,
-            amount_out,
-        );
+        let push: Final = IARC20@(token_out)::transfer_public(self.signer, amount_out);
         return final {
             pull.run();
             push.run();
