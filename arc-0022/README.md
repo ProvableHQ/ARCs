@@ -102,7 +102,7 @@ interface IARC22 {
 }
 ```
 
-**Merkle non-inclusion proofs** are required only on transitions where the sender is private -- **`transfer_private`** and **`transfer_private_to_public`**. Transitions where the sender is public -- **`transfer_public_to_private`** and **`transfer_from_public_to_private`** -- read the **`freeze_list`** mapping directly for the sender.
+**Merkle non-inclusion proofs** are required only on transitions where the sender is private -- **`transfer_private`** and **`transfer_private_to_public`**. Transitions where the sender is public -- **`transfer_public_to_private`** and **`transfer_from_public_to_private`** -- check the sender against the freeze list directly via **`is_frozen_address`** (or the equivalent **`verify_non_inclusion_pub`** helper).
 
 **Compliance coverage.** Every transition that moves balances on a private path -- **`transfer_private`**, **`transfer_private_to_public`**, **`transfer_public_to_private`**, and **`transfer_from_public_to_private`** -- emits a **`ComplianceRecord`** owned by **`INVESTIGATOR_ADDRESS`**, so the investigator can decrypt the full sender / recipient / amount tuple whenever at least one side is private.
 
@@ -137,14 +137,6 @@ The freeze list prevents sanctioned or compromised addresses from transacting. I
 
 ```leo
 interface IARC22Freezelist {
-    mapping freeze_list: address => bool;
-    mapping freeze_list_index: u32 => address;
-    storage freeze_list_last_index: u32;
-    storage current_freeze_list_root: field;
-    storage previous_freeze_list_root: field;
-    storage root_updated_height: u32;
-    storage block_height_window: u32;
-
     fn initialize(public admin: address, public blocks: u32) -> Final;
     fn update_freeze_list(
         public account: address,
@@ -155,8 +147,20 @@ interface IARC22Freezelist {
     ) -> Final;
     fn verify_non_inclusion_pub(public account: address) -> Final;
     fn verify_non_inclusion_priv(account: address, merkle_proof: [MerkleProof; 2u32]) -> Final;
+
+    //=============================================================
+    //                VIEW FUNCTIONS
+    //=============================================================
+    view fn is_frozen_address(account: address) -> bool;
+    view fn is_frozen_index(index: u32) -> bool;
+    view fn current_freeze_list_root() -> field;
+    view fn previous_freeze_list_root() -> field;
+    view fn root_updated_height() -> u32;
+    view fn block_height_window() -> u32;
 }
 ```
+
+As with **`IARC22`**, mappings and storage variables are intentionally **not** part of the interface; implementations are free to choose their own backing storage. State is exposed exclusively through the view functions above.
 
 #### Merkle Non-Inclusion Proofs
 
@@ -176,21 +180,20 @@ When the freeze list is updated, the Merkle root changes. A `block_height_window
 - Proofs generated against the previous root remain valid for `block_height_window` blocks after a root update
 - This allows in-flight transactions with proofs generated before a freeze list update to still succeed
 
-#### `IARC22Freezelist` State Variables
+#### `IARC22Freezelist` View Functions
 
-| State Variable | Type | Description |
-|----------------|------|-------------|
-| `freeze_list` | `address -> bool` | Whether an address is frozen |
-| `freeze_list_index` | `u32 -> address` | Ordered index of frozen addresses |
-| `freeze_list_last_index` | `u32` | Last used index in the freeze list |
-| `current_freeze_list_root` | `field` | Current Merkle root |
-| `previous_freeze_list_root` | `field` | Previous Merkle root |
-| `root_updated_height` | `u32` | Block height of last root update |
-| `block_height_window` | `u32` | Number of blocks the previous root remains valid |
+| View Function | Returns | Description |
+|---------------|---------|-------------|
+| `is_frozen_address(account)` | `bool` | Whether `account` is currently on the freeze list |
+| `is_frozen_index(index)` | `bool` | Whether the slot at `index` is occupied by a frozen address |
+| `current_freeze_list_root()` | `field` | The current Merkle root of the freeze-list tree |
+| `previous_freeze_list_root()` | `field` | The previous Merkle root, still valid within the block-height window |
+| `root_updated_height()` | `u32` | Block height at which the root was last updated |
+| `block_height_window()` | `u32` | Number of blocks for which the previous root remains valid |
 
 ### Library Constants
 
-The `IARC22` library exports the following constants. Implementations and proof generators must use these exact values.
+The `IARC22` library exports the following constants. Implementations should use these values.
 
 | Constant | Type | Value | Purpose |
 |----------|------|-------|---------|
@@ -269,9 +272,9 @@ record Credentials {
 
 **Freeze list**: The **`IARC22`** surface enforces freeze-list checks on every balance-moving path:
 
-- Fully public sender paths (`transfer_public`, `transfer_public_as_signer`, `transfer_from_public`) read the **`freeze_list`** mapping directly for both sender and recipient.
-- Public-sender / private-recipient paths (`transfer_public_to_private`, `transfer_from_public_to_private`) read **`freeze_list`** directly for the sender; recipient is not checked at the freeze-list level because the recipient address may itself be private to the call site.
-- Private-sender paths (`transfer_private`, `transfer_private_to_public`) verify Merkle non-inclusion proofs against the current or previous freeze-list Merkle root, plus a direct **`freeze_list`** check on the public recipient in `transfer_private_to_public`.
+- Fully public sender paths (`transfer_public`, `transfer_public_as_signer`, `transfer_from_public`) check the freeze list directly via **`is_frozen_address`** (or **`verify_non_inclusion_pub`**) for both sender and recipient.
+- Public-sender / private-recipient paths (`transfer_public_to_private`, `transfer_from_public_to_private`) check the sender via **`is_frozen_address`**; the recipient is not checked at the freeze-list level because the recipient address may itself be private to the call site.
+- Private-sender paths (`transfer_private`, `transfer_private_to_public`) verify Merkle non-inclusion proofs against the current or previous freeze-list Merkle root, plus a direct **`is_frozen_address`** check on the public recipient in `transfer_private_to_public`.
 
 A windowed root update mechanism allows proofs generated against a previous root to remain valid for `BLOCK_HEIGHT_WINDOW` blocks after a root update, preventing race conditions where a freeze-list update invalidates in-flight transactions.
 
