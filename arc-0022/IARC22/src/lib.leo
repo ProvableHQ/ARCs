@@ -198,12 +198,6 @@ interface IARC22 {
     fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final;
 
     //=============================================================
-    //             SHIELD/UNSHIELD FUNCTIONS
-    //=============================================================
-    fn shield(public amount: u128) -> (ComplianceRecord, Token, Final);
-    fn unshield(public amount: u128, input_record: Token) -> (ComplianceRecord, Token, Final);
-
-    //=============================================================
     //               JOIN/SPLIT FUNCTIONS
     //=============================================================
     fn join(input_1: Token, input_2: Token) -> Token;
