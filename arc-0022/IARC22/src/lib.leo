@@ -108,7 +108,7 @@ fn verify_non_inclusion(addr: address, merkle_proofs: [MerkleProof; 2]) -> field
     return root1;
 }
 
-interface ARC22Freezelist {
+interface IARC22Freezelist {
     // Indicates whether an address is frozen.
     mapping freeze_list: address => bool;
 

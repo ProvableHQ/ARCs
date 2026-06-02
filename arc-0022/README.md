@@ -23,9 +23,16 @@ ARC-22 adds these capabilities while preserving Aleo's privacy guarantees throug
 
 ## Specification
 
+The ARC-22 standard provides a library (`IARC22`), which is composed of:
+
+- Two interfaces, **`IARC22`** and **`IARC22Freezelist`**, defining the token and freeze-list contracts
+- A **`MerkleProof`** struct used by the non-inclusion proof flow
+- A small set of **constants** (`MAX_TREE_DEPTH`, `ZERO_ADDRESS`, `EMPTY_ROOT`)
+- **Merkle helper functions** that implementations call to verify proofs
+
 ### `IARC22`
 
-The compliant token surface adds freeze-list enforcement (via Merkle non-inclusion proofs on private sends) and investigator-visible **`ComplianceRecord`** outputs on every transition that materially changes a balance. Mappings and storage variables are intentionally **not** part of the interface; body—only function signatures and the records (**`Token`**, **`ComplianceRecord`**) form the contract.
+The compliant token surface adds freeze-list enforcement (via Merkle non-inclusion proofs on private sends) and investigator-visible **`ComplianceRecord`** outputs on every transition that materially changes a balance. Mappings and storage variables are intentionally **not** part of the interface; only function signatures and the records (**`Token`**, **`ComplianceRecord`**) form the contract.
 
 ```leo
 interface IARC22 {
@@ -36,11 +43,11 @@ interface IARC22 {
     }
 
     record ComplianceRecord {
-        owner: address,  
+        owner: address,     // INVESTIGATOR_ADDRESS
         amount: u128,
-        sender: address,  
-        recipient: address,
-        .. 
+        sender: address,    // ZERO_ADDRESS for mint paths
+        recipient: address, // ZERO_ADDRESS for burn paths
+        ..
     }
 
     //=============================================================
@@ -105,7 +112,7 @@ interface IARC22 {
 
 **Compliance coverage.** Every transition that moves balances on a private path -- **`transfer_private`**, **`transfer_private_to_public`**, **`transfer_public_to_private`**, and **`transfer_from_public_to_private`** -- emits a **`ComplianceRecord`** owned by **`INVESTIGATOR_ADDRESS`**, so the investigator can decrypt the full sender / recipient / amount tuple whenever at least one side is private.
 
-### Record Types
+#### Record Types
 
 **Token** -- Represents a private token balance. Implementations may add additional fields beyond `owner` and `amount`:
 ```leo
@@ -120,11 +127,11 @@ record Token {
 
 ```leo
 record ComplianceRecord {
-    owner: address,  
+    owner: address,     // INVESTIGATOR_ADDRESS
     amount: u128,
-    sender: address,  
-    recipient: address, 
-    .. 
+    sender: address,    // ZERO_ADDRESS for mint paths
+    recipient: address, // ZERO_ADDRESS for burn paths
+    ..
 }
 ```
 
@@ -135,7 +142,7 @@ The interface declares both records with `..`, so implementations may add fields
 The freeze list prevents sanctioned or compromised addresses from transacting. It uses a Merkle tree to enable privacy-preserving verification.
 
 ```leo
-interface ARC22Freezelist {
+interface IARC22Freezelist {
     mapping freeze_list: address => bool;
     mapping freeze_list_index: u32 => address;
     storage freeze_list_last_index: u32;
@@ -165,12 +172,7 @@ Private transfers require the sender to prove they are **not** on the freeze lis
 2. To prove non-inclusion, the sender provides Merkle proofs for two adjacent leaves in the tree, showing that their address falls in the **gap** between them (or before the first / after the last frozen address)
 3. The proof verifies against the current (or previous) Merkle root stored on-chain
 
-```leo
-struct MerkleProof {
-    siblings: [field; MAX_TREE_DEPTH + 1],
-    leaf_index: u32,
-}
-```
+The `MerkleProof` struct (defined in the `IARC22` library, see below) carries the sibling path and leaf index used for verification.
 
 #### Windowed Root Updates
 
@@ -192,18 +194,53 @@ When the freeze list is updated, the Merkle root changes. A `block_height_window
 | `root_updated_height` | `u32` | Block height of last root update |
 | `block_height_window` | `u32` | Number of blocks the previous root remains valid |
 
+### Library Constants
+
+The `IARC22` library exports the following constants. Implementations and proof generators must use these exact values.
+
+| Constant | Type | Value | Purpose |
+|----------|------|-------|---------|
+| `MAX_TREE_DEPTH` | `u32` | `15u32` | Maximum depth of the freeze-list Merkle tree. Bounds the `siblings` array size at `MAX_TREE_DEPTH + 1`. |
+| `ZERO_ADDRESS` | `address` | `aleo1qqq...3ljyzc` (encoding of `0field`) | Sentinel used as `sender` for mint paths and `recipient` for burn paths in `ComplianceRecord`. |
+| `EMPTY_ROOT` | `field` | `H(ZERO_ADDRESS, ZERO_ADDRESS)` (Poseidon-based) | Initial Merkle root of an empty freeze list, used at `initialize` time. |
+
+### `MerkleProof`
+
+`MerkleProof` is defined in the `IARC22` library itself. Implementations reference it directly as `MerkleProof`.
+
+```leo
+struct MerkleProof {
+    siblings: [field; MAX_TREE_DEPTH + 1],
+    leaf_index: u32,
+}
+```
+
+### Merkle Helper Functions
+
+The library exposes helpers that implementations use to verify Merkle proofs. They use Poseidon4 hashes with a domain-separation tag (`0field` for internal nodes, `1field` for leaf pairs).
+
+| Function | Signature | Purpose |
+|----------|-----------|---------|
+| `calculate_hash_for_nodes` | `(sibling1: field, sibling2: field, indexbit: u32) -> field` | Hash two internal sibling nodes, ordered by `indexbit`. |
+| `calculate_hash_for_leaves` | `(sibling1: field, sibling2: field, indexbit: u32) -> field` | Hash the leaf-level sibling pair, ordered by `indexbit`. |
+| `calculate_root_depth_siblings` | `(merkle_proof: MerkleProof) -> (field, u32)` | Reconstruct the Merkle root from a proof; stops at the first `0field` sibling and returns `(root, depth)`. |
+| `verify_inclusion` | `(addr: address, merkle_proof: MerkleProof) -> field` | Assert `addr` matches the leaf and return the reconstructed root for comparison against a known root. |
+| `verify_non_inclusion` | `(addr: address, merkle_proofs: [MerkleProof; 2]) -> field` | Verify `addr` falls in the gap between two adjacent sorted leaves (or before the first / after the last) and return the common root. |
+
+`verify_non_inclusion` assumes the freeze-list tree is sorted in ascending order by address (cast to `field`). It is the function private senders rely on to prove they are not on the freeze list.
+
 ### Compliance Records
 
-Transitions that move balances along a private path emit a **`ComplianceRecord`** with **`owner`** set to a designated investigator address, so only that address can decrypt the record and view the transfer details (sender, recipient, amount). The reference template emits **`ComplianceRecord`** on:
+Transitions that move balances along a private path emit a **`ComplianceRecord`** with **`owner`** set to a designated investigator address, so only that address can decrypt the record and view the transfer details (sender, recipient, amount). The reference template emits **`ComplianceRecord`** on the following transitions. The first four are part of the **`IARC22`** interface; **`mint_private`** and **`burn_private`** are admin extensions added by the reference template (see "ARC22 Tokens In Practice" below) and are **not** part of the interface.
 
-| Transition | `sender` field | `recipient` field |
-|------------|----------------|--------------------|
-| **`transfer_private`** | `input_record.owner` (private) | `recipient` (private) |
-| **`transfer_private_to_public`** | `input_record.owner` (private) | `recipient` (public input) |
-| **`transfer_public_to_private`** | `self.caller` (public) | `recipient` (private) |
-| **`transfer_from_public_to_private`** | `owner` (public) | `recipient` (private) |
-| **`mint_private`** (admin path) | `ZERO_ADDRESS` | `recipient` (private) |
-| **`burn_private`** (admin path) | `input_record.owner` | `ZERO_ADDRESS` |
+| Transition | Part of `IARC22`? | `sender` field | `recipient` field |
+|------------|-------------------|----------------|--------------------|
+| **`transfer_private`** | yes | `input_record.owner` (private) | `recipient` (private) |
+| **`transfer_private_to_public`** | yes | `input_record.owner` (private) | `recipient` (public input) |
+| **`transfer_public_to_private`** | yes | `self.caller` (public) | `recipient` (private) |
+| **`transfer_from_public_to_private`** | yes | `owner` (public) | `recipient` (private) |
+| **`mint_private`** (admin path) | no | `ZERO_ADDRESS` | `recipient` (private) |
+| **`burn_private`** (admin path) | no | `input_record.owner` | `ZERO_ADDRESS` |
 
 Fully public transitions (**`transfer_public`**, **`transfer_public_as_signer`**, **`transfer_from_public`**, **`mint_public`**, **`burn_public`**) do **not** emit a **`ComplianceRecord`** -- the sender, recipient, and amount are already public inputs visible on-chain.
 
@@ -248,7 +285,7 @@ A windowed root update mechanism allows proofs generated against a previous root
 
 **Pause kill-switch**: Every balance-moving transition checks `storage pause` and aborts when paused. Only addresses holding `PAUSE_ROLE` can toggle the flag via `set_pause_status`.
 
-**Upgradability**: `compliant_token_template.aleo` and `freezelist.aleo` gate program upgrades behind `multisig_core.aleo` signing operations (see the `@custom` constructor and `get_signing_op_id_for_deploy` helper), ensuring that code changes require multi-party approval. -->
+**Upgradability**: `compliant_token_template.aleo` gates program upgrades behind `multisig_core.aleo` signing operations (see the `@custom` constructor and `get_signing_op_id_for_deploy` helper), ensuring that code changes require multi-party approval. -->
 
 ## Copyright
 
