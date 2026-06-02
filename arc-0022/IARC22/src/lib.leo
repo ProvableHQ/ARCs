@@ -112,10 +112,10 @@ interface IARC22Freezelist {
     // Initializes the freeze list and the admin. Sets the block height window, the initial empty Merkle root,
     fn initialize(public admin: address, public blocks: u32) -> Final;
 
-    // Freezes or unfreezes an account based on the action flag (true = freeze, false = unfreeze) TODO: document that this is different from `compliant-stablecoin`
+    // Freezes or unfreezes an account based on the action flag (true = freeze, false = unfreeze)
     fn update_freeze_list(
         public account: address,
-        public action: bool,
+        public is_frozen: bool,
         public index: u32,
         public existing_root: field,
         public new_root: field,

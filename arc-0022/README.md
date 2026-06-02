@@ -140,7 +140,7 @@ interface IARC22Freezelist {
     fn initialize(public admin: address, public blocks: u32) -> Final;
     fn update_freeze_list(
         public account: address,
-        public action: bool,
+        public is_frozen: bool,
         public index: u32,
         public existing_root: field,
         public new_root: field,
