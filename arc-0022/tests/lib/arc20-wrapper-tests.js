@@ -16,13 +16,7 @@ export function registerArc20WrapperTests(config) {
   const addr2 = addresses[2];
   const addr3 = addresses[3];
 
-  function extractRecordPlaintexts(stdout) {
-    const s = String(stdout || "");
-    const blocks = [...s.matchAll(/•\s*\{\n[\s\S]*?\n\}/g)].map((m) =>
-      String(m[0]).replace(/^\s*•\s*/m, "").trim(),
-    );
-    return blocks.filter((b) => b.includes("_nonce:") && b.includes("_version:"));
-  }
+  // Use the shared extractRecordPlaintexts() exported at the bottom of this module.
 
   async function bal(addr) {
     return await Wrapper.getPublicBalance(addr);
