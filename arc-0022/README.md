@@ -195,7 +195,7 @@ While not required by the interface, deployers will likely need a set of admin c
 
 - **`set_pause_status(pause_status)`** -- gated by `PAUSE_ROLE`; toggles the `pause` storage flag, which blocks every balance-moving transition.
 
-- **`Credentials` Record / `transfer_private_with_creds`** -- Allows users to only need to generate the Merkle non-inclusion proof one time, then continue to execute private transfers without needing to reprove (assuming the freeze list root hasn't changed)
+- **`Credentials` Record / `transfer_private_with_creds` / `transfer_private_to_public_with_creds`** -- Allows users to only need to generate the Merkle non-inclusion proof one time, then continue to execute private transfers without needing to reprove (assuming the freeze list root hasn't changed)
 ```leo
 record Credentials {
     owner: address,
