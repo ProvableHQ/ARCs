@@ -1,2 +1,1 @@
-./.gitignore
-./compliant_token_template/
+# Intentionally left blank (program-level .gitignore files handle build artifacts).
