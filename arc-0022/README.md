@@ -206,7 +206,7 @@ record Credentials {
 
 
 
-<!-- ## Security Considerations
+## Security Considerations
 
 **Freeze list**: The **`IARC22`** surface enforces freeze-list checks on every balance-moving path:
 
@@ -220,7 +220,7 @@ A windowed root update mechanism allows proofs generated against a previous root
 
 **Pause kill-switch**: Every balance-moving transition checks `storage pause` and aborts when paused. Only addresses holding `PAUSE_ROLE` can toggle the flag via `set_pause_status`.
 
-**Upgradability**: `compliant_token_template.aleo` gates program upgrades behind `multisig_core.aleo` signing operations (see the `@custom` constructor and `get_signing_op_id_for_deploy` helper), ensuring that code changes require multi-party approval. -->
+**Upgradability**: `compliant_token_template.aleo` gates program upgrades behind `multisig_core.aleo` signing operations (see the `@custom` constructor and `get_signing_op_id_for_deploy` helper), ensuring that code changes require multi-party approval. 
 
 ## Copyright
 
