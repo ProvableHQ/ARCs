@@ -1,0 +1,19 @@
+{
+  "name": "arc-0022-tests",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test-skip-checks": "SKIP_LEO_CHECKS=1 node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:compliant-token-template": "SKIP_LEO_CHECKS=1 node --experimental-vm-modules node_modules/jest/bin/jest.js compliant-token-template.test.js",
+    "test:abi-vs-deployed": "node --experimental-vm-modules node_modules/jest/bin/jest.js abi-vs-deployed.test.js"
+  },
+  "dependencies": {
+    "@provablehq/sdk": "^0.9.11",
+    "@sealance-io/policy-engine-aleo": "^0.1.2"
+  },
+  "devDependencies": {
+    "jest": "^30.1.3"
+  }
+}

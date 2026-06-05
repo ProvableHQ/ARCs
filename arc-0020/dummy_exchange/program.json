@@ -1,0 +1,9 @@
+{
+  "program": "dummy_exchange.aleo",
+  "version": "0.1.0",
+  "description": "Dummy exchange for testing spendable allowance",
+  "license": "MIT",
+  "leo": "3.5.0",
+  "dependencies": [],
+  "dev_dependencies": null
+}

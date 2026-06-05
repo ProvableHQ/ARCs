@@ -1,0 +1,12 @@
+{
+  "name": "wrapped-credits-tests",
+  "version": "0.1.0",
+  "description": "JavaScript tests for wrapped_credits using Provable SDK (optional)",
+  "main": "wrappedCredits.test.js",
+  "scripts": {
+    "test": "node ./wrappedCredits.test.js"
+  },
+  "dependencies": {
+    "@aleo/provable": "*"
+  }
+}

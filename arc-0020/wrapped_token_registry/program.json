@@ -1,0 +1,14 @@
+{
+  "program": "wrapped_token_registry.aleo",
+  "version": "0.1.0",
+  "description": "Stateless wrapper around token_registry implementing TransferPublic",
+  "license": "MIT",
+  "leo": "3.5.0",
+  "dependencies": [
+    {
+      "name": "token_registry.aleo",
+      "location": "network"
+    }
+  ],
+  "dev_dependencies": null
+}
