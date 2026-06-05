@@ -14,7 +14,7 @@ ARC-22 defines a compliant fungible token interface for Aleo. It modifies [ARC-2
 
 ## Motivation
 
-ARC-20 provides a minimal token standard but lacks regulatory compliance features required by many real-world token deployments. Regulated tokens compliance mechanisms such as:
+ARC-20 provides a minimal token standard but lacks regulatory compliance features required by many real-world token deployments. Regulated tokens need compliance mechanisms such as:
 
 1. **Freeze lists** to block sanctioned or compromised addresses from transacting
 2. **Audit trails** for private transfers, enabling authorized investigators to review token movements without exposing sender identity to the public
@@ -33,74 +33,6 @@ The ARC-22 standard provides a library ([`IARC22`](./IARC22)), which is composed
 ### `IARC22`
 
 The compliant token surface adds freeze-list enforcement (via Merkle non-inclusion proofs on private sends) and investigator-visible **`ComplianceRecord`** outputs on every transition that materially changes a balance. Mappings and storage variables are intentionally **not** part of the interface; only function signatures and the records (**`Token`**, **`ComplianceRecord`**) form the contract.
-
-```leo
-interface IARC22 {
-    record Token {
-        owner: address,
-        amount: u128,
-        ..
-    }
-
-    record ComplianceRecord {
-        owner: address,     // INVESTIGATOR_ADDRESS
-        amount: u128,
-        sender: address,    // ZERO_ADDRESS for mint paths
-        recipient: address, // ZERO_ADDRESS for burn paths
-        ..
-    }
-
-    //=============================================================
-    //               APPROVAL FUNCTIONS
-    //=============================================================
-    fn approve_public(public spender: address, public amount: u128) -> Final;
-    fn unapprove_public(public spender: address, public amount: u128) -> Final;
-
-    //=============================================================
-    //               TRANSFER FUNCTIONS
-    //=============================================================
-    fn transfer_public(public recipient: address, public amount: u128) -> Final;
-    fn transfer_private(
-        private recipient: address,
-        private amount: u128,
-        private input_record: Token,
-        private sender_merkle_proofs: [MerkleProof; 2u32],
-    ) -> (ComplianceRecord, Token, Token, Final);
-    fn transfer_private_to_public(
-        public recipient: address,
-        public amount: u128,
-        private input_record: Token,
-        private sender_merkle_proofs: [MerkleProof; 2u32],
-    ) -> (ComplianceRecord, Token, Final);
-    fn transfer_public_to_private(recipient: address, public amount: u128) -> (
-        ComplianceRecord, Token, Final,
-    );
-    fn transfer_from_public(public owner: address, public recipient: address, public amount: u128) -> Final;
-    fn transfer_from_public_to_private(
-        public owner: address,
-        private recipient: address,
-        public amount: u128,
-    ) -> (ComplianceRecord, Token, Final);
-    fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final;
-
-    //=============================================================
-    //               JOIN/SPLIT FUNCTIONS
-    //=============================================================
-    fn join(input_1: Token, input_2: Token) -> Token;
-    fn split(input: Token, amount: u128) -> (Token, Token);
-
-    //=============================================================
-    //                VIEW FUNCTIONS
-    //=============================================================
-    view fn balance_of(account: address) -> u128;
-    view fn allowance(owner: address, spender: address) -> u128;
-    view fn supply() -> u128;
-    view fn max_supply() -> u128;
-    view fn decimals() -> u8;
-    view fn name() -> identifier;
-    view fn symbol() -> identifier;
-}
-```
 
 **Merkle non-inclusion proofs** are required only on transitions where the sender is private -- **`transfer_private`** and **`transfer_private_to_public`**. Transitions where the sender is public -- **`transfer_public_to_private`** and **`transfer_from_public_to_private`** -- check the sender against the freeze list directly via **`is_frozen_address`** (or the equivalent **`verify_non_inclusion_pub`** helper).
 

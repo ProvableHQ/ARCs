@@ -108,36 +108,6 @@ fn verify_non_inclusion(addr: address, merkle_proofs: [MerkleProof; 2]) -> field
     return root1;
 }
 
-interface IARC22Freezelist {
-    // Initializes the freeze list and the admin. Sets the block height window, the initial empty Merkle root,
-    fn initialize(public admin: address, public blocks: u32) -> Final;
-
-    // Freezes or unfreezes an account based on the action flag (true = freeze, false = unfreeze)
-    fn update_freeze_list(
-        public account: address,
-        public is_frozen: bool,
-        public index: u32,
-        public existing_root: field,
-        public new_root: field,
-    ) -> Final;
-
-    // Verifies that an account is not currently frozen.
-    fn verify_non_inclusion_pub(public account: address) -> Final;
-
-    // Verifies that an account is not included in the freeze list Merkle tree.
-    fn verify_non_inclusion_priv(account: address, merkle_proof: [MerkleProof; 2u32]) -> Final;
-
-    //=============================================================
-    //                VIEW FUNCTIONS
-    //=============================================================
-    view fn is_frozen_address(account: address) -> bool;
-    view fn is_frozen_index(index: u32) -> bool;
-    view fn current_freeze_list_root() -> field;
-    view fn previous_freeze_list_root() -> field;
-    view fn root_updated_height() -> u32;
-    view fn block_height_window() -> u32;
-}
-
 interface IARC22 {
     record Token {
         owner: address,
