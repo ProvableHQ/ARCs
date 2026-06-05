@@ -2,7 +2,7 @@
 arc: 22
 title: ARC-22 Compliant Fungible Token Standard
 authors: The Aleo Team <hello@aleo.org>
-discussion: https://github.com/AleoHQ/ARCs/discussions/TBD
+discussion:
 topic: Application
 status: Draft
 created: 2026-03-18
