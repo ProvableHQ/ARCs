@@ -1,38 +1,39 @@
 import './App.css';
 import arcs from './arcs.json';
-
-import React, { useEffect, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Card, Layout, Table, Tag } from 'antd';
 
-import { Button, Card, Col, Divider, Form, Input, Layout, Menu, Row, Table, Tag } from 'antd';
 const { Header, Content, Footer } = Layout;
 
 const Readme = ({ readme }) => {
-    const ref = useRef(null);
-
-    useEffect(() => {
-        if (readme && ref) {
-            ReactDOM.render(<ReactMarkdown source={readme} />, ref.current)
-        }
-    }, [readme])
-
-    return <div ref={ref} />
+    return <ReactMarkdown source={readme} />;
 }
 
 function App() {
-    const rows = Object.values(arcs).map(proposal => {
+    const [body, setBody] = useState(null);
+
+    const handleProposalClick = useCallback((id) => {
+        const proposal = arcs[id].content;
+        setBody(<Card>
+            <h1>ARC-{id}: {arcs[id].metadata.title}</h1>
+            <br/>
+            <Readme readme={proposal}/>
+        </Card>)
+    }, []);
+
+    const rows = useMemo(() => Object.values(arcs).map(proposal => {
         const { arc, title, authors, topic, status } = proposal.metadata;
         return { key: arc, arc, title, authors, topic, status }
-    });
+    }), []);
 
-    const columns = [
+    const columns = useMemo(() => [
         {
             title: 'ARC',
             dataIndex: 'arc',
             key: 'arc',
             sorter: true,
-            render: arc => <a onClick={proposal.bind(this, arc)}>{arc}</a>,
+            render: arc => <a onClick={() => handleProposalClick(arc)}>{arc}</a>,
         },
         {
             title: 'Title',
@@ -72,29 +73,18 @@ function App() {
             key: 'status',
             sorter: true,
         }
-    ];
+    ], [handleProposalClick]);
 
-    const landingPage = () => <Table dataSource={rows} columns={columns} />;
-
-    const proposal = (id) => {
-        console.log(id);
-        const proposal = arcs[id].content;
-        setBody(<Card>
-            <h1>ARC-{id}: {arcs[id].metadata.title}</h1>
-            <br/>
-            <Readme readme={proposal}/>
-        </Card>)
-    }
-
-    const [body, setBody] = useState(landingPage());
+    useEffect(() => {
+        if (!body) {
+            setBody(<Table dataSource={rows} columns={columns} />);
+        }
+    }, [body, rows, columns]);
 
     return (
         <Layout className="layout">
             <Header className="header">
-                <a onClick={() => setBody(landingPage())}><div className="logo"/></a>
-                {/*<Menu theme="dark" mode="horizontal" defaultSelectedKeys={['1']}>*/}
-                {/*    <Menu.Item key="1"></Menu.Item>*/}
-                {/*</Menu>*/}
+                <a onClick={() => setBody(<Table dataSource={rows} columns={columns} />)}><div className="logo"/></a>
             </Header>
             <Content style={{ padding: '50px 50px' }}>
                 {body}
