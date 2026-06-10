@@ -289,6 +289,9 @@ A windowed root update mechanism allows proofs generated against a previous root
 
 **Pause kill-switch**: Every balance-moving transition checks `storage pause` and aborts when paused. Only addresses holding `PAUSE_ROLE` can toggle the flag via `set_pause_status`.
 
+## Contributors
+Sealance Corp (Nadav Peled, Alexey Gribov, Or Noyman, Mathew Green, Eran Tromer, Yaniv Finkelshtein)
+
 ## Copyright
 
 This ARC is placed in the public domain.
