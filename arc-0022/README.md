@@ -4,7 +4,7 @@ title: ARC-22 Compliant Fungible Token Standard
 authors: The Aleo Team <hello@aleo.org>
 discussion:
 topic: Application
-status: Active
+status: Final
 created: 2026-03-18
 signature_domain: aleo-gov-22-v1
 pass_threshold: 66
