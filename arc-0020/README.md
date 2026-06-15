@@ -4,7 +4,7 @@ title: ARC-20 Fungible Token Standard
 authors: The Aleo Team <hello@aleo.org>
 discussion: https://github.com/ProvableHQ/ARCs/discussions/124
 topic: Application
-status: Active
+status: Final
 created: 2026-03-18
 signature_domain: aleo-gov-20-v1
 pass_threshold: 66
