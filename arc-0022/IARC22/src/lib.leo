@@ -7,7 +7,7 @@ const ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
 // EMPTY_ROOT == hash of H(ZERO_ADDRESS, ZERO_ADDRESS)
 const EMPTY_ROOT: field = 3642222252059314292809609689035560016959342421640560347114299934615987159853field;
 
-struct MerkleProof {
+export struct MerkleProof {
     siblings: [field; MAX_TREE_DEPTH + 1],
     leaf_index: u32,
 }
@@ -108,7 +108,7 @@ fn verify_non_inclusion(addr: address, merkle_proofs: [MerkleProof; 2]) -> field
     return root1;
 }
 
-interface IARC22Freezelist {
+export interface IARC22Freezelist {
     fn initialize(public admin: address, public blocks: u32) -> Final;
     fn update_freeze_list(
         public account: address,
@@ -131,7 +131,7 @@ interface IARC22Freezelist {
     view fn block_height_window() -> u32;
 }
 
-interface IARC22 {
+export interface IARC22 {
     record Token {
         owner: address,
         amount: u128,
